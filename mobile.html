@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50 text-slate-800">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Finland • Mobile</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finland">
+  <link rel="apple-touch-icon" href="AppIcon.iconset/icon_128x128@2x.png">
+  <link rel="icon" type="image/png" href="AppIcon.iconset/icon_32x32@2x.png">
+
+  <!-- Resource Preloads for Instant Render -->
+  <link rel="preload" href="vendor/tailwind.min.js" as="script">
+  <link rel="preload" href="vendor/lucide.min.js" as="script">
+  <link rel="preload" href="mobile.css?v=live_v6" as="style">
+  <link rel="preload" href="mobile.js?v=live_v6" as="script">
+
+  <!-- Tailwind CSS (Local with CDN fallback) -->
+  <script src="vendor/tailwind.min.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com'"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: "#f0fdf4",
+              100: "#dcfce7",
+              400: "#4ade80",
+              500: "#22c55e",
+              600: "#16a34a",
+              700: "#15803d"
+            }
+          },
+          boxShadow: {
+            "2xs": "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="vendor/lucide.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/lucide@latest'"></script>
+  <link rel="stylesheet" href="mobile.css?v=live_v6">
+</head>
+<body class="h-full flex flex-col bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden select-none">
+
+  <!-- ================= TOP APP HEADER (STICKY) ================= -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2 safe-top z-30 shrink-0">
+    <div class="flex items-center justify-between">
+      
+      <!-- Brand & Month Stepper -->
+      <div class="flex items-center gap-2">
+        <img src="AppIcon.iconset/icon_32x32@2x.png" alt="Finland" class="w-7 h-7 rounded-xl shadow-2xs">
+        <div class="flex items-center bg-slate-100/90 border border-slate-200/60 rounded-xl p-0.5 text-xs">
+          <button id="mobilePrevMonthBtn" class="p-1 hover:text-slate-900 text-slate-500 tap-bounce" title="Previous Month">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="mobileMonthPickerTrigger" type="button" class="flex items-center gap-1.5 px-2.5 py-0.5 hover:bg-white rounded-lg transition-colors font-mono tap-bounce" title="Choose Month or All Time">
+            <span id="mobileMonthLabel" class="text-[11px] font-bold text-slate-900 text-center">Oct 2026</span>
+            <i data-lucide="chevron-down" class="w-2.5 h-2.5 text-slate-400"></i>
+          </button>
+          <button id="mobileNextMonthBtn" class="p-1 hover:text-slate-900 text-slate-500 tap-bounce" title="Next Month">
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Currency Switcher & Controls -->
+      <div class="flex items-center gap-1.5">
+        <div id="mobileTopCurrencySwitcher" class="flex items-center bg-slate-100/90 border border-slate-200/60 rounded-xl p-0.5 text-xs font-semibold">
+          <button class="mobile-curr-btn active px-1.5 py-0.5 rounded-lg text-slate-900 bg-white shadow-2xs font-mono" data-currency="EUR">€</button>
+          <button class="mobile-curr-btn px-1.5 py-0.5 rounded-lg text-slate-500 font-mono" data-currency="ILS">₪</button>
+          <button class="mobile-curr-btn px-1.5 py-0.5 rounded-lg text-slate-500 font-mono" data-currency="USD">$</button>
+        </div>
+
+        <button id="mobileRefreshSyncBtn" class="p-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-600 border border-slate-200/60 tap-bounce" title="Sync & Refresh with Web">
+          <i data-lucide="refresh-cw" id="syncSpinnerIcon" class="w-3.5 h-3.5 text-emerald-600"></i>
+        </button>
+
+        <button id="mobileOpenSettingsBtn" class="p-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-600 border border-slate-200/60 tap-bounce cursor-pointer" title="Settings &amp; Preferences">
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-600"></i>
+        </button>
+      </div>
+
+      <!-- Preserved for JS dynamic view tracking -->
+      <span id="mobileHeaderViewTitle" class="hidden">Transactions</span>
+    </div>
+  </header>
+
+  <!-- ================= SECONDARY VIEWS SUB-NAVIGATION BAR (FOR HUB SUB-PAGES) ================= -->
+  <nav id="mobileSecondaryHubBar" class="hidden bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2 flex items-center justify-between gap-2 shrink-0 z-20">
+    <button type="button" id="mobileBackToHubBtn" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-200 tap-bounce flex items-center gap-1.5 shrink-0 cursor-pointer">
+      <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-600"></i>
+      <span>Hub</span>
+    </button>
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <button type="button" class="hub-sub-tab-btn px-2.5 py-1 rounded-xl text-[11px] font-semibold text-slate-500 bg-slate-50 tap-bounce shrink-0" data-tab="viewExpenses">Transactions</button>
+      <button type="button" class="hub-sub-tab-btn px-2.5 py-1 rounded-xl text-[11px] font-semibold text-slate-500 bg-slate-50 tap-bounce shrink-0" data-tab="viewSubscriptions">Calendar</button>
+      <button type="button" class="hub-sub-tab-btn px-2.5 py-1 rounded-xl text-[11px] font-semibold text-slate-500 bg-slate-50 tap-bounce shrink-0" data-tab="viewNeedsToPay">Needa Pay</button>
+      <button type="button" class="hub-sub-tab-btn px-2.5 py-1 rounded-xl text-[11px] font-semibold text-slate-500 bg-slate-50 tap-bounce shrink-0" data-tab="viewWishlist">Wishlist</button>
+      <button type="button" class="hub-sub-tab-btn px-2.5 py-1 rounded-xl text-[11px] font-semibold text-slate-500 bg-slate-50 tap-bounce shrink-0" data-tab="viewReports">Reports</button>
+    </div>
+  </nav>
+
+  <!-- ================= MAIN SCROLLABLE VIEW CONTAINER ================= -->
+  <main id="mobileMainScroll" class="flex-1 overflow-y-auto no-scrollbar pb-32 px-3.5 pt-3 space-y-3.5">
+
+    <!-- ================= VIEW 0: HUB (ALL SECONDARY SECTIONS) ================= -->
+    <section id="viewHub" class="mobile-view hidden space-y-3.5">
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-sm font-bold text-slate-900">Hub</h2>
+        <span class="text-[11px] font-medium text-slate-400">All financial tools</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <!-- 1. Transactions -->
+        <button type="button" class="hub-card-btn bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs text-left flex flex-col justify-between gap-4 tap-bounce cursor-pointer" data-tab="viewExpenses">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background-color: #10b98115; color: #10b981;">
+            <i data-lucide="arrow-left-right" class="w-5 h-5" style="color: #10b981;"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-900">Transactions</div>
+            <div id="hubStatExpenses" class="text-sm font-black font-mono text-slate-900 mt-0.5">€0.00</div>
+          </div>
+        </button>
+
+        <!-- 2. Calendar & Bills -->
+        <button type="button" class="hub-card-btn bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs text-left flex flex-col justify-between gap-4 tap-bounce cursor-pointer" data-tab="viewSubscriptions">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background-color: #9333ea15; color: #9333ea;">
+            <i data-lucide="calendar" class="w-5 h-5" style="color: #9333ea;"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-900">Calendar &amp; Bills</div>
+            <div id="hubStatSubscriptions" class="text-sm font-black font-mono text-slate-900 mt-0.5">€0.00</div>
+          </div>
+        </button>
+
+        <!-- 3. Needa Pay -->
+        <button type="button" class="hub-card-btn bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs text-left flex flex-col justify-between gap-4 tap-bounce cursor-pointer" data-tab="viewNeedsToPay">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background-color: #ef444415; color: #ef4444;">
+            <i data-lucide="hourglass" class="w-5 h-5" style="color: #ef4444;"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-900">Needa Pay</div>
+            <div id="hubStatNeedsToPay" class="text-sm font-black font-mono text-slate-900 mt-0.5">€0.00</div>
+          </div>
+        </button>
+
+        <!-- 4. Wishlist -->
+        <button type="button" class="hub-card-btn bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs text-left flex flex-col justify-between gap-4 tap-bounce cursor-pointer" data-tab="viewWishlist">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background-color: #eab30815; color: #eab308;">
+            <i data-lucide="sparkles" class="w-5 h-5" style="color: #eab308;"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-900">Wishlist</div>
+            <div id="hubStatWishlist" class="text-sm font-black font-mono text-slate-900 mt-0.5">€0.00</div>
+          </div>
+        </button>
+
+        <!-- 5. Reports (Full Width Card) -->
+        <button type="button" class="hub-card-btn col-span-2 bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs text-left flex items-center justify-between gap-3 tap-bounce cursor-pointer" data-tab="viewReports">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style="background-color: #3b82f615; color: #3b82f6;">
+              <i data-lucide="pie-chart" class="w-5 h-5" style="color: #3b82f6;"></i>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">Reports &amp; Tax Summary</div>
+              <div id="hubStatReports" class="text-[11px] font-medium text-slate-400 mt-0.5">Charts, cash flow &amp; tax deductions</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 1: TRANSACTIONS ================= -->
+    <section id="viewExpenses" class="mobile-view space-y-3">
+      
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Monthly Spending</span>
+          <span id="mobileExpenseTxCountBadge" class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full font-mono">0 tx</span>
+        </div>
+
+        <div id="mobileTotalSpendPrimary" class="text-3xl font-black font-mono tracking-tight text-slate-900">€0.00</div>
+
+        <!-- 1-Tap Quick Action Pills -->
+        <div class="flex items-center gap-2 pt-1 border-t border-slate-100/90">
+          <button id="mobileHeroAddExpenseBtn" type="button" class="flex-1 py-2 px-3 bg-slate-900 active:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 tap-bounce cursor-pointer shadow-xs">
+            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[2.5]"></i>
+            <span>Expense</span>
+          </button>
+          <button id="mobileHeroAddIncomeBtn" type="button" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 tap-bounce cursor-pointer">
+            <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 text-slate-600 stroke-[2.5]"></i>
+            <span>Income</span>
+          </button>
+        </div>
+
+        <!-- Preserved DOM IDs for JS calculations -->
+        <div class="hidden">
+          <span id="mobileTotalSpendEquiv"></span>
+          <span id="mobileLargestExpense">€0.00</span>
+          <span id="mobileAverageExpense">€0.00</span>
+        </div>
+      </div>
+
+      <!-- Search & Filters Toolbar -->
+      <div class="bg-white rounded-3xl border border-slate-200/70 p-3 shadow-2xs space-y-2">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="mobileSearchInput" placeholder="Search transactions..." class="w-full bg-slate-50 border border-slate-200/70 text-xs text-slate-900 pl-9 pr-3 py-2 rounded-2xl focus:bg-white focus:outline-none placeholder-slate-400">
+        </div>
+
+        <!-- Filter Pills Strip -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
+          <button class="mobile-filter-pill active px-3 py-1.5 rounded-xl font-semibold bg-slate-900 text-white whitespace-nowrap tap-bounce" data-filter="all">All</button>
+          <button id="mobileFilterIncomeBtn" class="mobile-filter-pill px-3 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 whitespace-nowrap tap-bounce flex items-center gap-1" data-filter="income">
+            <span>Income</span>
+            <span id="mobileIncomeBadge" class="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-mono text-[10px] font-semibold">0</span>
+          </button>
+          <button class="mobile-filter-pill px-3 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 whitespace-nowrap tap-bounce" data-filter="subscriptions">Subscriptions</button>
+          <button class="mobile-filter-pill px-3 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 whitespace-nowrap tap-bounce" data-filter="business">
+            <span>Business</span>
+            <span id="mobileBusinessBadge" class="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-mono text-[10px] font-semibold">0</span>
+          </button>
+          <button class="mobile-filter-pill px-3 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 whitespace-nowrap tap-bounce" data-filter="receipts">Receipts</button>
+          <button id="mobileFilterMissingBtn" class="mobile-filter-pill px-3 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 whitespace-nowrap tap-bounce flex items-center gap-1" data-filter="missing_receipts">
+            <span>Missing</span>
+            <span id="mobileMissingBadge" class="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-mono text-[10px] font-semibold">0</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100/80">
+          <select id="mobileFilterCategory" class="bg-slate-50 border border-slate-200/70 text-xs text-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none">
+            <option value="ALL">All Categories</option>
+          </select>
+
+          <select id="mobileSortDropdown" class="bg-slate-50 border border-slate-200/70 text-xs text-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="amount-desc">Highest First</option>
+            <option value="amount-asc">Lowest First</option>
+            <option value="provider-asc">A → Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Date Grouped Transaction Feed -->
+      <div id="mobileTransactionsFeed" class="space-y-3">
+        <!-- Dynamically rendered -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="mobileExpensesEmpty" class="hidden py-12 text-center text-slate-500 bg-white rounded-3xl border border-slate-200/80 p-4">
+        <i data-lucide="receipt-text" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+        <p class="text-sm font-bold text-slate-700">No transactions found</p>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 2: CALENDAR & RECURRING ================= -->
+    <section id="viewSubscriptions" class="mobile-view hidden space-y-3.5">
+      
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Monthly Commitments</span>
+          <button id="openMobileAddSubBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 tap-bounce shadow-xs cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Bill</span>
+          </button>
+        </div>
+
+        <div id="mobileSubBurnPrimary" class="text-3xl font-black font-mono tracking-tight text-slate-900">€0.00</div>
+
+        <!-- Hidden legacy IDs -->
+        <div class="hidden">
+          <span id="mobileSubBurnEquiv"></span>
+          <span id="mobileSubNextTitle"></span>
+          <span id="mobileSubNextDate"></span>
+        </div>
+      </div>
+
+      <!-- Dedicated Interactive 7-Column Calendar Widget (Always Visible) -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-4 h-4 text-purple-600"></i>
+            <h2 id="mobileCalMonthYearHeading" class="text-xs font-bold text-slate-900 tracking-tight">Recurring Calendar</h2>
+          </div>
+          <span class="text-[10px] text-slate-400 font-medium">Tap day to inspect</span>
+        </div>
+
+        <!-- 7-Column Days of Week Header -->
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+        </div>
+
+        <!-- Calendar Cells Grid -->
+        <div id="mobileSubscriptionCalendarGrid" class="mobile-cal-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Selected Date Details Drawer -->
+        <div id="mobileCalSelectedDayDetails" class="p-3 bg-purple-50/70 border border-purple-200/70 rounded-2xl text-xs text-purple-900 space-y-2">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Monthly Sub-Category Filter Pills -->
+      <div class="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl text-xs font-semibold">
+        <button id="mobileSubsTabAll" class="mobile-subs-filter active flex-1 py-1.5 px-3 rounded-xl bg-white text-slate-900 shadow-2xs tap-bounce text-center" data-sub-filter="all">
+          All (<span id="mobileSubsCountAll">0</span>)
+        </button>
+        <button id="mobileSubsTabSubs" class="mobile-subs-filter flex-1 py-1.5 px-3 rounded-xl text-slate-500 hover:text-slate-900 tap-bounce text-center" data-sub-filter="subscriptions">
+          Subscriptions (<span id="mobileSubsCountSubs">0</span>)
+        </button>
+        <button id="mobileSubsTabRecurring" class="mobile-subs-filter flex-1 py-1.5 px-3 rounded-xl text-slate-500 hover:text-slate-900 tap-bounce text-center" data-sub-filter="recurring">
+          Fixed Bills (<span id="mobileSubsCountFixed">0</span>)
+        </button>
+      </div>
+
+      <!-- Section 1: Subscriptions (Digital / SaaS / Entertainment) -->
+      <div id="mobileSubsCategoryGroup" class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Subscriptions</h3>
+            <span id="categorySubsCountHeader" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="categorySubsSubtotal" class="text-xs font-semibold text-slate-700 font-mono">€0.00 / mo</span>
+        </div>
+        <div id="mobileSubscriptionsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Section 2: Fixed & Living Bills (Rent, Utilities, Insurance) -->
+      <div id="mobileRecurringCategoryGroup" class="space-y-2 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Fixed &amp; Living Bills</h3>
+            <span id="categoryRecurringCountHeader" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="categoryRecurringSubtotal" class="text-xs font-semibold text-slate-700 font-mono">€0.00 / mo</span>
+        </div>
+        <div id="mobileRecurringBillsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Hidden fallbacks for legacy JS queries -->
+      <div id="mobileUpcomingTimelineStrip" class="hidden"></div>
+      <div id="mobileUpcomingCalendarContainer" class="contents"></div>
+
+    </section>
+
+    <!-- ================= VIEW 3: BUDGET & CASH FLOW ================= -->
+    <section id="viewBudget" class="mobile-view hidden space-y-4">
+      
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Safe to Spend</span>
+            <span id="mobileBudgetLeftTag" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">In Hand</span>
+          </div>
+          <button id="openMobileBudgetAdjustBtn" type="button" class="text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl tap-bounce flex items-center gap-1 cursor-pointer">
+            <i data-lucide="sliders" class="w-3 h-3 text-slate-500"></i>
+            <span>Rates &amp; Tax</span>
+          </button>
+        </div>
+
+        <div id="mobileBudgetLeftPrimary" class="text-3xl font-black font-mono tracking-tight text-slate-900">€0.00</div>
+
+        <!-- Hidden legacy metrics -->
+        <div class="hidden">
+          <div id="mobileBudgetDailySafeBurn"></div>
+          <div id="mobileBudgetFlowBar"></div>
+          <span id="mobileBudgetFlowText"></span>
+          <span id="mobileBudgetRunwayText"></span>
+          <div id="mobileBudgetIncomePrimary"></div>
+          <div id="mobileBudgetIncomeEquiv"></div>
+          <span id="mobileBudgetTaxRateTag"></span>
+          <div id="mobileBudgetFixedPrimary"></div>
+          <div id="mobileBudgetPendingPrimary"></div>
+          <div id="mobileBudgetPendingEquiv"></div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: Freelance Projects & Invoices -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Projects &amp; Invoices</h3>
+            <span id="mobileBudgetProjectsCount" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0</span>
+            <button id="mobileBudgetAllTimeBtn" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-200/80 bg-white text-slate-600 tap-bounce flex items-center gap-1 cursor-pointer" title="Toggle between Selected Month and All Time">
+              <i data-lucide="layers" class="w-3 h-3 text-slate-400"></i>
+              <span>All Time</span>
+            </button>
+          </div>
+          <button id="openMobileAddProjectBtn" class="text-xs font-bold text-white bg-slate-900 px-3 py-1.5 rounded-xl tap-bounce flex items-center gap-1 shadow-xs cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Project</span>
+          </button>
+        </div>
+
+        <!-- Filter pills -->
+        <div class="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl text-xs font-semibold">
+          <button class="mobile-project-filter active flex-1 py-1 px-2.5 rounded-xl text-center text-slate-900 bg-white shadow-2xs tap-bounce" data-filter="all">All</button>
+          <button class="mobile-project-filter flex-1 py-1 px-2.5 rounded-xl text-center text-slate-500 hover:text-slate-900 tap-bounce" data-filter="pending">Pending</button>
+          <button class="mobile-project-filter flex-1 py-1 px-2.5 rounded-xl text-center text-slate-500 hover:text-slate-900 tap-bounce" data-filter="paid">Paid</button>
+        </div>
+
+        <!-- Projects Cards Feed -->
+        <div id="mobileFreelanceProjectsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- SECTION 2: Category Budgets & Everyday Spending -->
+      <div class="space-y-2.5 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Category Budgets</h3>
+            <span id="mobileCategoryCountHeader" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0</span>
+          </div>
+          <button id="mobileAutoBudgetBtn" class="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl tap-bounce flex items-center gap-1 cursor-pointer">
+            <i data-lucide="sparkles" class="w-3 h-3 text-slate-500"></i>
+            <span>Auto-Suggest</span>
+          </button>
+        </div>
+
+        <!-- Category Budgets Grid -->
+        <div id="mobileCategoryBudgetsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 4: PROJECT FOLLOWUP ================= -->
+    <section id="viewProjectFollowup" class="mobile-view hidden space-y-3.5">
+      
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ongoing Projects</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="openMobileNewLeadBtn" type="button" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl tap-bounce flex items-center gap-1 cursor-pointer">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-slate-500"></i>
+              <span>+ Lead</span>
+            </button>
+            <button id="openMobileNewProjectFromFollowupBtn" type="button" class="px-3 py-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl tap-bounce flex items-center gap-1 shadow-xs cursor-pointer">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>+ Project</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="mobileFollowupProjectsMoney" class="text-3xl font-black font-mono tracking-tight text-slate-900">€0.00</div>
+
+        <!-- Hidden legacy metrics -->
+        <div class="hidden">
+          <span id="mobileFollowupLeadsMoney"></span>
+          <span id="mobileFollowupLeadsCount"></span>
+          <span id="mobileFollowupProjectsCount"></span>
+          <span id="mobileFollowupDueCount"></span>
+        </div>
+      </div>
+
+      <!-- SECTION A: 💡 LEADS (Ideas, Inquiries, Quotes) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Leads &amp; Inquiries</h3>
+            <span id="mobileFollowupLeadsBadge" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="mobileFollowupLeadsMoneyPill" class="text-xs font-mono font-semibold text-slate-600"></span>
+        </div>
+
+        <div id="mobileFollowupLeadsEmpty" class="hidden py-6 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/80 p-4">
+          <p class="text-xs font-medium text-slate-400">No active leads</p>
+        </div>
+
+        <div id="mobileFollowupLeadsList" class="space-y-2">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+      <!-- SECTION B: 🚀 ONGOING PROJECTS -->
+      <div class="space-y-2 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Ongoing Projects</h3>
+            <span id="mobileFollowupProjectsBadge" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="mobileFollowupProjectsMoneyPill" class="text-xs font-mono font-semibold text-slate-600"></span>
+        </div>
+
+        <div id="mobileFollowupProjectsEmpty" class="hidden py-6 text-center text-slate-400 bg-white rounded-3xl border border-slate-200/80 p-4">
+          <p class="text-xs font-medium text-slate-400">No ongoing projects</p>
+        </div>
+
+        <div id="mobileFollowupProjectsList" class="space-y-2">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+      <!-- SECTION C: ✅ FINISHED PROJECTS -->
+      <div id="mobileFollowupCompletedSection" class="space-y-2 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Finished Projects</h3>
+            <span id="mobileFollowupCompletedBadge" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="mobileFollowupCompletedMoneyPill" class="text-xs font-mono font-semibold text-slate-600"></span>
+        </div>
+
+        <div id="mobileFollowupCompletedList" class="space-y-2">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 5: NEEDA PAY ================= -->
+    <section id="viewNeedsToPay" class="mobile-view hidden space-y-3.5">
+      
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Outstanding</span>
+          <button id="openMobileAddDebtBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 tap-bounce shadow-xs cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Bill</span>
+          </button>
+        </div>
+
+        <div id="mobileNeedsTotalPrimary" class="text-3xl font-black font-mono tracking-tight text-slate-900">€0.00</div>
+
+        <!-- Hidden legacy metrics -->
+        <div class="hidden">
+          <div id="mobileNeedsTotalEquiv"></div>
+          <div id="mobileNeedsDebtsPrimary"></div>
+          <div id="mobileNeedsBillsPrimary"></div>
+        </div>
+      </div>
+
+      <!-- Past Bills & Debts Section -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Past Bills &amp; Debts</h3>
+            <span id="mobileStandaloneDebtsCount" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0</span>
+          </div>
+          <span id="mobileStandaloneDebtsSubtotal" class="text-xs font-semibold text-slate-600 font-mono">€0.00</span>
+        </div>
+        <div id="mobileStandaloneDebtsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Monthly Bills Shortfalls Section -->
+      <div class="space-y-2 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Monthly Commitments Due</h3>
+            <span id="mobileMonthlyBillsCount" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0</span>
+          </div>
+          <span id="mobileMonthlyBillsSubtotal" class="text-xs font-semibold text-slate-600 font-mono">€0.00</span>
+        </div>
+        <div id="mobileMonthlyBillsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="mobileNeedsToPayEmpty" class="hidden py-12 text-center text-slate-500 bg-white rounded-3xl border border-slate-200/80 p-4">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-2">
+          <i data-lucide="check-check" class="w-5 h-5"></i>
+        </div>
+        <p class="text-sm font-bold text-slate-700">All caught up!</p>
+      </div>
+
+    </section>
+
+    <!-- ================= VIEW 6: WISHLIST & COST SIMULATOR ================= -->
+    <section id="viewWishlist" class="mobile-view hidden space-y-3.5">
+      <!-- Single-Number Hero Card -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Simulated Monthly Impact</span>
+          <button id="openMobileAddWishBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs tap-bounce flex items-center gap-1.5 shrink-0 ml-2 shadow-xs cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Item</span>
+          </button>
+        </div>
+
+        <div id="mobileWishlistTotalPrimary" class="text-3xl font-black font-mono tracking-tight text-slate-900">+ €0.00</div>
+
+        <!-- Hidden legacy metrics -->
+        <div class="hidden">
+          <div id="mobileWishlistTotalEquiv"></div>
+          <div id="mobileWishlistProjectedPrimary"></div>
+          <div id="mobileWishlistProjectedEquiv"></div>
+        </div>
+      </div>
+
+      <!-- Section 1: Wishlist Subscriptions -->
+      <div id="mobileWishlistSubsSection" class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Subscriptions</h3>
+            <span id="mobileWishlistSubsCount" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="mobileWishlistSubsSimText" class="text-xs font-mono font-semibold text-slate-600">€0.00/mo</span>
+        </div>
+        <div id="mobileWishlistSubsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Section 2: One-Off Purchases & Items -->
+      <div id="mobileWishlistItemsSection" class="space-y-2 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">One-Off Items</h3>
+            <span id="mobileWishlistItemsCount" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <span id="mobileWishlistItemsSimText" class="text-xs font-mono font-semibold text-slate-600">€0.00/mo</span>
+        </div>
+        <div id="mobileWishlistItemsList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 7: NOTES ================= -->
+    <section id="viewNotes" class="mobile-view hidden space-y-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-bold text-slate-900">Notes</h2>
+          <span id="mobileNotesActiveCountBadge" class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
+        </div>
+        <button id="openMobileAddNoteBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 tap-bounce shadow-xs cursor-pointer">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Add Note</span>
+        </button>
+      </div>
+
+      <!-- Notes Grid -->
+      <div id="mobileNotesGrid" class="space-y-2.5">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Mobile Notes Archive Section -->
+      <div id="mobileNotesArchiveSection" class="mt-4 pt-4 border-t border-slate-200/80 space-y-2.5 hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="archive" class="w-3.5 h-3.5 text-slate-500"></i>
+            <h3 class="text-xs font-bold text-slate-700">Archive</h3>
+            <span id="mobileNotesArchiveCountBadge" class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded-full">0</span>
+          </div>
+          <button type="button" id="toggleMobileNotesArchiveBtn" class="text-[11px] font-semibold text-slate-500 tap-bounce">
+            <span id="toggleMobileNotesArchiveText">Hide</span>
+          </button>
+        </div>
+        <div id="mobileNotesArchiveGrid" class="space-y-2.5">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 8: REPORTS ================= -->
+    <section id="viewReports" class="mobile-view hidden space-y-3">
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-slate-900">Spending by Category</h2>
+          <span class="text-[10px] text-slate-400 font-mono">This month</span>
+        </div>
+        <div class="relative w-full h-40 flex items-center justify-center">
+          <canvas id="mobileCategoryChart"></canvas>
+          <div id="mobileNoReportsData" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs">
+            <i data-lucide="pie-chart" class="w-6 h-6 opacity-40 mb-1"></i>
+            <span>No expenses for this month</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monarch Category Breakdown Table -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+          <span>Category</span>
+          <div class="flex items-center gap-5">
+            <span>Amount</span>
+            <span class="w-7 text-right">%</span>
+          </div>
+        </div>
+        <div id="mobileReportsBreakdownList" class="divide-y divide-slate-100 text-xs max-h-[175px] overflow-y-auto">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Mobile Report 2: Income vs Spending -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-xs font-bold text-slate-900">Income vs. Spending</h3>
+              <span class="text-[9px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200/80">6 Mo</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Money in vs. money out</p>
+          </div>
+          <div id="mobileReportCashflowDeltaBadge" class="text-xs font-bold font-mono">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+        <div class="h-44 relative flex items-center justify-center">
+          <canvas id="mobileCashflowChart"></canvas>
+          <div id="mobileNoCashflowData" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs">
+            <i data-lucide="line-chart" class="w-7 h-7 opacity-40 mb-1"></i>
+            <span>No 6-month records</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Report 3: Business vs Personal Tax Expenses -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-xs font-bold text-slate-900">Business Taxes</h3>
+              <span class="text-[9px] font-semibold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full border border-indigo-200/80">Taxes</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Deductions and receipt coverage</p>
+          </div>
+          <div id="mobileReportTaxHealthBadge" class="text-[10px] font-semibold font-mono">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50/80 border border-slate-100 rounded-2xl p-2.5">
+            <div class="text-[10px] font-semibold text-indigo-900/70">Business Expenses</div>
+            <div id="mobileReportDeductibleTotal" class="text-sm font-extrabold text-indigo-950 font-mono mt-0.5">€0.00</div>
+            <div id="mobileReportDeductiblePercent" class="text-[9px] text-indigo-600 mt-0.5 font-medium">0% of total</div>
+          </div>
+          <div class="bg-slate-50/80 border border-slate-100 rounded-2xl p-2.5">
+            <div class="text-[10px] font-semibold text-emerald-900/70">Receipts Attached</div>
+            <div id="mobileReportTaxReceiptCount" class="text-sm font-extrabold text-emerald-950 font-mono mt-0.5">0 / 0</div>
+            <div id="mobileReportTaxReceiptPercent" class="text-[9px] text-emerald-600 mt-0.5 font-medium">0% with receipts</div>
+          </div>
+        </div>
+
+        <div id="mobileReportMissingTaxCard" class="bg-slate-50 border border-slate-200/70 rounded-2xl p-2.5 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <i data-lucide="receipt" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span class="text-slate-600">Missing receipts</span>
+          </div>
+          <span id="mobileReportMissingTaxCount" class="font-bold text-slate-900 font-mono">0 items</span>
+        </div>
+      </div>
+
+      <!-- Mobile Report 4: Fixed Bills vs Everyday Spending & Runway -->
+      <div class="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-xs font-bold text-slate-900">Fixed Bills vs. Everyday</h3>
+              <span class="text-[9px] font-semibold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200/80">Bills</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Fixed subscriptions vs everyday purchases</p>
+          </div>
+          <div id="mobileReportRunwayBadge" class="text-xs font-bold font-mono">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50/80 border border-slate-100 rounded-2xl p-2.5">
+            <div class="text-[10px] font-semibold text-amber-900/70">Fixed Bills</div>
+            <div id="mobileReportFixedOverheadAmount" class="text-sm font-extrabold text-slate-900 font-mono mt-0.5">€0.00</div>
+            <div id="mobileReportFixedOverheadRatio" class="text-[9px] text-slate-500 mt-0.5 font-medium">0% of month</div>
+          </div>
+          <div class="bg-slate-50/80 border border-slate-100 rounded-2xl p-2.5">
+            <div class="text-[10px] font-semibold text-sky-900/70">Months Covered</div>
+            <div id="mobileReportRunwayMonths" class="text-sm font-extrabold text-slate-900 font-mono mt-0.5">0.0 mo</div>
+            <div class="text-[9px] text-slate-500 mt-0.5 font-medium">From pending project fees</div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+          <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex border border-slate-200/60">
+            <div id="mobileReportOverheadFixedBar" class="h-full bg-amber-500 transition-all duration-300" style="width: 0%;"></div>
+            <div id="mobileReportOverheadDiscretionaryBar" class="h-full bg-slate-300 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+            <span id="mobileReportFixedBarLabel">Fixed: €0</span>
+            <span id="mobileReportDiscretionaryBarLabel">Everyday: €0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FLOATING ACTION BUTTON (FAB) ================= -->
+  <button id="mobileFabBtn" class="fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/25 flex items-center justify-center tap-bounce cursor-pointer border-2 border-white" title="Quick Add">
+    <i data-lucide="plus" class="w-5 h-5 stroke-[2.5]"></i>
+  </button>
+
+  <!-- ================= BOTTOM NAVIGATION BAR (4 CORE TABS) ================= -->
+  <nav class="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 safe-bottom-nav px-3 pt-1.5 pb-1">
+    <div class="grid grid-cols-4 gap-2">
+      <button class="mobile-nav-btn active rounded-2xl bg-slate-100 transition-all tap-bounce cursor-pointer flex flex-col items-center justify-center gap-0.5 py-1.5" data-tab="viewNotes" title="Notes" aria-label="Notes">
+        <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+        <span class="text-[10px] font-bold">Notes</span>
+      </button>
+      <button class="mobile-nav-btn rounded-2xl text-slate-400 hover:text-slate-600 transition-all tap-bounce cursor-pointer flex flex-col items-center justify-center gap-0.5 py-1.5" data-tab="viewProjectFollowup" title="Projects" aria-label="Projects">
+        <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Projects</span>
+      </button>
+      <button class="mobile-nav-btn rounded-2xl text-slate-400 hover:text-slate-600 transition-all tap-bounce cursor-pointer flex flex-col items-center justify-center gap-0.5 py-1.5" data-tab="viewBudget" title="Budget" aria-label="Budget">
+        <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Budget</span>
+      </button>
+      <button class="mobile-nav-btn rounded-2xl text-slate-400 hover:text-slate-600 transition-all tap-bounce cursor-pointer flex flex-col items-center justify-center gap-0.5 py-1.5" data-tab="viewHub" title="Hub" aria-label="Hub">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Hub</span>
+      </button>
+    </div>
+    <!-- Hidden fallback for legacy More button query -->
+    <button id="openMoreMenuBtn" class="hidden" aria-hidden="true"></button>
+  </nav>
+
+  <!-- ================= BOTTOM SHEET: MORE MENU ================= -->
+  <div id="moreMenuBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="moreMenuSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-3">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
+    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">More Views &amp; Tools</div>
+
+    <div class="grid grid-cols-2 gap-2.5 pt-1">
+      <button class="switch-to-tab-btn p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce" data-tab="viewProjectFollowup">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background-color: #0ea5e918; color: #0ea5e9; border: 1px solid #0ea5e930;">
+          <i data-lucide="folder-kanban" class="w-4 h-4" style="color: #0ea5e9;"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Project Followup</span>
+      </button>
+
+      <button class="switch-to-tab-btn p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce" data-tab="viewWishlist">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background-color: #eab30818; color: #eab308; border: 1px solid #eab30830;">
+          <i data-lucide="sparkles" class="w-4 h-4" style="color: #eab308;"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Wishlist</span>
+      </button>
+
+      <button class="switch-to-tab-btn p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce" data-tab="viewNotes">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background-color: #d9770618; color: #d97706; border: 1px solid #d9770630;">
+          <i data-lucide="clipboard-list" class="w-4 h-4" style="color: #d97706;"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Notes</span>
+      </button>
+
+      <button class="switch-to-tab-btn p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce" data-tab="viewReports">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background-color: #3b82f618; color: #3b82f6; border: 1px solid #3b82f630;">
+          <i data-lucide="pie-chart" class="w-4 h-4" style="color: #3b82f6;"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Reports</span>
+      </button>
+
+      <button id="moreOpenSettingsBtn" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-200/60 text-slate-700">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Settings</span>
+      </button>
+
+      <button id="moreOpenSyncBtn" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce">
+        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Sync &amp; Vault</span>
+      </button>
+    </div>
+
+    <button id="closeMoreMenuBtn" class="w-full py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl tap-bounce">Close</button>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: QUICK ACTION FAB ================= -->
+  <div id="fabActionBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="fabActionSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-3">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
+    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Quick Action</div>
+
+    <div class="grid grid-cols-2 gap-2.5 pt-1">
+      <button id="quickActionAddExpense" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce">
+        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Log Expense</span>
+      </button>
+
+      <label for="cameraReceiptInput" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce cursor-pointer">
+        <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Snap Receipt</span>
+        <input type="file" id="cameraReceiptInput" accept="image/*" capture="environment" class="hidden">
+      </label>
+
+      <button id="quickActionAddDebt" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce">
+        <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+          <i data-lucide="hourglass" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">Bill to Pay</span>
+      </button>
+
+      <button id="quickActionAddNote" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center gap-1.5 tap-bounce">
+        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+        </div>
+        <span class="text-xs font-bold text-slate-800">New Note</span>
+      </button>
+    </div>
+
+    <button id="closeFabActionBtn" class="w-full py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl tap-bounce">Cancel</button>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT EXPENSE ================= -->
+  <div id="expenseSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="expenseSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 id="mobileExpenseModalTitle" class="font-bold text-base text-slate-900">Log Expense</h3>
+      <button id="closeExpenseSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileExpenseForm" class="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-0.5">
+      <input type="hidden" id="mobileEditExpenseId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Merchant / Store *</label>
+        <input type="text" id="mobileExpenseTitle" required placeholder="e.g. Supermarket, Netflix, Dinner" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Amount *</label>
+          <input type="number" step="0.01" min="0.01" id="mobileExpenseAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileExpenseCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+          <select id="mobileExpenseCategory" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Groceries">🛒 Groceries</option>
+            <option value="Dining">🍽️ Dining</option>
+            <option value="Subscriptions">📱 Subscriptions</option>
+            <option value="Shopping">🛍️ Shopping</option>
+            <option value="Transport">🚗 Transport</option>
+            <option value="Health">💊 Health</option>
+            <option value="Housing">🏠 Housing</option>
+            <option value="Utilities">💡 Utilities</option>
+            <option value="Entertainment">🎟️ Entertainment</option>
+            <option value="Travel">✈️ Travel</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-slate-700">Payment Method</label>
+            <button type="button" id="mobileAddPmQuickBtn" class="text-[10px] text-indigo-600 font-bold hover:underline" title="Add Payment Method">+ Add</button>
+          </div>
+          <select id="mobileExpensePaymentMethod" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Debit Card">Debit Card</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+          <input type="date" id="mobileExpenseDate" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Context</label>
+          <input type="text" id="mobileExpenseNotes" placeholder="Optional context..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Income & Business Tags Checkboxes -->
+      <div class="grid grid-cols-2 gap-2">
+        <label id="mobileExpenseIncomeLabel" class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 cursor-pointer tap-bounce">
+          <input type="checkbox" id="mobileExpenseIsIncome" class="w-4 h-4 rounded text-emerald-600 border-slate-300">
+          <span id="mobileExpenseIncomeText">💰 Received Income</span>
+        </label>
+        <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 cursor-pointer tap-bounce">
+          <input type="checkbox" id="mobileExpenseIsBusiness" class="w-4 h-4 rounded text-indigo-600 border-slate-300">
+          <span>💼 Business Tax</span>
+        </label>
+      </div>
+
+      <!-- Receipt Document Section -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+            <span>Receipt Photo / File</span>
+          </span>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="mobilePreviewReceiptBtn" class="hidden text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full tap-bounce flex items-center gap-1 cursor-pointer">
+              <i data-lucide="eye" class="w-3 h-3 text-indigo-600"></i>
+              <span>View</span>
+            </button>
+            <span id="mobileReceiptStatusBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">None attached</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label for="mobileReceiptInput" class="flex-1 py-2 px-3 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer tap-bounce">
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Choose File</span>
+            <input type="file" id="mobileReceiptInput" accept="image/*,.pdf" class="hidden">
+          </label>
+
+          <label for="mobileCameraInput" class="py-2 px-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl text-xs font-semibold text-blue-700 flex items-center gap-1.5 cursor-pointer tap-bounce">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+            <span>Camera</span>
+            <input type="file" id="mobileCameraInput" accept="image/*" capture="environment" class="hidden">
+          </label>
+        </div>
+
+        <!-- Option to Waive Receipt for Non-Business -->
+        <button type="button" id="mobileToggleWaiveReceiptBtn" class="w-full py-1.5 px-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1 tap-bounce">
+          <i data-lucide="file-x" class="w-3 h-3 text-slate-400"></i>
+          <span id="mobileToggleWaiveLabel">Don't need receipt (remove from missing counter)</span>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100 shrink-0">
+        <button type="button" id="mobileDeleteExpenseBtn" class="hidden px-2.5 py-2 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete</button>
+        <button type="button" id="mobileDuplicateExpenseBtn" class="hidden px-2.5 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs tap-bounce">Duplicate</button>
+        <button type="button" id="mobileMakeRecurringBtn" class="hidden px-2.5 py-2 bg-purple-50 text-purple-700 font-bold rounded-xl text-xs border border-purple-200 tap-bounce">Recurring</button>
+        <button type="submit" id="mobileExpenseSubmitBtn" class="flex-1 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Expense</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADJUST BUDGETS & TAX ================= -->
+  <div id="budgetAdjustBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="budgetAdjustSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 class="font-bold text-base text-slate-900">Adjust Budgets &amp; Tax</h3>
+      <button id="closeBudgetAdjustBtn" class="p-1 text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto no-scrollbar space-y-3.5 pr-0.5">
+      <!-- Tax Reserve Rate Section with 0% Support -->
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-slate-800">Freelance Tax Reserve Buffer</label>
+          <div class="flex items-center gap-1 font-mono font-bold text-sm text-slate-900">
+            <input type="number" id="mobileTaxInput" min="0" max="50" step="1" value="0" class="w-12 text-center bg-white border border-slate-300 rounded-lg py-0.5 text-xs font-bold font-mono">
+            <span>%</span>
+          </div>
+        </div>
+
+        <input type="range" id="mobileTaxSlider" min="0" max="50" step="1" value="0" class="w-full accent-slate-900">
+
+        <!-- Quick 0% & other presets -->
+        <div class="flex items-center gap-1.5 flex-wrap pt-1">
+          <button type="button" class="mobile-tax-preset active px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-900 text-white" data-tax="0">0% (None)</button>
+          <button type="button" class="mobile-tax-preset px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-700" data-tax="10">10%</button>
+          <button type="button" class="mobile-tax-preset px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-700" data-tax="15">15%</button>
+          <button type="button" class="mobile-tax-preset px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-700" data-tax="20">20%</button>
+          <button type="button" class="mobile-tax-preset px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-700" data-tax="25">25%</button>
+        </div>
+      </div>
+
+      <!-- Category Limits List -->
+      <div class="space-y-2">
+        <span class="text-xs font-bold text-slate-700">Monthly Category Envelopes</span>
+        <div id="mobileAdjustCategoriesList" class="space-y-2">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-2 border-t border-slate-100 shrink-0">
+      <button id="saveBudgetAdjustBtn" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md tap-bounce">Save Budgets &amp; Rates</button>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT CLIENT PROJECT ================= -->
+  <div id="projectSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="projectSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 id="mobileProjectModalTitle" class="font-bold text-base text-slate-900">Add Freelance Project</h3>
+      <button id="closeProjectSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileProjectForm" class="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-0.5">
+      <input type="hidden" id="mobileEditProjectId">
+      
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Client Name *</label>
+        <input type="text" id="mobileProjectClient" required placeholder="e.g. Acme Studio, Tech Corp" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Project Title / Milestone *</label>
+        <input type="text" id="mobileProjectTitle" required placeholder="e.g. Website Redesign Q4" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Contract Fee *</label>
+          <input type="number" step="0.01" min="0.01" id="mobileProjectFee" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileProjectCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Invoice Number</label>
+          <input type="text" id="mobileProjectInvoiceNum" placeholder="#INV-2026-01" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Due Date</label>
+          <input type="date" id="mobileProjectDueDate" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+          <select id="mobileProjectStatus" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="invoiced">Invoiced (Waiting)</option>
+            <option value="expected">Expected / Deal</option>
+            <option value="paid">Paid in Full</option>
+          </select>
+        </div>
+        <div id="mobileProjectPaidDateContainer" class="hidden">
+          <label class="block text-xs font-semibold text-emerald-800 mb-1">Paid Date</label>
+          <input type="date" id="mobileProjectPaidDate" class="w-full bg-emerald-50/60 border border-emerald-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="mobileDeleteProjectBtn" class="hidden px-3 py-2 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete</button>
+          <button type="button" id="mobileProjectLogDepositSheetBtn" class="hidden px-3 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-xs border border-emerald-200 tap-bounce">+ Deposit</button>
+          <button type="button" id="mobileProjectViewDocSheetBtn" class="hidden px-3 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs border border-indigo-200 tap-bounce">View Doc</button>
+        </div>
+        <button type="submit" class="flex-1 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Project</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT LEAD ================= -->
+  <div id="leadSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="leadSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        </div>
+        <h3 id="mobileLeadModalTitle" class="font-bold text-base text-slate-900">Add New Lead</h3>
+      </div>
+      <button id="closeLeadSheetBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileLeadForm" class="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-0.5">
+      <input type="hidden" id="mobileLeadId" value="">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Client Name *</label>
+        <input type="text" id="mobileLeadClient" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none" placeholder="e.g. Acme Studio, Maya Cohen" required>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Project Idea / Scope *</label>
+        <input type="text" id="mobileLeadTitle" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none" placeholder="e.g. Ring 3D renders, Brand design" required>
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Proposed Price</label>
+          <input type="number" step="any" min="0" id="mobileLeadAmount" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none" placeholder="0.00">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileLeadCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="USD">USD ($)</option>
+            <option value="ILS">ILS (₪)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+        <select id="mobileLeadStatus" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none">
+          <option value="Emailing">💬 Initial Emailing / Chatting</option>
+          <option value="Quote Sent">📄 Price Offering Sent</option>
+          <option value="Waiting for Answer">⏳ Waiting for Answer</option>
+          <option value="Negotiating">🤝 Negotiating Scope</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Notes &amp; Details</label>
+        <textarea id="mobileLeadNotes" rows="2" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none" placeholder="Notes about budget discussions, deadlines, or next contact..."></textarea>
+      </div>
+
+      <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 shrink-0">
+        <button type="button" id="mobileDeleteLeadBtn" class="text-xs font-semibold text-rose-500 hover:text-rose-700 px-2 py-1.5 rounded-lg hover:bg-rose-50 hidden transition-colors tap-bounce">
+          Delete
+        </button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button type="button" id="mobileConvertLeadToProjectBtn" class="px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl tap-bounce hidden">
+            Convert to Project 🚀
+          </button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-2xs tap-bounce">
+            Save Lead
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: LOG PROJECT PAYMENT ================= -->
+  <div id="paymentSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="paymentSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div>
+        <h3 class="font-bold text-base text-slate-900">Log Client Deposit</h3>
+        <p id="mobilePaymentClientSub" class="text-xs text-slate-400">Record milestone payment</p>
+      </div>
+      <button id="closePaymentSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobilePaymentForm" class="space-y-3">
+      <input type="hidden" id="mobilePaymentProjectId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Amount Received *</label>
+        <div class="flex items-center gap-1.5">
+          <select id="mobilePaymentCurrency" class="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none shrink-0">
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="ILS">₪ ILS</option>
+          </select>
+          <input type="number" step="0.01" min="0.01" id="mobilePaymentAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div id="mobilePaymentConvertedPreview" class="text-[11px] text-slate-500 font-mono mt-1 hidden"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date</label>
+          <input type="date" id="mobilePaymentDate" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Method</label>
+          <select id="mobilePaymentMethod" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Wise">Wise</option>
+            <option value="PayPal">PayPal</option>
+            <option value="Stripe">Stripe</option>
+            <option value="Cash">Cash</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Notes</label>
+        <input type="text" id="mobilePaymentNotes" placeholder="Milestone 1 / Final deposit" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <button type="submit" class="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center mt-2">Log Income / Payment</button>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT BILL TO PAY ================= -->
+  <div id="debtSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="debtSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 id="mobileDebtModalTitle" class="font-bold text-base text-slate-900">Add Bill / Debt I Owe</h3>
+      <button id="closeDebtSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileDebtForm" class="space-y-3">
+      <input type="hidden" id="mobileEditDebtId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Creditor / Description *</label>
+        <input type="text" id="mobileDebtName" required placeholder="e.g. Electric Bill, Loan from Dan" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Total Amount *</label>
+          <input type="number" step="0.01" min="0.01" id="mobileDebtAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileDebtCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+          <select id="mobileDebtCategory" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Bills">💡 Bills</option>
+            <option value="Loans">🤝 Loan / Friend</option>
+            <option value="Credit">💳 Credit Card</option>
+            <option value="Tax">🏛️ Tax</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Due Date</label>
+          <input type="date" id="mobileDebtDueDate" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="mobileDeleteDebtBtn" class="hidden px-3 py-2 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete</button>
+          <button type="button" id="mobilePartialDebtSheetBtn" class="hidden px-3 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 tap-bounce">Partial Pay</button>
+          <button type="button" id="mobileSettleDebtSheetBtn" class="hidden px-3 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-xs border border-emerald-200 tap-bounce">Settle Full</button>
+        </div>
+        <button type="submit" class="flex-1 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Bill</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT SUBSCRIPTION ================= -->
+  <div id="subSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="subSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 id="mobileSubModalTitle" class="font-bold text-base text-slate-900">Add Recurring Expense</h3>
+      <button id="closeSubSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileSubForm" class="space-y-3">
+      <input type="hidden" id="mobileEditSubId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Name / Provider *</label>
+        <input type="text" id="mobileSubName" required placeholder="e.g. Netflix, iCloud, Rent" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Amount *</label>
+          <input type="number" step="0.01" min="0.01" id="mobileSubAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileSubCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+          <select id="mobileSubCategory" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Subscriptions">📱 Subscriptions</option>
+            <option value="Housing">🏠 Housing / Rent</option>
+            <option value="Utilities">💡 Utilities</option>
+            <option value="Health">💊 Health / Insurance</option>
+            <option value="Transport">🚗 Transport</option>
+            <option value="Services">🛠️ Services</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cycle</label>
+          <select id="mobileSubCycle" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Next Date</label>
+        <input type="date" id="mobileSubDate" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="mobileDeleteSubBtn" class="hidden px-3 py-2 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete</button>
+          <button type="button" id="mobileFreezeSubBtn" class="hidden px-3 py-2 bg-sky-50 text-sky-700 font-bold rounded-xl text-xs border border-sky-200 tap-bounce flex items-center gap-1.5">
+            <span id="mobileFreezeSubBtnText">Freeze</span>
+          </button>
+          <button type="button" id="mobileMarkSubPaidSheetBtn" class="hidden px-3 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-xs border border-emerald-200 tap-bounce">Mark Paid</button>
+        </div>
+        <button type="submit" class="flex-1 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Recurring</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT NOTE ================= -->
+  <div id="noteSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="noteSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl safe-bottom shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+    <!-- Handle & Header (Pinned at Top) -->
+    <div class="px-5 pt-4 pb-3 shrink-0 border-b border-slate-100 bg-white">
+      <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3"></div>
+      <div class="flex items-center justify-between">
+        <h3 id="mobileNoteModalTitle" class="font-bold text-base text-slate-900">Add Note</h3>
+        <button id="closeNoteSheetBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-700" title="Dismiss (Esc)">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <form id="mobileNoteForm" novalidate class="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <input type="hidden" id="mobileEditNoteId">
+      <!-- Scrollable Form Body -->
+      <div class="flex-1 overflow-y-auto no-scrollbar space-y-3 px-5 pt-2.5 pb-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Title *</label>
+          <input type="text" id="mobileNoteTitle" required placeholder="e.g. Call tax advisor, Invoice client" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Label / Tag</label>
+            <input type="text" id="mobileNoteLabel" placeholder="e.g. Taxes, Urgent" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Finish Until Date</label>
+            <input type="date" id="mobileNoteDueDate" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-700">Details &amp; Notes</label>
+              <span class="text-[10px] text-slate-400">Enter saves • Shift+Enter new line</span>
+            </div>
+            <div id="mobileNoteBodyBoxesContainer" class="space-y-2">
+              <textarea id="mobileNoteBody" rows="3" placeholder="Add details, steps or context..." class="mobile-note-body-box-input w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none resize-none"></textarea>
+            </div>
+          </div>
+          <button type="button" id="mobileAddNoteBodyBoxBtn" class="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 text-slate-600 text-xs font-semibold flex items-center justify-center gap-1.5 tap-bounce">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Text Box</span>
+          </button>
+        </div>
+
+        <!-- Links -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="link" class="w-3.5 h-3.5 text-indigo-500"></i>
+              <span>Links</span>
+            </span>
+            <span class="text-[10px] text-slate-400">Click pencil to edit</span>
+          </div>
+          <div id="mobileNoteLinksList" class="hidden flex-wrap gap-1.5 pb-0.5"></div>
+          <div class="flex gap-1.5 items-center">
+            <input type="url" id="mobileNoteLinkUrl" placeholder="https://..." class="flex-1 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none font-mono">
+            <input type="text" id="mobileNoteLinkTitle" placeholder="Label" class="w-24 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none">
+            <button type="button" id="mobileNoteAddLinkBtn" class="px-2.5 py-1.5 bg-indigo-50 active:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs border border-indigo-200 tap-bounce flex items-center justify-center gap-1 shrink-0" title="Add link">
+              <i data-lucide="check" id="mobileNoteAddLinkIcon" class="w-3.5 h-3.5"></i>
+              <span id="mobileNoteAddLinkText" class="hidden"></span>
+            </button>
+            <button type="button" id="mobileNoteCancelEditLinkBtn" class="hidden px-2.5 py-1.5 bg-slate-200 text-slate-600 font-medium rounded-xl text-xs shrink-0 tap-bounce" title="Cancel link edit">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Files / Photos -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+              <span>Files / Photos</span>
+            </span>
+            <span id="mobileNoteAttCount" class="text-[10px] text-slate-400">0 files</span>
+          </div>
+          <label for="mobileNoteFileInput" class="w-full py-2 bg-white border border-dashed border-slate-300 rounded-xl font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer tap-bounce">
+            <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+            <span>Attach</span>
+            <input type="file" id="mobileNoteFileInput" multiple accept="image/*,.pdf" class="hidden">
+          </label>
+          <div id="mobileNotePendingAttList" class="flex items-center gap-2 overflow-x-auto py-1"></div>
+        </div>
+
+        <!-- Square Color Accent Palette (Matches Web 24 Themes) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Square Color Accent</label>
+          <div id="mobileNoteColorPicker" class="grid grid-cols-12 gap-1.5 justify-items-center">
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-slate-900 ring-2 ring-slate-900/20" style="background-color: #f59e0b;" data-color="#f59e0b"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #3b82f6;" data-color="#3b82f6"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #10b981;" data-color="#10b981"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #ec4899;" data-color="#ec4899"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #8b5cf6;" data-color="#8b5cf6"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #06b6d4;" data-color="#06b6d4"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #f97316;" data-color="#f97316"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #64748b;" data-color="#64748b"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #6366f1;" data-color="#6366f1"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #14b8a6;" data-color="#14b8a6"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #ef4444;" data-color="#ef4444"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #84cc16;" data-color="#84cc16"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #d946ef;" data-color="#d946ef"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #a855f7;" data-color="#a855f7"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #f43f5e;" data-color="#f43f5e"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #eab308;" data-color="#eab308"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #059669;" data-color="#059669"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #0284c7;" data-color="#0284c7"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #b45309;" data-color="#b45309"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #78716c;" data-color="#78716c"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #4f46e5;" data-color="#4f46e5"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #be185d;" data-color="#be185d"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #0f766e;" data-color="#0f766e"></button>
+            <button type="button" class="w-6 h-6 rounded-full border-2 border-transparent" style="background-color: #334155;" data-color="#334155"></button>
+          </div>
+          <input type="hidden" id="mobileNoteColorInput" value="#f59e0b">
+        </div>
+      </div>
+
+      <!-- Pinned Actions on Mobile (Always Visible at bottom) -->
+      <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-slate-100 bg-white shrink-0">
+        <button type="button" id="mobileDeleteNoteBtn" class="hidden px-3.5 py-2.5 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete Note</button>
+        <button type="button" id="mobileCancelNoteBtn" class="px-4 py-2.5 bg-slate-100 active:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs tap-bounce">Cancel</button>
+        <button type="submit" class="flex-1 py-2.5 bg-slate-900 active:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Note</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: ADD / EDIT WISHLIST ================= -->
+  <div id="wishSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="wishSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 id="mobileWishModalTitle" class="font-bold text-base text-slate-900">Add Wishlist Item</h3>
+      <button id="closeWishSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form id="mobileWishForm" class="space-y-3">
+      <input type="hidden" id="mobileEditWishId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Item Name *</label>
+        <input type="text" id="mobileWishTitle" required placeholder="e.g. Sony WH-1000XM5, Herman Miller Chair" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-5 gap-2.5">
+        <div class="col-span-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Estimated Price *</label>
+          <input type="number" step="0.01" min="0.01" id="mobileWishPrice" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Currency</label>
+          <select id="mobileWishCurrency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none">
+            <option value="EUR">EUR (€)</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Type / Frequency</label>
+          <select id="mobileWishCycle" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="monthly">Monthly Subscription</option>
+            <option value="yearly">Yearly Subscription</option>
+            <option value="onetime">One-Time Purchase</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+          <select id="mobileWishCategory" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Subscriptions">Subscriptions &amp; Software</option>
+            <option value="Shopping">Shopping &amp; Gear</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Health">Health &amp; Fitness</option>
+            <option value="Utilities">Utilities &amp; Tools</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Link URL</label>
+        <input type="url" id="mobileWishUrl" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="mobileDeleteWishBtn" class="hidden px-3 py-2 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 tap-bounce">Delete</button>
+          <button type="button" id="mobileActivateWishSheetBtn" class="hidden px-3 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-xs border border-emerald-200 tap-bounce">Activate / Buy</button>
+        </div>
+        <button type="submit" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-md tap-bounce text-center">Save Item</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: RECEIPT VIEWER (Z-INDEX 70) ================= -->
+  <div id="receiptViewerBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-[70] bg-slate-900/25" style="z-index: 70;"></div>
+  <div id="receiptViewerSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-[70] bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-3 max-h-[92vh] flex flex-col" style="z-index: 71;">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div>
+        <h3 id="mobileViewerTitle" class="font-bold text-sm text-slate-900">Receipt Preview</h3>
+        <p id="mobileViewerMeta" class="text-[11px] text-slate-400 font-mono">Original Document</p>
+      </div>
+      <button id="closeMobileReceiptViewerBtn" class="p-1 text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div id="mobileViewerContent" class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl p-2 border border-slate-200 flex items-center justify-center min-h-[250px]">
+      <!-- Image or PDF embed -->
+    </div>
+
+    <div class="flex items-center justify-end gap-2 shrink-0">
+      <a id="mobileViewerDownloadBtn" href="#" download="receipt" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 tap-bounce">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Download</span>
+      </a>
+      <button type="button" id="closeMobileReceiptViewerBtn2" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold tap-bounce">Close</button>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: NOTE ATTACHMENT QUICK-VIEW (Z-INDEX 70) ================= -->
+  <div id="noteAttachmentQuickViewBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-[70] bg-slate-900/25" style="z-index: 70;"></div>
+  <div id="noteAttachmentQuickViewSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-[70] bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-3 max-h-[92vh] flex flex-col" style="z-index: 71;">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div>
+        <h3 id="quickViewDocTitle" class="font-bold text-sm text-slate-900 truncate max-w-[240px]">Document</h3>
+        <p id="quickViewDocMeta" class="text-[11px] text-slate-400 font-mono">Attachment</p>
+      </div>
+      <button id="closeNoteQuickViewBtn" class="p-1 text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div id="quickViewModalContent" class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl p-2 border border-slate-200 flex items-center justify-center min-h-[250px]">
+      <!-- Content -->
+    </div>
+
+    <div class="flex items-center justify-end gap-2 shrink-0">
+      <a id="quickViewDownloadDocBtn" href="#" download class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 tap-bounce">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Download</span>
+      </a>
+      <button type="button" id="closeNoteQuickViewBtn2" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold tap-bounce">Close</button>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: SYNC & BACKUP VAULT ================= -->
+  <div id="syncSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="syncSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+          <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-bold text-base text-slate-900">Sync &amp; Vault Backup</h3>
+      </div>
+      <button id="closeSyncSheetBtn" class="p-1 text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-xs text-emerald-900 space-y-1">
+      <div class="font-bold flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Auto-Sync is Active</span>
+      </div>
+      <p class="text-[11px] text-emerald-700">Refreshing this page automatically pulls the newest data from your Mac.</p>
+    </div>
+
+    <div class="space-y-2.5 flex-1 overflow-y-auto">
+      <button id="mobileForceSyncBtn" class="w-full p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between tap-bounce">
+        <div class="text-left">
+          <div class="text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400"></i>
+            <span>Pull Latest from Web Now</span>
+          </div>
+          <p class="text-[11px] text-slate-300 mt-0.5">Fetches changes saved on your Mac.</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+      </button>
+
+      <button id="mobileExportVaultBtn" class="w-full p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 flex items-center justify-between tap-bounce shadow-2xs">
+        <div class="text-left">
+          <div class="text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4 text-slate-600"></i>
+            <span>Export Backup File (JSON)</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">Saves offline backup to your phone.</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+      </button>
+
+      <label for="mobileImportVaultInput" class="w-full p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 flex items-center justify-between tap-bounce cursor-pointer shadow-2xs">
+        <div class="text-left">
+          <div class="text-xs font-bold flex items-center gap-1.5">
+            <i data-lucide="upload" class="w-4 h-4 text-slate-600"></i>
+            <span>Import / Restore Backup</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">Restore vault JSON file.</p>
+        </div>
+        <input type="file" id="mobileImportVaultInput" accept=".json" class="hidden">
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+      </label>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: MONTH & PERIOD PICKER ================= -->
+  <div id="monthPickerBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="monthPickerSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-bold text-base text-slate-900">Select Month / Period</h3>
+      </div>
+      <button id="closeMonthPickerSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Quick shortcuts -->
+    <div class="grid grid-cols-2 gap-2 shrink-0">
+      <button id="monthPickerSelectCurrentBtn" class="py-2.5 px-3 rounded-xl bg-slate-900 text-white font-bold text-xs tap-bounce flex items-center justify-center gap-1.5 shadow-2xs">
+        <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Current Month</span>
+      </button>
+      <button id="monthPickerSelectAllTimeBtn" class="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs tap-bounce flex items-center justify-center gap-1.5 border border-slate-200">
+        <i data-lucide="infinity" class="w-3.5 h-3.5 text-slate-600"></i>
+        <span>All Time</span>
+      </button>
+    </div>
+
+    <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1 pt-1 shrink-0">Historical Months</div>
+
+    <div id="monthPickerGrid" class="space-y-1.5 flex-1 overflow-y-auto pr-0.5">
+      <!-- Dynamic list of months generated in JS with month name + spend total -->
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: SETTINGS & PREFERENCES ================= -->
+  <div id="settingsSheetBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="settingsSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-base text-slate-900">Settings &amp; Preferences</h3>
+          <p class="text-[10px] text-slate-400 font-medium">Currencies, formatters and payment methods</p>
+        </div>
+      </div>
+      <button id="closeSettingsSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Segmented Navigation for Settings -->
+    <div class="flex items-center p-1 bg-slate-100 rounded-2xl gap-1 shrink-0 text-xs font-semibold">
+      <button type="button" id="settingsTabPrefsBtn" class="flex-1 py-1.5 rounded-xl bg-white text-slate-900 shadow-2xs text-center transition-all">Preferences</button>
+      <button type="button" id="settingsTabMethodsBtn" class="flex-1 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 text-center transition-all">Payment Methods</button>
+      <button type="button" id="settingsTabDataBtn" class="flex-1 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 text-center transition-all">Data &amp; Vault</button>
+    </div>
+
+    <!-- Scrollable content panes -->
+    <div class="flex-1 overflow-y-auto space-y-4 pr-0.5">
+      <!-- TAB 1: Preferences -->
+      <div id="settingsPanePrefs" class="space-y-4">
+        <!-- Displayed Currencies (Cap at 3) -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-800">Active Currencies</span>
+            <span class="text-[10px] text-slate-400">Max 3</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Pick which currencies appear in your top switcher bar.</p>
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer tap-bounce text-xs font-bold text-slate-800">
+              <input type="checkbox" id="prefCurEUR" value="EUR" class="rounded text-emerald-600 focus:ring-0">
+              <span>EUR (€)</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer tap-bounce text-xs font-bold text-slate-800">
+              <input type="checkbox" id="prefCurILS" value="ILS" class="rounded text-emerald-600 focus:ring-0">
+              <span>ILS (₪)</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer tap-bounce text-xs font-bold text-slate-800">
+              <input type="checkbox" id="prefCurUSD" value="USD" class="rounded text-emerald-600 focus:ring-0">
+              <span>USD ($)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Default Startup Currency -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-1.5">
+          <label class="text-xs font-bold text-slate-800 block">Default Startup Currency</label>
+          <p class="text-[11px] text-slate-500">The currency Finland defaults to whenever opened.</p>
+          <select id="prefDefaultCur" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none">
+            <option value="EUR">EUR (€) — Euro</option>
+            <option value="ILS">ILS (₪) — Israeli Shekel</option>
+            <option value="USD">USD ($) — US Dollar</option>
+          </select>
+        </div>
+
+        <!-- Decimal Mode (Cents vs Whole) -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2">
+          <label class="text-xs font-bold text-slate-800 block">Decimal Cents Display</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
+              <input type="radio" name="prefDecimalMode" value="cents" class="text-emerald-600 focus:ring-0">
+              <span class="text-[11px]">Always cents (10.00)</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
+              <input type="radio" name="prefDecimalMode" value="whole" class="text-emerald-600 focus:ring-0">
+              <span class="text-[11px]">Whole units (10)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Number Format Locale -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2">
+          <label class="text-xs font-bold text-slate-800 block">Number Formatting</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
+              <input type="radio" name="prefNumberFormat" value="en-US" class="text-emerald-600 focus:ring-0">
+              <span class="text-[11px]">1,234.56 (Standard)</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
+              <input type="radio" name="prefNumberFormat" value="de-DE" class="text-emerald-600 focus:ring-0">
+              <span class="text-[11px]">1.234,56 (European)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Advance Alert Days -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-1.5">
+          <label class="text-xs font-bold text-slate-800 block">Advance Alert Notice</label>
+          <p class="text-[11px] text-slate-500">Days ahead to highlight upcoming renewals &amp; debts.</p>
+          <div class="flex items-center gap-2">
+            <input type="number" min="1" max="30" id="prefAdvanceAlertDays" class="w-24 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none font-mono">
+            <span class="text-xs text-slate-500 font-medium">days in advance</span>
+          </div>
+        </div>
+
+        <button type="button" id="savePrefsBtn" class="w-full py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs tap-bounce shadow-md">
+          Save Preferences
+        </button>
+      </div>
+
+      <!-- TAB 2: Payment Methods -->
+      <div id="settingsPaneMethods" class="hidden space-y-3">
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2">
+          <span class="text-xs font-bold text-slate-800 block">Add New Payment Method</span>
+          <div class="flex items-center gap-1.5">
+            <input type="text" id="newPaymentMethodInput" placeholder="e.g. Revolut Metal, Amex, Apple Pay" class="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none">
+            <button type="button" id="addNewPaymentMethodBtn" class="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs tap-bounce shrink-0">Add</button>
+          </div>
+        </div>
+
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Your Payment Methods</div>
+        <div id="settingsPaymentMethodsList" class="space-y-1.5">
+          <!-- Dynamically injected payment methods -->
+        </div>
+      </div>
+
+      <!-- TAB 3: Data & Vault -->
+      <div id="settingsPaneData" class="hidden space-y-2.5">
+        <button type="button" id="settingsForceSyncBtn" class="w-full p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between tap-bounce">
+          <div class="text-left">
+            <div class="text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400"></i>
+              <span>Pull Latest from Web Now</span>
+            </div>
+            <p class="text-[11px] text-slate-300 mt-0.5">Fetches newest ledger data from your Mac.</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+        </button>
+
+        <button type="button" id="settingsExportVaultBtn" class="w-full p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 flex items-center justify-between tap-bounce shadow-2xs">
+          <div class="text-left">
+            <div class="text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="download" class="w-4 h-4 text-slate-600"></i>
+              <span>Export Master Vault (JSON)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Saves full ledger backup file to phone.</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+        </button>
+
+        <button type="button" id="settingsExportCsvBtn" class="w-full p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 flex items-center justify-between tap-bounce shadow-2xs">
+          <div class="text-left">
+            <div class="text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4 text-slate-600"></i>
+              <span>Export Transactions to CSV</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Excel / Numbers spreadsheet format.</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+        </button>
+
+        <label for="settingsImportVaultInput" class="w-full p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 flex items-center justify-between tap-bounce cursor-pointer shadow-2xs">
+          <div class="text-left">
+            <div class="text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="upload" class="w-4 h-4 text-slate-600"></i>
+              <span>Import / Restore Vault File</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Restore vault JSON file to phone.</p>
+          </div>
+          <input type="file" id="settingsImportVaultInput" accept=".json" class="hidden">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: CATEGORY PURCHASES LOG ================= -->
+  <div id="categoryPurchasesBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="categoryPurchasesSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[88vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div id="categoryPurchasesIcon" class="w-9 h-9 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm">
+          🏷️
+        </div>
+        <div>
+          <h3 id="categoryPurchasesTitle" class="font-bold text-base text-slate-900">Category Name</h3>
+          <p id="categoryPurchasesSubtitle" class="text-[11px] text-slate-400 font-mono">Total spent: €0.00</p>
+        </div>
+      </div>
+      <button id="closeCategoryPurchasesBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Monthly Budget Limit Setter -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-2 shrink-0">
+      <div class="min-w-0">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Monthly Budget Limit</label>
+        <span class="text-[11px] text-slate-500">In active currency</span>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <input type="number" step="1" min="0" id="categoryPurchasesLimitInput" placeholder="0" class="w-24 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 focus:outline-none text-right">
+        <button type="button" id="categoryPurchasesSaveLimitBtn" class="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-xl text-xs tap-bounce">Set</button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between px-1 shrink-0">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Transactions This Month</div>
+      <span id="categoryPurchasesCount" class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0 items</span>
+    </div>
+
+    <div id="categoryPurchasesList" class="space-y-1.5 flex-1 overflow-y-auto pr-0.5">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- ================= MODAL: QUICK ADD PAYMENT METHOD ================= -->
+  <div id="quickAddPmBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-[60] bg-slate-900/30" style="z-index: 60;"></div>
+  <div id="quickAddPmModal" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-[60] bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[70vh] flex flex-col" style="z-index: 61;">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <h3 class="font-bold text-base text-slate-900">Add Payment Method</h3>
+      <button id="closeQuickAddPmBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Method Name *</label>
+        <input type="text" id="quickAddPmInput" placeholder="e.g. Revolut Card, Business Account, PayPal" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="cancelQuickAddPmBtn" class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs tap-bounce text-center">Cancel</button>
+        <button type="button" id="saveQuickAddPmBtn" class="flex-1 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs tap-bounce text-center shadow-md">Add Method</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM SHEET: PARTIAL DEBT PAYMENT ================= -->
+  <div id="partialDebtBackdrop" class="bottom-sheet-backdrop closed fixed inset-0 z-50 bg-slate-900/20"></div>
+  <div id="partialDebtSheet" class="bottom-sheet closed fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl p-5 safe-bottom shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+    <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto shrink-0"></div>
+    <div class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-base text-slate-900">Settle Bill / Debt</h3>
+          <p id="partialDebtSheetTitle" class="text-[10px] text-slate-400 font-medium">Partial payment</p>
+        </div>
+      </div>
+      <button id="closePartialDebtSheetBtn" class="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Debt Summary Strip -->
+    <div class="grid grid-cols-3 gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs shrink-0 font-mono">
+      <div>
+        <span class="text-[10px] text-slate-400 block font-sans">Total</span>
+        <span id="partialDebtTotalVal" class="font-bold text-slate-900 text-xs">€0.00</span>
+      </div>
+      <div>
+        <span class="text-[10px] text-slate-400 block font-sans">Paid</span>
+        <span id="partialDebtPaidVal" class="font-bold text-emerald-600 text-xs">€0.00</span>
+      </div>
+      <div>
+        <span class="text-[10px] text-slate-400 block font-sans">Remaining</span>
+        <span id="partialDebtRemVal" class="font-bold text-rose-600 text-xs">€0.00</span>
+      </div>
+    </div>
+
+    <form id="partialDebtForm" class="space-y-3 flex-1 overflow-y-auto pr-0.5">
+      <input type="hidden" id="partialDebtTargetId">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Amount *</label>
+        <div class="relative">
+          <input type="number" step="0.01" min="0.01" id="partialDebtAmountInput" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-bold focus:bg-white focus:outline-none">
+          <span id="partialDebtCurrencyBadge" class="absolute right-3 top-2.5 text-xs font-mono font-bold text-slate-400">EUR</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Date</label>
+          <input type="date" id="partialDebtDateInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+          <select id="partialDebtPaymentMethod" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Card">Card</option>
+            <option value="Cash">Cash</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Notes / Reference</label>
+        <input type="text" id="partialDebtNotesInput" placeholder="e.g. 1st installment, sent via wire" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none">
+      </div>
+
+      <div class="pt-2 shrink-0">
+        <button type="submit" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs tap-bounce text-center shadow-md">
+          Pay / Settle
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="mobileToast" class="fixed top-4 inset-x-4 z-50 transform -translate-y-24 transition-all duration-300 pointer-events-none flex justify-center">
+    <div id="mobileToastContent" class="bg-slate-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-md border border-slate-700">
+      <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+      <span id="mobileToastText">Action completed</span>
+    </div>
+  </div>
+
+  <!-- Global Styled Confirmation Modal (Unified across the app) -->
+  <div id="globalConfirmModal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-xs hidden items-center justify-center p-4 transition-all" style="z-index: 99999;">
+    <div class="modal-card bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl max-w-xs w-full space-y-4 animate-scale-in my-auto">
+      <div class="flex items-center gap-3">
+        <div id="globalConfirmIconBox" class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/70 flex items-center justify-center shrink-0">
+          <i id="globalConfirmIcon" data-lucide="trash-2" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h3 id="globalConfirmTitle" class="font-bold text-base text-slate-900 leading-snug">Delete note?</h3>
+          <p id="globalConfirmMessage" class="text-xs text-slate-500 mt-0.5 leading-relaxed">This action cannot be undone.</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+        <button type="button" id="globalConfirmCancelBtn" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer shadow-2xs">
+          Cancel
+        </button>
+        <button type="button" id="globalConfirmOkBtn" class="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs shadow-rose-600/20">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Gate / Device Authorization PIN Modal -->
+  <div id="vaultAuthModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200/80 max-w-xs w-full p-6 text-center space-y-4">
+      <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200/80 shadow-xs">
+        <i data-lucide="shield-check" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-slate-900 tracking-tight">Security Gate</h3>
+        <p class="text-xs text-slate-500 mt-1">Enter your 6-digit PIN from your Mac to authorize this phone</p>
+      </div>
+      <div class="space-y-3">
+        <input type="password" id="vaultAuthPinInput" maxlength="6" placeholder="••••••" class="w-full text-center tracking-[0.4em] text-2xl font-mono py-2 bg-slate-50 border border-slate-300 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900">
+        <div id="vaultAuthErrorMsg" class="text-xs text-rose-600 font-medium hidden"></div>
+        <button id="vaultAuthSubmitBtn" type="button" class="w-full py-2.5 bg-slate-900 text-white font-semibold rounded-2xl text-xs shadow-md tap-bounce flex items-center justify-center gap-1.5">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span>Authorize Device</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deferred Chart.js for Reports tab -->
+  <script defer src="vendor/chart.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js'"></script>
+  <script src="mobile.js?v=live_v6"></script>
+</body>
+</html>
