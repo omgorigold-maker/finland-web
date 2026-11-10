@@ -1,0 +1,2201 @@
+/* =====================================================================
+   Finance Tracker • Clean White & Meticulous Minimalist Theme
+   "Marie Kondo" Clarity: Friendly, Crisp, Warm White & Thoughtfully Organized
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* JetBrains Mono lacks the ₪ glyph → browser falls back to a narrow proportional font,
+   making ₪ hug the digits. Route only U+20AA to a true monospace font with the same cell width. */
+@font-face {
+  font-family: 'ShekelMono';
+  src: local('Menlo-Regular'), local('Menlo'), local('DejaVuSansMono'), local('Consolas');
+  font-weight: 100 500;
+  unicode-range: U+20AA;
+}
+@font-face {
+  font-family: 'ShekelMono';
+  src: local('Menlo-Bold'), local('DejaVuSansMono-Bold'), local('Consolas-Bold');
+  font-weight: 600 900;
+  unicode-range: U+20AA;
+}
+
+code, kbd, samp, pre, .font-mono {
+  font-family: 'ShekelMono', 'JetBrains Mono', monospace;
+}
+
+/* Global Button & Interactive Polish: Responsive click feedback, no outline glitches, smooth feel */
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.985);
+  transition: transform 0.08s ease-out;
+}
+
+/* Nav & Sidebar Items */
+.sidebar-item {
+  transition: all 0.15s ease-out;
+}
+
+.sidebar-item.active {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.sidebar-item:not(.active) {
+  color: #64748b;
+}
+
+.sidebar-item:not(.active):hover {
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+/* Sidebar 3-Section Navigation & Dynamic Dividers */
+.sidebar-nav-section {
+  min-height: 8px;
+}
+
+.sidebar-section-divider {
+  height: 0;
+  border: 0;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+#sidebarCalendarDivider {
+  margin-bottom: 0 !important;
+}
+
+.nav-tab {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-tab.active {
+  background-color: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.nav-tab:not(.active) {
+  color: #64748b;
+}
+
+.nav-tab:not(.active):hover {
+  color: #0f172a;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* PIN Keypad Buttons (Friendly & Clean White) */
+.pin-key {
+  height: 54px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pin-key:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+}
+
+.pin-key:active {
+  transform: scale(0.96);
+  background-color: #ecfdf5;
+  border-color: #10b981;
+}
+
+/* Currency Toggle Active States */
+.currency-toggle-btn {
+  transition: all 0.15s ease-out;
+}
+
+.currency-toggle-btn.active {
+  background: #059669;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+.currency-toggle-btn:not(.active) {
+  color: #64748b;
+}
+
+.currency-toggle-btn:not(.active):hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+/* Animations */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hover effects for Cards & Table Rows */
+.expense-item, .subscription-card {
+  transition: all 0.2s ease;
+}
+
+.expense-item:hover, .subscription-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+}
+
+/* Drag & Drop Highlight */
+#dashboardDropzone.drag-active {
+  border-color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+  transform: scale(1.005);
+}
+
+/* Toast Notification Animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-enter {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbar for Crisp Look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbars completely on elements/boxes that must never show internal scrollbars */
+.no-scrollbar::-webkit-scrollbar,
+#sidebarNav .no-scrollbar::-webkit-scrollbar,
+#sidebarNavList::-webkit-scrollbar,
+textarea.note-body-box-input::-webkit-scrollbar,
+#notesLabelFilterBar::-webkit-scrollbar,
+#noteModalIconGrid::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+#sidebarNav .no-scrollbar,
+#sidebarNavList,
+textarea.note-body-box-input,
+#notesLabelFilterBar,
+#noteModalIconGrid {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Sortable Table Headers */
+.sortable-th {
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sortable-th:hover {
+  color: #0284c7;
+  background-color: #f8fafc;
+}
+
+.sortable-th:active {
+  transform: translateY(1px);
+}
+
+/* Filter Pills */
+.filter-pill {
+  transition: background-color 0.08s ease, color 0.08s ease;
+}
+
+.filter-pill.active {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.filter-pill.active .pill-badge {
+  color: #cbd5e1 !important;
+}
+
+.filter-pill:not(.active) .pill-badge {
+  color: #94a3b8 !important;
+}
+
+.filter-pill:hover:not(.active) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Voice Dictation Pulsing Glow */
+@keyframes pulse-record {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.recording-pulse {
+  animation: pulse-record 1.5s infinite;
+}
+
+
+
+.widget-drag-handle,
+.card-drag-handle,
+.sec-drag-handle {
+  cursor: grab;
+}
+
+.widget-drag-handle:active,
+.card-drag-handle:active,
+.sec-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* SortableJS Drag Classes */
+.sortable-ghost {
+  opacity: 0.35 !important;
+  border: 2px dashed #94a3b8 !important;
+  background-color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+.sortable-chosen {
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.12), 0 4px 8px -4px rgba(0, 0, 0, 0.06) !important;
+  border-color: #94a3b8 !important;
+  z-index: 50;
+}
+
+.sortable-drag {
+  cursor: grabbing !important;
+  opacity: 0.96 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Sidebar Mini Calendar Day Cells & Popover */
+#sidebarCalendarWidget {
+  flex-shrink: 0;
+}
+
+#sidebarCalGrid {
+  min-height: 136px;
+}
+
+.cal-day-cell {
+  aspect-ratio: 1;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 10px;
+  line-height: 1;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+/* Note Indicator Dots (Calendar) - Bottom row placement, height & size are strictly fixed */
+.cal-note-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cal-note-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Sidebar Mini Calendar Circular Halo Ring (5 to 8 dots around date number) */
+/* Top edge: mirrors the bottom .cal-note-dots row at top: 2px */
+.cal-ring-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  height: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Left & Right side walls: centered vertically, aligned 2px from borders */
+.cal-ring-left {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cal-ring-right {
+  position: absolute;
+  right: 2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cal-day-cell.has-bill {
+  font-weight: 700;
+  color: #6b21a8;
+  background-color: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  cursor: pointer;
+}
+
+.cal-day-cell.has-bill:hover {
+  background-color: #7c3aed;
+  color: #ffffff;
+  border-color: #6d28d9;
+  transform: scale(1.15);
+  z-index: 20;
+  box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);
+}
+.cal-day-cell.has-bill:hover > span,
+.cal-day-cell.has-bill.is-paid:hover > span,
+.cal-day-cell.billing-badge.custom-color:hover > span {
+  color: #ffffff !important;
+}
+
+.cal-day-cell.has-bill.is-paid {
+  font-weight: 600;
+  color: #64748b !important;
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.cal-day-cell.has-bill.is-paid:hover {
+  background-color: #64748b !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+  box-shadow: 0 4px 6px -1px rgba(100, 116, 139, 0.3) !important;
+}
+
+/* Option 1: Billing Styles */
+.cal-day-cell.billing-badge {
+  font-weight: 700;
+  color: #6b21a8;
+  background-color: #f3e8ff;
+  border: 1px solid #e9d5ff;
+}
+.cal-day-cell.billing-badge.custom-color {
+  background-color: var(--cal-dot-bg, #f3e8ff);
+  color: var(--cal-dot-color, #6b21a8);
+  border: 1px solid var(--cal-dot-border, #e9d5ff);
+}
+.cal-day-cell.billing-badge.custom-color:hover {
+  background-color: var(--cal-dot-color, #7c3aed);
+  color: #ffffff;
+  border-color: var(--cal-dot-color, #6d28d9);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
+}
+
+.cal-day-cell.billing-dot {
+  background-color: transparent !important;
+  color: #334155 !important;
+  border: 1px solid transparent !important;
+}
+.cal-day-cell.billing-dot:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  transform: scale(1.15);
+  z-index: 20;
+}
+
+.cal-day-cell.billing-underline {
+  background-color: transparent !important;
+  color: #0f172a !important;
+  border-top: 1px solid transparent !important;
+  border-left: 1px solid transparent !important;
+  border-right: 1px solid transparent !important;
+  border-bottom: 2px solid var(--cal-dot-color, #9333ea) !important;
+  border-radius: 4px 4px 2px 2px;
+}
+.cal-day-cell.billing-underline:hover {
+  background-color: #f8fafc !important;
+  transform: scale(1.15);
+  z-index: 20;
+}
+
+/* Option 2: Today Indicator Styles (defaults to #f97315 and overrides any other frame) */
+.cal-day-cell.is-today,
+.cal-day-cell.today-ring,
+.cal-day-cell.is-today.today-ring,
+.cal-day-cell.is-today.today-ring.has-bill,
+.cal-day-cell.is-today.today-ring.has-bill.is-paid {
+  border: 1px solid var(--cal-today-color, #f97315) !important;
+  box-shadow: inset 0 0 0 1.5px var(--cal-today-color, #f97315) !important;
+}
+.cal-day-cell.today-solid,
+.cal-day-cell.is-today.today-solid,
+.cal-day-cell.is-today.today-solid.has-bill,
+.cal-day-cell.is-today.today-solid.has-bill.is-paid {
+  background-color: var(--cal-today-color, #f97315) !important;
+  border: 1px solid var(--cal-today-color, #f97315) !important;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18) !important;
+}
+.cal-day-cell.today-bold,
+.cal-day-cell.is-today.today-bold,
+.cal-day-cell.is-today.today-bold.has-bill,
+.cal-day-cell.is-today.today-bold.has-bill.is-paid {
+  font-weight: 900 !important;
+  color: var(--cal-today-color, #ea580c);
+  border: 1px solid color-mix(in srgb, var(--cal-today-color, #f97315) 75%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.cal-day-cell.other-month {
+  color: #cbd5e1;
+  opacity: 0.5;
+}
+.cal-day-cell.other-month.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Calendar Hover Details Tooltip */
+#sidebarCalTooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(190%) !important;
+  backdrop-filter: blur(18px) saturate(190%) !important;
+}
+
+#sidebarCalTooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================================================
+   DRAG & DROP / SORTABLE STYLING (NEEDS TO PAY & WISHLIST)
+   ======================================================== */
+.wishlist-card,
+#standaloneDebtsList > div,
+#monthlyShortfallsList > div,
+#needsToPayMetricsBar > [data-box-id],
+#subMetricsBar > [data-box-id],
+#wishlistMetricsBar > [data-box-id] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.wishlist-card:active,
+#standaloneDebtsList > div:active,
+#monthlyShortfallsList > div:active,
+#needsToPayMetricsBar > [data-box-id]:active,
+#subMetricsBar > [data-box-id]:active,
+#wishlistMetricsBar > [data-box-id]:active {
+  cursor: grabbing !important;
+}
+
+/* Ensure interactive controls inside draggable boxes remain clickable without dragging */
+.wishlist-card button,
+.wishlist-card a,
+.wishlist-card input,
+.wishlist-card select,
+#standaloneDebtsList button,
+#monthlyShortfallsList button,
+[data-box-id] button,
+.open-lead-detail-btn button,
+.open-lead-detail-btn a,
+.open-project-detail-btn button,
+.open-project-detail-btn a {
+  cursor: pointer !important;
+  user-select: auto;
+}
+
+.open-lead-detail-btn,
+.open-project-detail-btn {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* SortableJS Ghost & Dragging States (consolidated above) */
+
+/* Sleek Minimalist Modal Body Scrollbar */
+.modal-body-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-body-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-body-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.modal-body-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbars completely on elements/boxes that must never show internal scrollbars */
+.no-scrollbar::-webkit-scrollbar,
+#sidebarNav .no-scrollbar::-webkit-scrollbar,
+#sidebarNavList::-webkit-scrollbar,
+textarea.note-body-box-input::-webkit-scrollbar,
+#notesLabelFilterBar::-webkit-scrollbar,
+#noteModalIconGrid::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+#sidebarNav .no-scrollbar,
+#sidebarNavList,
+textarea.note-body-box-input,
+#notesLabelFilterBar,
+#noteModalIconGrid {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Responsive 3-box Freelancer Budget Grid (Box 1: Collected+Pending, Box 2: Bills&Tax+Budget Spending, Box 3: Safe to Spend) */
+@media (min-width: 1024px) {
+  #budgetMetricsGrid {
+    display: grid !important;
+    grid-template-columns: 1.82fr 2.08fr 1.10fr !important;
+  }
+}
+
+/* Budget metric tiles: grey subtitles always on one line, tighter tracking, same height everywhere */
+#budgetIncomeEquiv,
+#budgetPendingEquiv,
+#budgetFixedEquiv,
+#budgetCategoryEquiv,
+#budgetLeftEquiv {
+  font-size: 10px !important;
+  letter-spacing: -0.02em !important;
+  line-height: 14px !important;
+  height: 14px;
+  margin-top: 4px !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Primary amounts: scale down slightly so long currencies (₪) always fit on one line */
+#budgetIncomePrimary,
+#budgetPendingPrimary,
+#budgetFixedPrimary,
+#budgetCategoryPrimary,
+#budgetCategoryLimit,
+#budgetLeftPrimary {
+  letter-spacing: 0;
+  white-space: nowrap;
+  line-height: 28px !important;
+}
+@media (min-width: 1024px) {
+  #budgetIncomePrimary,
+  #budgetPendingPrimary,
+  #budgetFixedPrimary,
+  #budgetCategoryPrimary,
+  #budgetCategoryLimit,
+  #budgetLeftPrimary {
+    font-size: clamp(15px, 1.4vw, 20px) !important;
+  }
+}
+
+/* Modal Pop Windows: Slight Drop Shadow & Clean Transparent Backdrop */
+.modal-overlay,
+div[id$="Modal"]:not(#settingsModalFooter),
+#globalDropOverlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+div[id$="Modal"] > div {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Step & Lead Checklist Date Picker: Full overlay with native indicator stretch */
+.step-date-picker-input,
+.lead-step-date-picker-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+}
+.step-date-picker-input::-webkit-calendar-picker-indicator,
+.lead-step-date-picker-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Custom Dropdown Arrow Styling for Select Elements: Balanced, elegant, and never crowded */
+select:not(.hidden) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 0.75rem !important;
+  padding-right: 2rem !important;
+}
+
+select:not(.hidden):focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E") !important;
+}
+
+/* Snug, tailored fit for top bar Month Filter */
+#monthFilter {
+  background-position: right 0.6rem center !important;
+  background-size: 0.7rem !important;
+  padding-left: 2rem !important;
+  padding-right: 1.6rem !important;
+  height: 32px !important;
+  line-height: 30px !important;
+}
+
+/* Snug, compact fit for Toolbar Dropdowns (#filterCategory & #sortDropdown) */
+#filterCategory {
+  background-position: right 0.4rem center !important;
+  background-size: 0.65rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 1.25rem !important;
+  max-width: 130px !important;
+}
+
+#sortDropdown {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4' /%3E%3C/svg%3E") !important;
+  background-position: right 0.4rem center !important;
+  background-size: 0.7rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 1.25rem !important;
+  max-width: 115px !important;
+}
+
+#notesSortDropdown {
+  background-position: right 0.55rem center !important;
+  background-size: 0.7rem !important;
+  padding-left: 1.85rem !important;
+  padding-right: 1.45rem !important;
+}
+
+/* ============================================================
+   PRICE OFFERING DOCUMENT & PRINT / PDF STYLES
+   ============================================================ */
+/* Google Docs-style seamless inline document text: no boxes, no scrollbars, auto-flowing */
+.po-doc-text {
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  resize: none !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 0.8125rem !important; /* 13px */
+  line-height: 1.65 !important;
+  color: #334155 !important; /* slate-700 */
+  display: block !important;
+  box-sizing: border-box !important;
+  field-sizing: content;
+}
+
+/* Document Editor Text Selection (Neutral refined slate, zero blue) */
+#priceOfferingDocPage ::selection,
+.price-offering-sheet ::selection {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.po-doc-text:hover,
+.po-doc-text:focus {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #0f172a !important;
+}
+
+.po-doc-text::placeholder {
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+/* Ensure no jarring boxes, backgrounds, or blue rings inside the paper sheet */
+.price-offering-sheet input:not([type="checkbox"]),
+.price-offering-sheet textarea,
+.price-offering-sheet select {
+  border: none;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.price-offering-sheet input:not([type="checkbox"]):focus,
+.price-offering-sheet textarea:focus {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-focus-ring-color: transparent !important;
+}
+
+/* ============================================================
+   PRICE OFFERING / PROPOSAL DOCUMENT & PAGINATION STYLES
+   ============================================================ */
+:root {
+  --po-accent: #0f172a;
+  --po-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --po-font-size: 13px;
+  --po-line-height: 1.6;
+  --po-section-gap: 22px;
+  --po-title-gap: 8px;
+  --po-title-size: 12px;
+  --po-sheet-padding: 36px 40px;
+}
+
+/* Document Paper Sheet (True 1:1 A4 Proportion Canvas) */
+.po-page-sheet,
+.po-document-sheet,
+.price-offering-sheet {
+  font-family: var(--po-font-family) !important;
+  font-size: var(--po-font-size) !important;
+  line-height: var(--po-line-height) !important;
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  padding: var(--po-sheet-padding, 36px 40px) !important;
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  height: auto;
+  max-width: 210mm;
+  box-sizing: border-box;
+  margin: 0 auto 32px auto;
+  display: block;
+}
+
+.price-offering-sheet input,
+.price-offering-sheet textarea,
+.price-offering-sheet select,
+.price-offering-sheet button,
+.price-offering-sheet table {
+  font-family: var(--po-font-family) !important;
+}
+
+.po-section {
+  margin-bottom: var(--po-section-gap) !important;
+}
+
+.po-section-header {
+  margin-bottom: var(--po-title-gap) !important;
+}
+
+.po-section-title-input {
+  font-family: var(--po-font-family) !important;
+  font-size: var(--po-title-size) !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+.po-doc-text,
+.po-section-content {
+  font-family: var(--po-font-family) !important;
+  font-size: var(--po-font-size) !important;
+  line-height: var(--po-line-height) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.po-meta-label,
+.po-th-input,
+.po-total-label {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Page Break Divider between pages in the editor */
+.po-page-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 100%;
+  margin: 24px 0;
+  user-select: none;
+}
+
+.po-page-divider-line {
+  height: 1px;
+  background-color: #cbd5e1;
+  flex: 1;
+}
+
+.po-page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Google Docs Style Consecutive Pages On Screen */
+.price-offering-sheet.po-paged {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: var(--po-sheet-padding, 36px 40px) !important;
+  position: relative !important;
+  min-height: 297mm;
+  width: 210mm;
+  /* Visual-only zoom: a transform never changes text layout, so pagination & PDF stay exact */
+  transform: scale(var(--po-zoom, 1));
+  transform-origin: top left;
+  margin: 0 !important;
+}
+
+/* The print area is sized to the scaled sheet so scrolling / centering follow the zoom */
+#priceOfferingPrintArea.po-zoom-box {
+  display: block !important;
+  position: relative;
+  flex: none;
+  align-self: flex-start;   /* auto margins center it, but never cut it off when zoomed wider than the view */
+  margin: 0 auto;
+  box-sizing: content-box;
+  padding: 0 40px 32px 40px;
+}
+
+/* Edit-only controls float over the page so they never take layout space (screen == PDF) */
+.po-float-anchor {
+  position: relative;
+  height: 0;
+}
+
+.po-table-add-bar {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Discount / tax percent fields read as plain text until hovered or edited */
+.po-percent-input {
+  border-color: transparent !important;
+  background: transparent !important;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+  -moz-appearance: textfield;
+  -webkit-appearance: textfield;
+  appearance: textfield;
+  field-sizing: content;
+  min-width: 1ch;
+  padding-left: 1px !important;
+  padding-right: 0 !important;
+  text-align: right;
+}
+.po-percent-input::-webkit-outer-spin-button,
+.po-percent-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  display: none !important;
+  margin: 0;
+}
+.po-percent-input:hover,
+.po-percent-input:focus {
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+.po-page-bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.po-page-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+.po-page-bg-number {
+  position: absolute;
+  right: 28px;
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.po-hide-page-numbers .po-page-bg-number {
+  display: none !important;
+}
+
+#poSectionsFlowContainer {
+  position: relative;
+  z-index: 1;
+}
+
+.po-page-spacer {
+  pointer-events: none;
+}
+
+/* Workbench Container: Subtract top header (56px / 3.5rem) so bottom of sidebar & canvas are never clipped */
+#priceOfferingDocPage:not(.hidden) {
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - 3.5rem);
+  max-height: calc(100vh - 3.5rem);
+  overflow: hidden;
+}
+
+#poCanvasViewport {
+  scroll-behavior: auto;
+}
+
+#poTopControlStrip select,
+#poRightSidebar select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45rem center;
+  padding-right: 1.4rem;
+}
+
+#poTopControlStrip input[type="number"],
+#poRightSidebar input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#poTopControlStrip input[type="number"]::-webkit-inner-spin-button,
+#poTopControlStrip input[type="number"]::-webkit-outer-spin-button,
+#poRightSidebar input[type="number"]::-webkit-inner-spin-button,
+#poRightSidebar input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Photoshop-Style Scrubby Cards & Pop-Down Slider */
+.po-ps-card {
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+}
+
+.po-ps-card:hover {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+.po-ps-card:focus-within,
+.po-ps-card.po-ps-active {
+  border-color: #0f172a !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 1px #0f172a;
+}
+
+.po-ps-scrub-label {
+  cursor: ew-resize;
+  user-select: none;
+}
+
+/* Keeps highlighted words visibly marked while typing or scrubbing in Top Bar / Sidebar */
+.po-active-word-mark {
+  background-color: rgba(14, 165, 233, 0.16);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.32);
+}
+
+@media print {
+  #poPhotoshopSliderPopover {
+    display: none !important;
+  }
+  .po-active-word-mark {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Document Selectable Elements: Calm, Zero-Flicker Paper Experience */
+#priceOfferingPrintArea,
+#priceOfferingPrintArea *,
+.po-section,
+.po-selectable {
+  -webkit-user-drag: none !important;
+}
+
+.po-selectable {
+  position: relative;
+  border-radius: 3px;
+  cursor: default;
+}
+
+input.po-selectable,
+textarea.po-selectable,
+.po-section-title-input,
+.po-th-input,
+.po-table input,
+.po-total-label,
+.po-section-content,
+.po-section-content *,
+.po-field,
+.po-field * {
+  cursor: text !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-user-drag: none !important;
+}
+
+/* No hover outlines on text fields or sections — keep the paper calm like a real document! */
+.po-selectable:hover,
+.po-section:hover {
+  outline: none !important;
+}
+
+.po-section {
+  position: relative;
+  border-radius: 3px;
+  cursor: default;
+}
+
+/* Active Selected Element: Subtle, calm 1px slate ring ONLY when selected (and hidden while actively typing!) */
+.po-selected-element {
+  outline: 1px solid rgba(100, 116, 139, 0.45) !important;
+  outline-offset: 3px !important;
+  background-color: transparent !important;
+  border-radius: 3px !important;
+}
+
+/* When actively typing inside a rich field, hide the selection box completely so only the text caret shows */
+.po-selected-element:focus {
+  outline: none !important;
+}
+
+/* Clean, 100% Uniform Selectable Divider Line */
+.po-divider-block {
+  padding: 6px 0 !important;
+  margin: 6px 0 !important;
+  cursor: pointer;
+}
+
+.po-divider-line {
+  border: none !important;
+  border-top: 1px solid #cbd5e1 !important;
+  width: 100%;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  pointer-events: none;
+  transition: border-color 0.15s ease;
+}
+
+.po-divider-block:hover .po-divider-line {
+  border-top-color: #64748b !important;
+}
+
+.po-divider-block.po-selected-element .po-divider-line {
+  border-top-color: #0f172a !important;
+}
+
+/* Drag handle & section block delete chrome (shown gently on section hover) */
+.po-drag-handle {
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.po-drag-handle:hover {
+  color: #334155;
+}
+
+.po-drag-handle:active {
+  cursor: grabbing;
+}
+
+.po-block-delete {
+  position: absolute;
+  right: -26px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.po-block-delete:hover {
+  color: #e11d48;
+}
+
+.po-section:hover .po-drag-handle,
+.po-section:hover .po-block-delete {
+  opacity: 0.85;
+}
+
+/* Dragging state */
+.po-section.po-is-dragging {
+  opacity: 0.35;
+}
+
+.po-drop-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #0f172a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(15, 23, 42, 0.25);
+  pointer-events: none;
+  z-index: 50;
+  transition: top 0.08s ease;
+}
+
+.po-drop-indicator::before,
+.po-drop-indicator::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0f172a;
+}
+.po-drop-indicator::before { left: -4px; }
+.po-drop-indicator::after { right: -4px; }
+
+/* Suppress between-block hover pills so moving the mouse across the page never flashes popups */
+.po-insert-zone {
+  display: none !important;
+}
+
+.po-insert-zone-pill button,
+.po-bottom-add button {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.po-insert-zone-pill button:hover,
+.po-bottom-add button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.po-insert-zone-sep {
+  width: 1px;
+  height: 12px;
+  background: #e2e8f0;
+}
+
+.po-bottom-add {
+  display: none !important;
+}
+
+.po-section-title-input {
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+/* Clean styling for editable document labels */
+.po-meta-label,
+.po-th-label,
+.po-total-label {
+  font-family: inherit;
+  cursor: text;
+  transition: color 0.12s ease;
+}
+
+/* Rich text fields (replace the old one-line inputs; identical metrics) */
+.po-field {
+  display: block;
+  outline: none !important;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+  min-width: 1ch;
+  -webkit-user-modify: read-write;
+}
+.po-field.po-item-desc {
+  min-height: 26px;   /* same minimum the old auto-growing textarea had */
+}
+.po-field.po-field-inline {
+  display: inline-block;
+  vertical-align: baseline;
+}
+.po-field[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+.po-field.po-doc-text[contenteditable="true"]:empty::before {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Rich contenteditable section text */
+.po-section-content[contenteditable="true"] {
+  outline: none !important;
+  min-height: 28px;
+  word-break: break-word;
+}
+
+.po-section-content[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  /* Reset document root & body to full width and allow multi-page flow if needed */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Universal print hides for non-document app chrome, sidebars, modals & overlays */
+  #globalDropOverlay,
+  #toastContainer,
+  #sidebarNav,
+  #priceOfferingTopBar,
+  #poRightSidebar,
+  #leadDetailTopBar,
+  #projectDetailTopBar,
+  aside,
+  nav,
+  header,
+  #sidebar,
+  .top-header,
+  .no-print,
+  .no-print-block,
+  .no-print-inline,
+  .po-edit-only,
+  .po-section-actions,
+  .po-page-divider,
+  .po-add-section-divider,
+  .po-add-section-bar,
+  .po-in-doc-add-section,
+  .po-sheet-add-popover,
+  #poDocFormatPopover,
+  #poDocFormatBtn,
+  #poDocThemePopover,
+  #poBottomAddSectionPopover,
+  #poDocThemePillBtn,
+  button:not(.print-keep),
+  .lead-step-drag-handle,
+  [id$="Modal"],
+  .modal,
+  .modal-backdrop,
+  div[role="dialog"] {
+    display: none !important;
+  }
+
+  /* Companion typography toggles */
+  .print-block,
+  .po-preview-block {
+    display: block !important;
+  }
+
+  .print-inline,
+  .po-preview-inline {
+    display: inline !important;
+  }
+
+  .print-inline-block {
+    display: inline-block !important;
+  }
+
+  .print-flex {
+    display: flex !important;
+  }
+
+  .print-grid {
+    display: grid !important;
+  }
+
+  /* Automatically hide zero discount and zero tax rows in print */
+  .po-zero-discount,
+  .po-zero-tax {
+    display: none !important;
+  }
+
+  /* Proposal PDF Isolation: Unhide the direct branch leading from body to #priceOfferingPrintArea */
+  body.printing-po-doc,
+  body.printing-po-doc > div.flex-1,
+  body.printing-po-doc main,
+  body.printing-po-doc #viewProjectFollowup,
+  body.printing-po-doc #priceOfferingDocPage,
+  body.printing-po-doc #poWorkbenchWrapper,
+  body.printing-po-doc #poCanvasViewport,
+  body.printing-po-doc #priceOfferingPrintArea,
+  body:has(#priceOfferingDocPage:not(.hidden)),
+  body:has(#priceOfferingDocPage:not(.hidden)) > div.flex-1,
+  body:has(#priceOfferingDocPage:not(.hidden)) main,
+  body:has(#priceOfferingDocPage:not(.hidden)) #viewProjectFollowup,
+  body:has(#priceOfferingDocPage:not(.hidden)) #priceOfferingDocPage,
+  body:has(#priceOfferingDocPage:not(.hidden)) #poWorkbenchWrapper,
+  body:has(#priceOfferingDocPage:not(.hidden)) #poCanvasViewport,
+  body:has(#priceOfferingDocPage:not(.hidden)) #priceOfferingPrintArea {
+    display: block !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    height: auto !important;
+    min-height: auto !important;
+    position: static !important;
+    float: none !important;
+  }
+
+  /* ABSOLUTE PRINT SUPPRESSION: Non-document UI must NEVER create a page in print */
+  #priceOfferingTopBar,
+  #priceOfferingTopBar *,
+  #poRightSidebar,
+  #poRightSidebar *,
+  .po-page-divider,
+  .po-page-divider *,
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+  }
+
+  /* Explicitly hide non-document views */
+  main > section,
+  #viewProjectFollowup > *:not(#priceOfferingDocPage) {
+    display: none !important;
+  }
+
+  .po-selected-element {
+    outline: none !important;
+    background-color: transparent !important;
+  }
+
+  /* ===== EXACT-MATCH PDF =====
+     The PDF is the on-screen page itself: same width (210mm), same padding, same fonts and spacing.
+     Page breaks come from the editor's own pagination (spacers), laid out with zero page gap. */
+  .po-page-sheet,
+  .po-document-sheet,
+  .price-offering-sheet,
+  .price-offering-sheet.po-paged {
+    zoom: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    padding: var(--po-sheet-padding, 36px 40px) !important;
+    display: block !important;
+  }
+
+  .po-page-spacer {
+    display: block !important;
+    break-inside: avoid !important;
+  }
+
+  .po-row-spacer td {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Empty contenteditable placeholders keep their space but show nothing */
+  .po-section-content[contenteditable="true"]:empty::before,
+  .po-field[contenteditable="true"]:empty::before {
+    content: none !important;
+  }
+
+  /* Empty section titles take no height in print */
+  .po-section-title-input:empty,
+  div:has(> .po-section-title-input:empty) {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Selection / hover frames never print */
+  .po-selectable,
+  .po-section,
+  .po-selectable:hover,
+  .po-section:hover {
+    outline: none !important;
+  }
+
+  /* Form control clean reset: NO borders, NO backgrounds, but PRESERVE font-size, weight and color! */
+  .price-offering-sheet input,
+  .price-offering-sheet textarea,
+  .price-offering-sheet select {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    resize: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  .price-offering-sheet input::placeholder,
+  .price-offering-sheet textarea::placeholder {
+    color: transparent !important;
+  }
+
+
+  /* Completely suppress browser native date picker, spin buttons, and clear buttons */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-inner-spin-button,
+  input[type="date"]::-webkit-clear-button,
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    display: none !important;
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+  }
+
+  .page-break-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+body.po-print-layout .po-section-title-input:empty,
+body.po-print-layout div:has(> .po-section-title-input:empty),
+.po-section-title-input:empty:not(:focus):not(.po-selected-element),
+div:has(> .po-section-title-input:empty:not(:focus):not(.po-selected-element)) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media print {
+  /* Pagination already keeps content inside the page margins; drop trailing space so no blank last page */
+  .price-offering-sheet.po-paged,
+  .price-offering-sheet {
+    padding-bottom: 0 !important;
+  }
+  #poSectionsFlowContainer > .po-section.po-last-block {
+    margin-bottom: 0 !important;
+  }
+  #priceOfferingPrintArea.po-zoom-box {
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+}
+
+/* Saved Template Thumbnail Cards in Right Sidebar */
+#poTopControlStrip {
+  overflow: hidden !important;
+}
+#poTopFontFamilySelect {
+  width: 132px;
+}
+#poTopFontWeightSelect {
+  width: 88px;
+}
+#poTopColorHexInput {
+  width: 56px;
+}
+
+.po-template-btn-row {
+  position: relative;
+  border-radius: 0.7rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: border-color 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.po-template-btn-row:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.po-template-btn-row.po-template-base {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.po-template-btn-row.po-template-active {
+  border-color: #0f172a;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #0f172a;
+}
+
+.po-template-btn-row.po-template-previewing {
+  border-color: #475569;
+  background: #f1f5f9;
+}
+
+.po-template-btn-row.po-tpl-dragging {
+  opacity: 0.45;
+}
+
+.po-template-btn-row.po-tpl-drop-above {
+  box-shadow: 0 -2px 0 0 #0f172a;
+}
+
+.po-template-btn-row.po-tpl-drop-below {
+  box-shadow: 0 2px 0 0 #0f172a;
+}
+
+/* Prevent empty editable fields from collapsing to 0 height while editing */
+#priceOfferingDocPage .po-field[contenteditable="true"] {
+  min-height: 1.3em;
+}
+
+/* Movable Vector & PNG Signatures Layer on A4 Sheet */
+#priceOfferingSheet #poSignaturesLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  overflow: visible;
+}
+
+#priceOfferingSheet .po-signature-vector {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  border-radius: 6px;
+  padding: 3px;
+  transition: box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+#priceOfferingSheet .po-signature-vector:hover {
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.35);
+  background-color: rgba(238, 242, 255, 0.18);
+}
+
+#priceOfferingSheet .po-signature-vector.po-selected-element {
+  outline: none !important;
+  box-shadow: 0 0 0 1.5px #4f46e5 !important;
+  background-color: rgba(238, 242, 255, 0.22) !important;
+}
+
+#priceOfferingSheet .po-signature-vector.po-sig-dragging {
+  cursor: grabbing;
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.16), 0 0 0 1.5px #4f46e5 !important;
+}
+
+#priceOfferingSheet .po-signature-vector svg,
+#priceOfferingSheet .po-signature-vector img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+#priceOfferingSheet .po-sig-resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  background: #4f46e5;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+  cursor: nwse-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+#priceOfferingSheet .po-sig-delete-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+#priceOfferingSheet .po-sig-delete-btn:hover {
+  background: #ffe4e6;
+}
+
+#priceOfferingSheet .po-signature-vector:hover .po-sig-resize-handle,
+#priceOfferingSheet .po-signature-vector.po-selected-element .po-sig-resize-handle,
+#priceOfferingSheet .po-signature-vector:hover .po-sig-delete-btn,
+#priceOfferingSheet .po-signature-vector.po-selected-element .po-sig-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.po-print-layout #priceOfferingSheet .po-signature-vector,
+@media print {
+  #priceOfferingSheet .po-signature-vector {
+    box-shadow: none !important;
+    background: transparent !important;
+    outline: none !important;
+  }
+  #priceOfferingSheet .po-sig-resize-handle,
+  #priceOfferingSheet .po-sig-delete-btn {
+    display: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* ==================== DOCUMENTS & STUDIO VAULT ==================== */
+#viewDocuments.drag-over,
+.doc-drop-card.drag-over,
+#docVaultModalDropArea.drag-over {
+  border-color: #4f46e5 !important;
+  background-color: rgba(238, 242, 255, 0.7) !important;
+}
+
+.doc-scan-bw-filter {
+  filter: grayscale(100%) contrast(165%) brightness(106%);
+}
+
+/* Strictly scoped to Documents top bar */
+#viewDocuments #docCategoryFilterBar .doc-filter-pill svg {
+  stroke-width: 1.9px;
+  transition: stroke-width 0.15s ease;
+}
+
+#viewDocuments #docCategoryFilterBar .doc-filter-pill.active svg {
+  stroke-width: 2.35px;
+}
+
+#viewDocuments #docCategoryFilterBar.doc-dragging-active .doc-filter-pill:not(.doc-pill-drop-target) {
+  border-color: rgba(148, 163, 184, 0.55);
+  border-style: dashed;
+}
+
+#viewDocuments #docCategoryFilterBar .doc-filter-pill.doc-pill-drop-target {
+  background-color: #eef2ff !important;
+  color: #312e81 !important;
+  border: 1px solid #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.22);
+  transform: translateY(-1px);
+}
+
+#viewDocuments [data-doc-card-id].doc-card-drop-target {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}
+
+/* ==================== FINANCIAL NOTES TOOLBAR & TOOLTIPS ==================== */
+#viewNotes {
+  position: relative;
+  z-index: 1;
+}
+
+#viewNotes > div:first-child,
+#notesHeaderToolbar,
+#notesLabelFilterBar {
+  position: relative;
+  z-index: 30;
+  overflow: visible !important;
+  flex-wrap: nowrap !important;
+}
+
+#notesLabelFilterBar .notes-label-pill:hover {
+  z-index: 40;
+}
+
+#notesGridContainer,
+#notesArchiveSection {
+  position: relative;
+  z-index: 10;
+}
+
+/* ==================== HELP & SUPPORT MODAL (#forwardingModal) ==================== */
+#forwardingModal {
+  background-color: rgba(15, 23, 42, 0.55) !important;
+  opacity: 1 !important;
+  z-index: 9990 !important;
+}
+
+#forwardingModal > #forwardingModalCard {
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.9) !important;
+}
+
+/* ==================== CALENDAR & PLAN WORKSPACE (#viewCalendarPlan) ==================== */
+#viewCalendarPlan {
+  position: relative;
+  z-index: 1;
+}
+
+/* Post-it / Sticky Note Cards inside Weekly & Monthly Calendar (Tactile Folded Corner, Flat, Clean) */
+.cal-sticky-note {
+  position: relative;
+  border-radius: 8px 0 8px 8px;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.cal-sticky-note:hover {
+  box-shadow: none !important;
+}
+
+.cal-sticky-fold {
+  position: absolute;
+  top: -2.5px;
+  right: -1px;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+
+/* Minimalist Checkbox for Calendar & Plan Items and Sticky Notes */
+.cal-plan-toggle-check,
+.cal-sticky-note-check {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  border-radius: 3.5px !important;
+  border: 1.2px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease !important;
+  outline: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+.cal-plan-toggle-check {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.cal-sticky-note-check {
+  width: 12.5px !important;
+  height: 12.5px !important;
+}
+
+.cal-plan-toggle-check:hover,
+.cal-sticky-note-check:hover {
+  border-color: #94a3b8 !important;
+}
+
+.cal-plan-toggle-check:checked,
+.cal-sticky-note-check:checked {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 8.2L6 11.7L13.5 4.2' stroke='%2327272a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-size: 100% 100% !important;
+}
+
+.cal-plan-toggle-check:checked:hover,
+.cal-sticky-note-check:checked:hover {
+  opacity: 0.75 !important;
+}
+
+/* Spotlight Pop & Framed Square Highlight when jumping from Calendar & Plan to a specific Note in Notes */
+@keyframes noteCardSpotlightPop {
+  0% {
+    transform: scale(1);
+  }
+  28% {
+    transform: scale(1.035);
+  }
+  60% {
+    transform: scale(0.995);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.note-card.note-card-spotlight-pop {
+  animation: noteCardSpotlightPop 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  border-color: var(--spotlight-note-color, #0d9488) !important;
+  box-shadow: 0 0 0 2.5px var(--spotlight-note-ring, rgba(13, 148, 136, 0.28)), inset 0 0 0 1px var(--spotlight-note-color, #0d9488) !important;
+  background-color: var(--spotlight-note-tint, rgba(240, 253, 250, 0.55)) !important;
+  z-index: 15;
+}
+
+/* Sidebar Mini-Calendar Non-Clashing Multi-Layer Display Styles (from Calendar & Plan Studio) */
+.cal-day-cell.mini-cal-layer-highlight,
+.cal-day-cell.mini-cal-style-highlight {
+  background-color: var(--mini-cal-hl-bg, var(--mini-cal-item-bg, rgba(13, 148, 136, 0.14)));
+  color: var(--mini-cal-hl-color, var(--mini-cal-item-color, #0f766e));
+  font-weight: 700;
+}
+
+.cal-day-cell.mini-cal-layer-framed,
+.cal-day-cell.mini-cal-style-framed,
+.cal-day-cell.mini-cal-style-framed-highlight {
+  box-shadow: inset 0 0 0 1.5px var(--mini-cal-frame-color, var(--mini-cal-item-border, rgba(13, 148, 136, 0.45)));
+  font-weight: 700;
+}
+
+.cal-day-cell.mini-cal-layer-framed.is-today {
+  border-color: #f97315 !important;
+  box-shadow: inset 0 0 0 1.5px #f97315 !important;
+}
+
+.cal-day-cell.mini-cal-layer-underline,
+.cal-day-cell.mini-cal-style-underline {
+  border-bottom: 2px solid var(--mini-cal-ul-color, var(--mini-cal-item-color, #0d9488)) !important;
+  font-weight: 700;
+}
+
+.cal-day-cell.mini-cal-layer-topbar {
+  border-top: 2px solid var(--mini-cal-tb-color, #0d9488) !important;
+  font-weight: 700;
+}
+
+.cal-day-cell.mini-cal-layer-leftbar {
+  border-left: 2.5px solid var(--mini-cal-lb-color, #0d9488) !important;
+  font-weight: 700;
+}
+
+.cal-mini-corner-pip {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.cal-mini-star-bg {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 112%;
+  height: 112%;
+  pointer-events: none;
+  z-index: 0;
+  display: block;
+}
+
+/* Day column drop target highlight */
+.cal-day-drop-zone.drag-over-day {
+  box-shadow: inset 0 0 0 1.5px #0d9488 !important;
+  background-color: rgba(240, 253, 250, 0.65) !important;
+}
+
+/* Calendar & Plan Day Items Reorder Indicators */
+.cal-plan-entry-card,
+.cal-sticky-note {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cal-plan-entry-card.drag-insert-before,
+.cal-sticky-note.drag-insert-before {
+  box-shadow: 0 -2.5px 0 0 #0d9488 !important;
+}
+.cal-plan-entry-card.drag-insert-after,
+.cal-sticky-note.drag-insert-after {
+  box-shadow: 0 2.5px 0 0 #0d9488 !important;
+}
+.cal-plan-entry-card.is-dragging,
+.cal-sticky-note.is-dragging {
+  opacity: 0.45 !important;
+  pointer-events: none !important;
+}
+
+/* Data & Vault subsection info hover popovers (WCAG 1.4.13 hoverable + click-to-toggle + Escape-dismissible) */
+.vault-info-popover-wrap.tooltip-pinned {
+  z-index: 50;
+}
+.vault-info-popover-wrap.tooltip-pinned .vault-info-card {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+.vault-info-popover-wrap.tooltip-pinned .vault-info-trigger {
+  color: #334155 !important;
+  background-color: #f1f5f9 !important;
+}
+.vault-info-popover-wrap.tooltip-dismissed .vault-info-card {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Calendar & Plan Style Studio: Swatch deletion hover */
+.cal-studio-color-item:hover .cal-studio-delete-color-btn {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.cal-studio-delete-color-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.cal-studio-delete-color-btn:hover {
+  transform: scale(1.18);
+}
+
+/* Sidebar Mini Calendar -> Monthly Plan Day Gentle Flashing Indicator */
+.cal-day-cell[data-cal-day]:not(.has-bill):not(.is-today):not([class*="mini-cal-layer-"]):hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+@keyframes calPlanDayGentleFlash {
+  0% {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  }
+  30% {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.55);
+  }
+  60% {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.16);
+  }
+  80% {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.45);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(15, 23, 42, 0);
+  }
+}
+
+.cal-day-drop-zone.cal-day-gentle-flash {
+  position: relative;
+  z-index: 15;
+  animation: calPlanDayGentleFlash 1.45s ease-in-out forwards;
+}
+
+/* Monthly Plan Week Row & Spanning Weekly Goal Banner */
+.cal-month-week-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-month-week-row.has-weekly-goal {
+  grid-template-rows: auto auto 1fr;
+}
+
+.cal-month-week-row.has-weekly-goal > .cal-month-day-cell {
+  grid-row: 1 / 4;
+  display: grid;
+  grid-template-rows: auto 28px 1fr;
+  grid-template-rows: subgrid;
+}
+
+
+
+
+
+
+
