@@ -42119,6 +42119,7 @@ ${sectionsText}
       activeSourceFilter: 'all',
       activeSubFilter: 'all',
       weeklyFocus: {}, // weekKey -> string
+      weeklyFocusColors: {}, // weekKey -> hex string
       monthlyFocus: {}, // YYYY-MM -> string
       dayStyles: {},   // YYYY-MM-DD -> { color, style, label }
       customPalettes: {
@@ -42296,6 +42297,10 @@ ${sectionsText}
         weeklyFocus: {
           ...(state.calendarPlan && state.calendarPlan.weeklyFocus ? state.calendarPlan.weeklyFocus : {}),
           ...((parsed.weeklyFocus && typeof parsed.weeklyFocus === 'object') ? parsed.weeklyFocus : {})
+        },
+        weeklyFocusColors: {
+          ...(state.calendarPlan && state.calendarPlan.weeklyFocusColors ? state.calendarPlan.weeklyFocusColors : {}),
+          ...((parsed.weeklyFocusColors && typeof parsed.weeklyFocusColors === 'object') ? parsed.weeklyFocusColors : {})
         },
         monthlyFocus: {
           ...(state.calendarPlan && state.calendarPlan.monthlyFocus ? state.calendarPlan.monthlyFocus : {}),
@@ -42601,6 +42606,7 @@ ${sectionsText}
 
     // 5. Optional Bills & Subscriptions on Main Calendar
     const billsCfg = srcCfg.bills || DEFAULT_CAL_PLAN_SOURCES.bills;
+    const calYearMonthStr = ymdStr.substring(0, 7);
     (state.subscriptions || []).forEach(sub => {
       if (!sub || sub.isFrozen) return;
       const nameLower = (sub.name || '').toLowerCase();
@@ -42613,12 +42619,17 @@ ${sectionsText}
           const subMonth = parseInt(sub.lastBilledDate.split('-')[1], 10) - 1;
           if (subMonth !== mNum) return;
         }
+        const isPaid = (typeof isSubscriptionPaidInMonth === 'function')
+          ? isSubscriptionPaidInMonth(sub, calYearMonthStr)
+          : false;
         calendarEntries.push({
           id: `bill_cal_${sub.id}_${ymdStr}`,
           subId: sub.id,
           title: `${sub.name} (${formatMoney(sub.amount, sub.currency)})`,
           date: ymdStr,
           time: 'Bill',
+          completed: isPaid,
+          isPaid: isPaid,
           kind: 'calendar',
           source: 'bills',
           subType: 'subscriptions',
@@ -42848,6 +42859,7 @@ ${sectionsText}
   }
 
   function renderCalEntryStyledPill(entry, isCompact = false) {
+    const isPaidBill = !!(entry.source === 'bills' && entry.isPaid);
     const isDone = !!(entry.completed || entry.done || entry.isDone);
     const color = entry.color || '#0d9488';
     const styleMode = (entry.displayStyle === 'framed-highlight' || !entry.displayStyle) ? 'highlight' : entry.displayStyle;
@@ -42856,7 +42868,11 @@ ${sectionsText}
     let borderClass = 'border border-slate-200/80 bg-white';
 
     // Soft Highlight on the Main Calendar has a clean soft fill with no frame
-    if (isDone) {
+    if (isPaidBill) {
+      boxStyle = `background-color: #f1f5f9; border: 1px solid #cbd5e1;`;
+      borderClass = '';
+      textStyle = `color: #64748b;`;
+    } else if (isDone) {
       boxStyle = `background-color: #f8fafc; border: 1px solid #e2e8f0;`;
       borderClass = '';
       textStyle = `color: #94a3b8;`;
@@ -42882,10 +42898,10 @@ ${sectionsText}
       ? `<span class="text-[9px] font-mono font-bold ${isCompact ? 'px-1 py-0' : 'px-1.5 py-0.2'} rounded shrink-0" style="${isDone ? 'background:#f1f5f9;color:#94a3b8;' : (styleMode === 'badge' ? 'background:rgba(255,255,255,0.2);color:#fff;' : `background:${color}18;color:${color};`)}">${escapeHtml(entry.time)}</span>`
       : '';
 
-    const bulletColor = isDone ? '#cbd5e1' : (styleMode === 'badge' ? '#ffffff' : color);
+    const bulletColor = isPaidBill ? '#94a3b8' : (isDone ? '#cbd5e1' : (styleMode === 'badge' ? '#ffffff' : color));
 
     return `
-      <div class="cal-plan-entry-card group relative rounded-xl ${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'} ${borderClass} transition-all cursor-grab active:cursor-grabbing flex items-center justify-between gap-1.5 ${isDone ? 'opacity-80' : ''}"
+      <div class="cal-plan-entry-card group relative rounded-xl ${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'} ${borderClass} transition-all cursor-grab active:cursor-grabbing flex items-center justify-between gap-1.5 ${isPaidBill ? '' : (isDone ? 'opacity-80' : '')}"
            style="${boxStyle}"
            draggable="true"
            data-entry-id="${escapeHtml(entry.id)}"
@@ -42910,7 +42926,7 @@ ${sectionsText}
                    ${isDone ? '' : 'title="Mark as done"'}>
           ` : `<span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${bulletColor};"></span>`}
           <div class="min-w-0 flex-1">
-            <div class="text-[11px] font-semibold leading-snug break-words ${isCompact ? 'truncate' : 'line-clamp-2'}" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : textStyle}">${escapeHtml(entry.title)}</div>
+            <div class="text-[11px] font-semibold leading-snug break-words ${isCompact ? 'truncate' : 'line-clamp-2'}" style="${isPaidBill ? 'color: #64748b;' : (isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : textStyle)}">${escapeHtml(entry.title)}</div>
             ${(entry.projectName || (!isCompact && entry.location)) ? `
               <div class="text-[9px] truncate ${isCompact ? 'mt-0' : 'mt-0.5'}" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : (styleMode === 'badge' ? 'color:rgba(255,255,255,0.85);' : 'color:#64748b;')}">
                 ${escapeHtml(entry.projectName || entry.location)}
@@ -43188,6 +43204,25 @@ ${sectionsText}
     const dayNamesFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+    const parseHexRgb = (hexStr) => {
+      const clean = String(hexStr || '').trim().replace(/^#/, '');
+      if (clean.length === 3) {
+        return [
+          parseInt(clean[0] + clean[0], 16) || 13,
+          parseInt(clean[1] + clean[1], 16) || 148,
+          parseInt(clean[2] + clean[2], 16) || 136
+        ];
+      }
+      if (clean.length === 6) {
+        return [
+          parseInt(clean.slice(0, 2), 16) || 0,
+          parseInt(clean.slice(2, 4), 16) || 0,
+          parseInt(clean.slice(4, 6), 16) || 0
+        ];
+      }
+      return [13, 148, 136];
+    };
+
     const renderWeeklyFocusBarForAnchor = (focusAnchorDate) => {
       if (!weeklyFocusBar) return;
       const focusWeekStart = getStartOfWeekDate(focusAnchorDate);
@@ -43204,21 +43239,22 @@ ${sectionsText}
       }
       const rawVal = cp.weeklyFocus[focusWeekKey] || cp.weeklyFocus[focusAltWeekKey] || '';
       const focusVal = rawVal.trim();
+      const weekAccent = (cp.weeklyFocusColors && (cp.weeklyFocusColors[focusWeekKey] || cp.weeklyFocusColors[focusAltWeekKey])) || '#0d9488';
       const isEditing = !!state._calPlanEditingWeeklyFocus;
       if (focusVal && !isEditing) {
         weeklyFocusBar.className = 'flex items-center gap-2 min-w-0 flex-1 py-0.5 select-none group/focus cursor-pointer';
         weeklyFocusBar.setAttribute('title', 'Double-click to edit weekly goal');
         weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-4 h-4 text-teal-600 shrink-0"></i>
-          <span class="text-xs font-bold uppercase tracking-wider text-teal-700 shrink-0 whitespace-nowrap">Weekly Goal:</span>
+          <i data-lucide="target" class="w-4 h-4 shrink-0" style="color: ${escapeHtml(weekAccent)};"></i>
+          <span class="text-xs font-bold uppercase tracking-wider shrink-0 whitespace-nowrap" style="color: ${escapeHtml(weekAccent)};">Weekly Goal:</span>
           <span id="calPlanWeeklyFocusSubheadline" class="text-[15px] font-bold text-slate-900 tracking-tight truncate group-hover/focus:text-slate-700 transition-colors">${escapeHtml(focusVal)}</span>
         `;
       } else {
         weeklyFocusBar.className = 'flex items-center gap-2 flex-1 max-w-sm bg-slate-50/90 border border-slate-200/80 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/15 rounded-xl px-2.5 py-1 min-w-0 transition-all';
         weeklyFocusBar.removeAttribute('title');
         weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-3.5 h-3.5 text-teal-600 shrink-0"></i>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 shrink-0 whitespace-nowrap">Weekly Goal:</span>
+          <i data-lucide="target" class="w-3.5 h-3.5 shrink-0" style="color: ${escapeHtml(weekAccent)};"></i>
+          <span class="text-[10px] font-bold uppercase tracking-wider shrink-0 whitespace-nowrap" style="color: ${escapeHtml(weekAccent)};">Weekly Goal:</span>
           <input type="text" id="calPlanWeeklyFocusInput" data-goal-scope="weekly" data-week-key="${escapeHtml(focusWeekKey)}" data-alt-week-key="${escapeHtml(focusAltWeekKey)}" value="${escapeHtml(rawVal)}" placeholder="Main goal for this week..." class="flex-1 min-w-0 bg-transparent border-none text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0">
         `;
       }
@@ -43472,11 +43508,13 @@ ${sectionsText}
           if (showWeekGoalBanner) {
             gridHtml += `
               <div class="cal-month-day-cell cal-day-drop-zone min-h-[135px] bg-white hover:bg-slate-50/40 border-r border-slate-100 last:border-r-0 transition-colors group cursor-pointer" style="grid-column: ${col}; ${cellCustomStyle}" data-day-ymd="${escapeHtml(ymd)}" title="Click to add plan task or event to ${escapeHtml(ymd)}">
-                <div class="px-2 pt-2 pb-1 flex items-center justify-between min-w-0" style="grid-row: 1;">
-                  ${dayHeaderHtml}
-                </div>
-                <div class="px-2 pb-2 pt-1 space-y-1 min-w-0" style="grid-row: 3;">
-                  ${dayEntriesHtml}
+                <div class="p-2 space-y-1.5 min-w-0" style="grid-row: 1;">
+                  <div class="flex items-center justify-between">
+                    ${dayHeaderHtml}
+                  </div>
+                  <div class="space-y-1 min-w-0">
+                    ${dayEntriesHtml}
+                  </div>
                 </div>
               </div>
             `;
@@ -43497,19 +43535,29 @@ ${sectionsText}
         }
 
         if (showWeekGoalBanner) {
+          const weekGoalColor = (cp.weeklyFocusColors && (cp.weeklyFocusColors[rowWeekKey] || cp.weeklyFocusColors[rowAltWeekKey])) || myPlanColor;
+          const [wgR, wgG, wgB] = parseHexRgb(weekGoalColor);
           gridHtml += `
-            <button type="button"
-                    class="cal-monthly-weekly-goal-bar relative mx-2 my-0.5 px-2.5 py-1 rounded-lg flex items-center justify-between gap-2 text-left cursor-pointer transition-all hover:brightness-[0.98] shadow-2xs group/wg min-w-0"
-                    style="grid-column: 1 / -1; grid-row: 2; z-index: 20; background-color: #f0fdfa; background: linear-gradient(90deg, color-mix(in srgb, ${escapeHtml(myPlanColor)} 14%, #ffffff) 0%, color-mix(in srgb, ${escapeHtml(myPlanColor)} 6%, #ffffff) 100%); border: 1px solid color-mix(in srgb, ${escapeHtml(myPlanColor)} 30%, #ffffff); border-left: 3px solid ${escapeHtml(myPlanColor)};"
-                    data-week-anchor-ymd="${escapeHtml(weekAnchorYmd)}"
-                    title="Open this week in Weekly Plan">
+            <div role="button"
+                 tabindex="0"
+                 class="cal-monthly-weekly-goal-bar relative w-full pt-2.5 pb-1.5 px-3 flex items-center justify-between gap-2 text-left cursor-pointer transition-all group/wg min-w-0 select-none"
+                 style="grid-column: 1 / -1; grid-row: 2; z-index: 20; background: linear-gradient(to bottom var(--in-oklab), rgba(${wgR}, ${wgG}, ${wgB}, 0) 0%, rgba(${wgR}, ${wgG}, ${wgB}, 0.09) 28%, rgba(${wgR}, ${wgG}, ${wgB}, 0.25) 62%, rgba(${wgR}, ${wgG}, ${wgB}, 0.58) 86%, rgba(${wgR}, ${wgG}, ${wgB}, 0.96) 100%); border-bottom: 2px solid ${escapeHtml(weekGoalColor)};"
+                 data-week-anchor-ymd="${escapeHtml(weekAnchorYmd)}"
+                 title="Open this week in Weekly Plan">
               <span class="flex items-center gap-1.5 min-w-0 flex-1">
-                <i data-lucide="target" class="w-3 h-3 shrink-0" style="color: ${escapeHtml(myPlanColor)};"></i>
-                <span class="text-[10px] font-bold uppercase tracking-wider shrink-0" style="color: ${escapeHtml(myPlanColor)};">Weekly Goal:</span>
-                <span class="text-[11px] font-semibold text-slate-800 truncate min-w-0">${escapeHtml(rawWeekGoal)}</span>
+                <i data-lucide="target" class="w-3.5 h-3.5 shrink-0" style="color: ${escapeHtml(weekGoalColor)};"></i>
+                <span class="text-[11px] font-bold tracking-tight truncate min-w-0" style="color: color-mix(in oklab, ${escapeHtml(weekGoalColor)} 42%, #0f172a);">${escapeHtml(rawWeekGoal)}</span>
               </span>
-              <i data-lucide="arrow-right" class="w-3 h-3 shrink-0 opacity-0 group-hover/wg:opacity-75 transition-opacity" style="color: ${escapeHtml(myPlanColor)};"></i>
-            </button>
+              <div class="flex items-center gap-0.5 opacity-0 group-hover/wg:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+                <button type="button"
+                        class="cal-weekly-goal-color-btn p-1 rounded text-slate-600/80 hover:text-slate-900 hover:bg-white/75 cursor-pointer transition-colors"
+                        data-week-key="${escapeHtml(rowWeekKey)}"
+                        data-alt-week-key="${escapeHtml(rowAltWeekKey)}"
+                        title="Customize weekly goal color">
+                  <i data-lucide="palette" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
           `;
         }
 
@@ -44958,6 +45006,28 @@ ${sectionsText}
       viewEl.addEventListener('click', (e) => {
         if (Date.now() - lastDragEndTime < 200) return;
 
+        const weeklyGoalColorBtn = e.target.closest('.cal-weekly-goal-color-btn');
+        if (weeklyGoalColorBtn) {
+          e.stopPropagation();
+          const wk = weeklyGoalColorBtn.getAttribute('data-week-key');
+          const altWk = weeklyGoalColorBtn.getAttribute('data-alt-week-key');
+          if (!wk) return;
+          if (!state.calendarPlan.weeklyFocusColors || typeof state.calendarPlan.weeklyFocusColors !== 'object') {
+            state.calendarPlan.weeklyFocusColors = {};
+          }
+          const palette = getCalStudioPalette('my_plan');
+          const defaultPlanColor = ((state.calendarPlan.sources && state.calendarPlan.sources.my_plan && state.calendarPlan.sources.my_plan.color) || '#0d9488');
+          const curSaved = state.calendarPlan.weeklyFocusColors[wk] || (altWk && state.calendarPlan.weeklyFocusColors[altWk]) || '';
+          const effectiveCur = (curSaved || defaultPlanColor).toLowerCase();
+          const curIdx = palette.findIndex(hex => hex.toLowerCase() === effectiveCur);
+          const nextColor = palette[(curIdx + 1) % palette.length];
+          state.calendarPlan.weeklyFocusColors[wk] = nextColor;
+          if (altWk) state.calendarPlan.weeklyFocusColors[altWk] = nextColor;
+          saveCalendarPlanData();
+          renderCalendarPlanView();
+          return;
+        }
+
         const weeklyGoalBar = e.target.closest('.cal-monthly-weekly-goal-bar');
         if (weeklyGoalBar) {
           const wkYmd = weeklyGoalBar.getAttribute('data-week-anchor-ymd');
@@ -45220,6 +45290,32 @@ ${sectionsText}
           if (focusInput) {
             e.preventDefault();
             focusInput.blur();
+            return;
+          }
+          const goalBarEl = e.target.closest('.cal-monthly-weekly-goal-bar');
+          if (goalBarEl && !e.target.closest('.cal-weekly-goal-color-btn')) {
+            e.preventDefault();
+            const wkYmd = goalBarEl.getAttribute('data-week-anchor-ymd');
+            if (wkYmd) {
+              state._calPlanEditingWeeklyFocus = false;
+              state.calendarPlan.anchorDate = wkYmd;
+              state.calendarPlan.viewMode = 'weekly';
+              saveCalendarPlanData();
+              renderCalendarPlanView();
+            }
+          }
+        } else if (e.key === ' ') {
+          const goalBarEl = e.target.closest('.cal-monthly-weekly-goal-bar');
+          if (goalBarEl && !e.target.closest('.cal-weekly-goal-color-btn') && !e.target.closest('input, textarea')) {
+            e.preventDefault();
+            const wkYmd = goalBarEl.getAttribute('data-week-anchor-ymd');
+            if (wkYmd) {
+              state._calPlanEditingWeeklyFocus = false;
+              state.calendarPlan.anchorDate = wkYmd;
+              state.calendarPlan.viewMode = 'weekly';
+              saveCalendarPlanData();
+              renderCalendarPlanView();
+            }
           }
         } else if (e.key === 'Escape') {
           const focusInput = e.target.closest('#calPlanWeeklyFocusInput');
@@ -45446,6 +45542,13 @@ ${sectionsText}
                   state.calendarPlan.weeklyFocus[newKey] = state.calendarPlan.weeklyFocus[oldKey];
                 } else if (state.calendarPlan.weeklyFocus[newKey] && !state.calendarPlan.weeklyFocus[oldKey]) {
                   state.calendarPlan.weeklyFocus[oldKey] = state.calendarPlan.weeklyFocus[newKey];
+                }
+              }
+              if (state.calendarPlan.weeklyFocusColors) {
+                if (state.calendarPlan.weeklyFocusColors[oldKey] && !state.calendarPlan.weeklyFocusColors[newKey]) {
+                  state.calendarPlan.weeklyFocusColors[newKey] = state.calendarPlan.weeklyFocusColors[oldKey];
+                } else if (state.calendarPlan.weeklyFocusColors[newKey] && !state.calendarPlan.weeklyFocusColors[oldKey]) {
+                  state.calendarPlan.weeklyFocusColors[oldKey] = state.calendarPlan.weeklyFocusColors[newKey];
                 }
               }
             } else {
