@@ -43541,16 +43541,16 @@ ${sectionsText}
             <div role="button"
                  tabindex="0"
                  class="cal-monthly-weekly-goal-bar relative w-full pt-2.5 pb-1.5 px-3 flex items-center justify-between gap-2 text-left cursor-pointer transition-all group/wg min-w-0 select-none"
-                 style="grid-column: 1 / -1; grid-row: 2; z-index: 20; background: linear-gradient(to bottom var(--in-oklab), rgba(${wgR}, ${wgG}, ${wgB}, 0) 0%, rgba(${wgR}, ${wgG}, ${wgB}, 0.09) 28%, rgba(${wgR}, ${wgG}, ${wgB}, 0.25) 62%, rgba(${wgR}, ${wgG}, ${wgB}, 0.58) 86%, rgba(${wgR}, ${wgG}, ${wgB}, 0.96) 100%); border-bottom: 2px solid ${escapeHtml(weekGoalColor)};"
+                 style="grid-column: 1 / -1; grid-row: 2; z-index: 20; background: linear-gradient(to bottom var(--in-oklab), rgba(${wgR}, ${wgG}, ${wgB}, 0) 0%, rgba(${wgR}, ${wgG}, ${wgB}, 0.03) 35%, rgba(${wgR}, ${wgG}, ${wgB}, 0.09) 72%, rgba(${wgR}, ${wgG}, ${wgB}, 0.18) 100%); border-bottom: 1px solid rgba(${wgR}, ${wgG}, ${wgB}, 0.28);"
                  data-week-anchor-ymd="${escapeHtml(weekAnchorYmd)}"
                  title="Open this week in Weekly Plan">
               <span class="flex items-center gap-1.5 min-w-0 flex-1">
-                <i data-lucide="target" class="w-3.5 h-3.5 shrink-0" style="color: ${escapeHtml(weekGoalColor)};"></i>
-                <span class="text-[11px] font-bold tracking-tight truncate min-w-0" style="color: color-mix(in oklab, ${escapeHtml(weekGoalColor)} 42%, #0f172a);">${escapeHtml(rawWeekGoal)}</span>
+                <i data-lucide="target" class="w-3.5 h-3.5 shrink-0 opacity-70" style="color: ${escapeHtml(weekGoalColor)};"></i>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate min-w-0">Weekly Goal: ${escapeHtml(rawWeekGoal)}</span>
               </span>
               <div class="flex items-center gap-0.5 opacity-0 group-hover/wg:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                 <button type="button"
-                        class="cal-weekly-goal-color-btn p-1 rounded text-slate-600/80 hover:text-slate-900 hover:bg-white/75 cursor-pointer transition-colors"
+                        class="cal-weekly-goal-color-btn p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/75 cursor-pointer transition-colors"
                         data-week-key="${escapeHtml(rowWeekKey)}"
                         data-alt-week-key="${escapeHtml(rowAltWeekKey)}"
                         title="Customize weekly goal color">
