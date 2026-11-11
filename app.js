@@ -43545,8 +43545,9 @@ ${sectionsText}
                  data-week-anchor-ymd="${escapeHtml(weekAnchorYmd)}"
                  title="Open this week in Weekly Plan">
               <span class="flex items-center gap-1.5 min-w-0 flex-1">
-                <i data-lucide="target" class="w-3.5 h-3.5 shrink-0 opacity-70" style="color: ${escapeHtml(weekGoalColor)};"></i>
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate min-w-0">Weekly Goal: ${escapeHtml(rawWeekGoal)}</span>
+                <i data-lucide="target" class="w-3.5 h-3.5 shrink-0" style="color: ${escapeHtml(weekGoalColor)};"></i>
+                <span class="text-xs font-semibold uppercase tracking-wider shrink-0" style="color: ${escapeHtml(weekGoalColor)};">Weekly Goal:</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-900 truncate min-w-0">${escapeHtml(rawWeekGoal)}</span>
               </span>
               <div class="flex items-center gap-0.5 opacity-0 group-hover/wg:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                 <button type="button"
