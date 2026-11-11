@@ -43233,60 +43233,30 @@ ${sectionsText}
         : new Date(focusWeekStart.getFullYear(), focusWeekStart.getMonth(), focusWeekStart.getDate() + 1);
       const focusAltWeekKey = formatLocalYMD(focusAltWeekStart);
 
-      if (state._calPlanEditingGoalKey && state._calPlanEditingGoalKey !== focusWeekKey) {
-        state._calPlanEditingWeeklyFocus = false;
-        state._calPlanEditingGoalKey = null;
-      }
       const rawVal = cp.weeklyFocus[focusWeekKey] || cp.weeklyFocus[focusAltWeekKey] || '';
       const focusVal = rawVal.trim();
       const weekAccent = (cp.weeklyFocusColors && (cp.weeklyFocusColors[focusWeekKey] || cp.weeklyFocusColors[focusAltWeekKey])) || '#0d9488';
-      const isEditing = !!state._calPlanEditingWeeklyFocus;
-      if (focusVal && !isEditing) {
-        weeklyFocusBar.className = 'flex items-center gap-2 min-w-0 flex-1 py-0.5 select-none group/focus cursor-pointer';
-        weeklyFocusBar.setAttribute('title', 'Double-click to edit weekly goal');
-        weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-4 h-4 shrink-0" style="color: ${escapeHtml(weekAccent)};"></i>
-          <span class="text-xs font-bold uppercase tracking-wider shrink-0 whitespace-nowrap" style="color: ${escapeHtml(weekAccent)};">Weekly Goal:</span>
-          <span id="calPlanWeeklyFocusSubheadline" class="text-[15px] font-bold text-slate-900 tracking-tight truncate group-hover/focus:text-slate-700 transition-colors">${escapeHtml(focusVal)}</span>
-        `;
-      } else {
-        weeklyFocusBar.className = 'flex items-center gap-2 flex-1 max-w-sm bg-slate-50/90 border border-slate-200/80 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/15 rounded-xl px-2.5 py-1 min-w-0 transition-all';
-        weeklyFocusBar.removeAttribute('title');
-        weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-3.5 h-3.5 shrink-0" style="color: ${escapeHtml(weekAccent)};"></i>
-          <span class="text-[10px] font-bold uppercase tracking-wider shrink-0 whitespace-nowrap" style="color: ${escapeHtml(weekAccent)};">Weekly Goal:</span>
-          <input type="text" id="calPlanWeeklyFocusInput" data-goal-scope="weekly" data-week-key="${escapeHtml(focusWeekKey)}" data-alt-week-key="${escapeHtml(focusAltWeekKey)}" value="${escapeHtml(rawVal)}" placeholder="Main goal for this week..." class="flex-1 min-w-0 bg-transparent border-none text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0">
-        `;
-      }
+      weeklyFocusBar.className = 'flex items-center gap-2 min-w-0 flex-1 h-7 select-none';
+      weeklyFocusBar.removeAttribute('title');
+      weeklyFocusBar.innerHTML = `
+        <i data-lucide="target" class="w-4 h-4 shrink-0" style="color: ${escapeHtml(weekAccent)};"></i>
+        <label for="calPlanWeeklyFocusInput" class="text-xs font-bold uppercase tracking-wider shrink-0 whitespace-nowrap cursor-pointer" style="color: ${escapeHtml(weekAccent)};">Weekly Goal:</label>
+        <input type="text" id="calPlanWeeklyFocusInput" name="calPlanWeeklyGoal" data-goal-scope="weekly" data-week-key="${escapeHtml(focusWeekKey)}" data-alt-week-key="${escapeHtml(focusAltWeekKey)}" value="${escapeHtml(rawVal)}" placeholder="Main goal for this week..." enterkeyhint="done" class="${focusVal ? '' : 'is-empty '}flex-1 max-w-xs min-w-0 text-[15px] font-bold text-slate-900 tracking-tight placeholder:text-xs placeholder:font-medium placeholder:text-slate-400" style="--goal-line-color: ${escapeHtml(weekAccent)};">
+      `;
     };
 
     const renderMonthlyGoalBarForMonth = (yearNum, monthZeroIdx) => {
       if (!weeklyFocusBar) return;
       const monthKey = `${yearNum}-${String(monthZeroIdx + 1).padStart(2, '0')}`;
-      if (state._calPlanEditingGoalKey && state._calPlanEditingGoalKey !== monthKey) {
-        state._calPlanEditingWeeklyFocus = false;
-        state._calPlanEditingGoalKey = null;
-      }
       const rawVal = (cp.monthlyFocus && cp.monthlyFocus[monthKey]) || '';
       const goalVal = rawVal.trim();
-      const isEditing = !!state._calPlanEditingWeeklyFocus;
-      if (goalVal && !isEditing) {
-        weeklyFocusBar.className = 'flex items-center gap-2 min-w-0 flex-1 py-0.5 select-none group/focus cursor-pointer';
-        weeklyFocusBar.setAttribute('title', 'Double-click to edit monthly goal');
-        weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-4 h-4 text-teal-600 shrink-0"></i>
-          <span class="text-xs font-bold uppercase tracking-wider text-teal-700 shrink-0 whitespace-nowrap">Monthly Goal:</span>
-          <span id="calPlanWeeklyFocusSubheadline" class="text-[15px] font-bold text-slate-900 tracking-tight truncate group-hover/focus:text-slate-700 transition-colors">${escapeHtml(goalVal)}</span>
-        `;
-      } else {
-        weeklyFocusBar.className = 'flex items-center gap-2 flex-1 max-w-sm bg-slate-50/90 border border-slate-200/80 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/15 rounded-xl px-2.5 py-1 min-w-0 transition-all';
-        weeklyFocusBar.removeAttribute('title');
-        weeklyFocusBar.innerHTML = `
-          <i data-lucide="target" class="w-3.5 h-3.5 text-teal-600 shrink-0"></i>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 shrink-0 whitespace-nowrap">Monthly Goal:</span>
-          <input type="text" id="calPlanWeeklyFocusInput" data-goal-scope="monthly" data-month-key="${escapeHtml(monthKey)}" value="${escapeHtml(rawVal)}" placeholder="Main goal for this month..." class="flex-1 min-w-0 bg-transparent border-none text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0">
-        `;
-      }
+      weeklyFocusBar.className = 'flex items-center gap-2 min-w-0 flex-1 h-7 select-none';
+      weeklyFocusBar.removeAttribute('title');
+      weeklyFocusBar.innerHTML = `
+        <i data-lucide="target" class="w-4 h-4 text-teal-600 shrink-0"></i>
+        <label for="calPlanWeeklyFocusInput" class="text-xs font-bold uppercase tracking-wider text-teal-700 shrink-0 whitespace-nowrap cursor-pointer">Monthly Goal:</label>
+        <input type="text" id="calPlanWeeklyFocusInput" name="calPlanMonthlyGoal" data-goal-scope="monthly" data-month-key="${escapeHtml(monthKey)}" value="${escapeHtml(rawVal)}" placeholder="Main goal for this month..." enterkeyhint="done" class="${goalVal ? '' : 'is-empty '}flex-1 max-w-xs min-w-0 text-[15px] font-bold text-slate-900 tracking-tight placeholder:text-xs placeholder:font-medium placeholder:text-slate-400" style="--goal-line-color: #0d9488;">
+      `;
     };
 
     if (cp.viewMode === 'weekly') {
@@ -45331,12 +45301,8 @@ ${sectionsText}
         const focusBar = e.target.closest('#calPlanWeeklyFocusBar');
         if (focusBar && !e.target.closest('#calPlanWeeklyFocusInput')) {
           e.preventDefault();
-          state._calPlanEditingWeeklyFocus = true;
-          state._calPlanEditingGoalKey = null;
-          renderCalendarPlanView();
           const inp = document.getElementById('calPlanWeeklyFocusInput');
           if (inp) {
-            state._calPlanEditingGoalKey = inp.getAttribute('data-month-key') || inp.getAttribute('data-week-key') || null;
             try {
               inp.focus();
               const len = inp.value.length;
@@ -45351,6 +45317,10 @@ ${sectionsText}
         if (focusInput) {
           const scope = focusInput.getAttribute('data-goal-scope') || 'weekly';
           const trimmed = (focusInput.value || '').trim();
+          if (focusInput.value !== trimmed) {
+            focusInput.value = trimmed;
+          }
+          focusInput.classList.toggle('is-empty', !trimmed);
           if (scope === 'monthly') {
             const mk = focusInput.getAttribute('data-month-key');
             if (mk) {
@@ -45373,7 +45343,6 @@ ${sectionsText}
           }
           state._calPlanEditingWeeklyFocus = false;
           state._calPlanEditingGoalKey = null;
-          renderCalendarPlanView();
         }
       });
 
@@ -45381,6 +45350,7 @@ ${sectionsText}
         const focusInput = e.target.closest('#calPlanWeeklyFocusInput');
         if (focusInput) {
           const scope = focusInput.getAttribute('data-goal-scope') || 'weekly';
+          focusInput.classList.toggle('is-empty', !(focusInput.value || '').trim());
           if (scope === 'monthly') {
             const mk = focusInput.getAttribute('data-month-key');
             if (mk) {

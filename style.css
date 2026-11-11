@@ -2203,6 +2203,35 @@ body.po-print-layout #priceOfferingSheet .po-signature-vector,
   grid-template-rows: subgrid;
 }
 
+/* Sleek Zero-Jitter Inline Goal Line Input (Weekly & Monthly Plan) */
+#calPlanWeeklyFocusInput {
+  height: 26px;
+  line-height: 24px;
+  padding: 0 2px;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1.5px solid transparent !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  transition: border-bottom-color 0.15s ease;
+}
+
+#calPlanWeeklyFocusInput.is-empty {
+  border-bottom-color: #cbd5e1 !important;
+}
+
+#calPlanWeeklyFocusInput:hover {
+  border-bottom-color: #94a3b8 !important;
+}
+
+#calPlanWeeklyFocusInput:focus,
+#calPlanWeeklyFocusInput:focus-visible {
+  border-bottom-color: var(--goal-line-color, #0d9488) !important;
+}
+
+
 
 
 
