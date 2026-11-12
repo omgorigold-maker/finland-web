@@ -25300,9 +25300,13 @@ function initSortableWidgets() {
   };
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
-  const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = '• Payment terms: Due upon signing proposal / quote.\n• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.\n• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.\n\nBANK DETAILS\nName: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
+  const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = '• Payment terms: Due upon signing proposal / quote.\n• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.\n• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.';
+  const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
   function getDepositProformaDefaultTerms() {
     return DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT;
+  }
+  function getDepositProformaDefaultBank() {
+    return DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT;
   }
   function getProformaDefaultTerms() {
     if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
@@ -25397,7 +25401,7 @@ function initSortableWidgets() {
       tplScope.content = fallbackScopeText;
     }
 
-    // Ensure Payment Terms & Bank Details section exists
+    // Ensure Payment Terms section exists
     let tplTerms = out.find(s => s && s.type === 'terms');
     const defaultTerms = isDeposit ? getDepositProformaDefaultTerms() : getProformaDefaultTerms();
     const termsTitle = isDeposit ? 'PAYMENT TERMS' : 'Payment Terms & Bank Details';
@@ -25421,6 +25425,33 @@ function initSortableWidgets() {
       else out.push(termsBlock);
     }
 
+    // In deposit proforma, ensure BANK DETAILS is its own standalone section right after PAYMENT TERMS
+    if (isDeposit) {
+      const termsPos = out.findIndex(s => s && s.type === 'terms');
+      let tplBank = out.find(s => s && s.type === 'text' && (s.title || '').trim().toUpperCase() === 'BANK DETAILS');
+      if (tplBank) {
+        tplBank.title = 'BANK DETAILS';
+        tplBank.content = DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT;
+        // Move immediately after terms if needed
+        const curIdx = out.indexOf(tplBank);
+        if (termsPos !== -1 && curIdx !== termsPos + 1) {
+          out.splice(curIdx, 1);
+          const newTermsPos = out.findIndex(s => s && s.type === 'terms');
+          out.splice(newTermsPos + 1, 0, tplBank);
+        }
+      } else {
+        const bankBlock = {
+          id: 'sec_bank_' + Date.now(),
+          type: 'text',
+          title: 'BANK DETAILS',
+          pageBreakBefore: false,
+          content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
+        };
+        if (termsPos !== -1) out.splice(termsPos + 1, 0, bankBlock);
+        else out.push(bankBlock);
+      }
+    }
+
     // Ensure Notice & Invoicing Notes / Deposit Notes section exists
     const defaultConditions = isDeposit ? DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT : PROFORMA_DEFAULT_CONDITIONS_CONTENT;
     const condTitle = isDeposit ? 'DEPOSIT NOTES & TERMS' : 'Notice & Invoicing Notes';
@@ -25436,11 +25467,6 @@ function initSortableWidgets() {
         pageBreakBefore: false,
         content: existingCond?.content || defaultConditions
       });
-    }
-
-    // Filter out redundant separate bank details text blocks in deposit proforma since bank details are in PAYMENT TERMS
-    if (isDeposit) {
-      out = out.filter(s => !(s && s.type === 'text' && (s.title || '').trim().toLowerCase() === 'bank details'));
     }
 
     return out;
@@ -25492,9 +25518,10 @@ function initSortableWidgets() {
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_dep', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+        { id: 'sec_scope_dep', type: 'scope', title: 'PROJECT SCOPE & OBJECTIVE', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
         { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
+        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT },
         { id: 'sec_conditions_dep', type: 'conditions', title: 'DEPOSIT NOTES & TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
       richText: {}
@@ -32325,6 +32352,13 @@ function initSortableWidgets() {
             title: 'PAYMENT TERMS',
             pageBreakBefore: false,
             content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT
+          },
+          {
+            id: 'sec_bank_' + Date.now(),
+            type: 'text',
+            title: 'BANK DETAILS',
+            pageBreakBefore: false,
+            content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
           },
           {
             id: 'sec_conditions_' + Date.now(),
