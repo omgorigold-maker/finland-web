@@ -902,7 +902,7 @@ select:not(.hidden):focus {
   font-family: var(--po-font-family) !important;
   font-size: var(--po-title-size) !important;
   font-weight: 700 !important;
-  color: #0f172a !important;
+  color: #d946ef;
   letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   padding: 0 !important;
