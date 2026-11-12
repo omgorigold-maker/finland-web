@@ -284,7 +284,6 @@
   const DEFAULT_APP_PREFS = {
     displayedCurrencies: ['EUR', 'ILS', 'USD'], // Cap at 3
     defaultStartupCurrency: 'EUR',
-    decimalMode: 'cents', // 'cents' (.00) or 'whole'
     numberFormatLocale: 'standard', // 'standard' (1,250.00) or 'european' (1.250,00)
     paymentMethods: [
       { id: 'pm_1', name: 'Wise Business Card', last4: '4242', isDefault: true },
@@ -1640,16 +1639,15 @@
     const absNum = Math.abs(num);
 
     const prefs = (state && (state.draftAppPrefs || state.appPrefs)) || {};
-    const isWhole = (prefs.decimalMode === 'whole');
     const isEuroLocale = (prefs.numberFormatLocale === 'european');
 
-    const minDigits = isWhole ? 0 : 2;
-    const maxDigits = isWhole ? 0 : 2;
+    const hasCents = (Math.round(absNum * 100) % 100) !== 0;
+    const digits = hasCents ? 2 : 0;
     const localeCode = isEuroLocale ? 'de-DE' : 'en-US';
 
     const formattedNum = absNum.toLocaleString(localeCode, {
-      minimumFractionDigits: minDigits,
-      maximumFractionDigits: maxDigits
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
     });
 
     return isNegative ? `-${symbol}${formattedNum}` : `${symbol}${formattedNum}`;
@@ -10030,18 +10028,7 @@ FOLDER CONTENTS:
       };
     }
 
-    // 4. Decimals Display
-    const decimalSelect = document.getElementById('prefDecimalMode');
-    if (decimalSelect) {
-      decimalSelect.value = state.draftAppPrefs?.decimalMode || 'cents';
-      decimalSelect.onchange = (e) => {
-        state.draftAppPrefs = state.draftAppPrefs || {};
-        state.draftAppPrefs.decimalMode = e.target.value;
-        refreshLiveSettingsPreview();
-      };
-    }
-
-    // 5. Number Format / Locale
+    // 4. Number Format / Locale
     const numLocaleSelect = document.getElementById('prefNumberFormatLocale');
     if (numLocaleSelect) {
       numLocaleSelect.value = state.draftAppPrefs?.numberFormatLocale || 'standard';
@@ -13267,12 +13254,6 @@ Status: Paid in Full`;
       if (defStartupCur) {
         state.draftAppPrefs = state.draftAppPrefs || {};
         state.draftAppPrefs.defaultStartupCurrency = defStartupCur.value;
-      }
-
-      const decimalSelect = document.getElementById('prefDecimalMode');
-      if (decimalSelect) {
-        state.draftAppPrefs = state.draftAppPrefs || {};
-        state.draftAppPrefs.decimalMode = decimalSelect.value;
       }
 
       const numLocaleSelect = document.getElementById('prefNumberFormatLocale');
