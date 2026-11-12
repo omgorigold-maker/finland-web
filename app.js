@@ -25574,22 +25574,8 @@ function initSortableWidgets() {
       // Remove any separate conditions block in deposit proforma (notes are already inside payment terms)
       out = out.filter(s => !(s && s.type === 'conditions'));
     } else {
-      // Ensure Notice & Invoicing Notes section exists for normal proforma
-      const defaultConditions = PROFORMA_DEFAULT_CONDITIONS_CONTENT;
-      const condTitle = 'Notice & Invoicing Notes';
-      let tplCond = out.find(s => s && s.type === 'conditions');
-      if (tplCond) {
-        tplCond.title = condTitle;
-        tplCond.content = existingCond?.content || defaultConditions;
-      } else {
-        out.push({
-          id: existingCond?.id || ('sec_conditions_' + Date.now()),
-          type: 'conditions',
-          title: condTitle,
-          pageBreakBefore: false,
-          content: existingCond?.content || defaultConditions
-        });
-      }
+      // Proforma invoices consolidate all notices and notes into Payment Terms & Bank Details; remove separate conditions section
+      out = out.filter(s => !(s && (s.type === 'conditions' || s.title === 'Notice & Invoicing Notes')));
     }
 
     return out;
@@ -25672,8 +25658,7 @@ function initSortableWidgets() {
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
         { id: 'sec_scope_prof', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
-        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
-        { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() }
       ],
       richText: {}
     };
@@ -25741,6 +25726,7 @@ function initSortableWidgets() {
       existingProf.docTitle = masterProf.docTitle;
       existingProf.docSubtitle = masterProf.docSubtitle;
       if (Array.isArray(existingProf.sections)) {
+        existingProf.sections = existingProf.sections.filter(s => !(s && (s.type === 'conditions' || s.title === 'Notice & Invoicing Notes')));
         const termsSec = existingProf.sections.find(s => s && s.type === 'terms');
         if (termsSec && (!termsSec.content || !termsSec.content.includes('remains the property of the provider'))) {
           termsSec.content = getProformaDefaultTerms();
@@ -32341,13 +32327,6 @@ function initSortableWidgets() {
             title: 'Payment Terms & Bank Details',
             pageBreakBefore: false,
             content: getProformaDefaultTerms()
-          },
-          {
-            id: 'sec_conditions_' + Date.now(),
-            type: 'conditions',
-            title: 'Notice & Invoicing Notes',
-            pageBreakBefore: false,
-            content: '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.'
           }
         ],
         subtotal: initSubtotal,
@@ -32362,7 +32341,7 @@ function initSortableWidgets() {
     const po = proj.proformaInvoice;
     po._isProforma = true;
 
-    // Ensure Proforma sections have Payment Terms & Bank Details, Notice & Invoicing Notes, and no quote-only blocks
+    // Ensure Proforma sections have Payment Terms & Bank Details and no quote-only blocks
     if (Array.isArray(po.sections) && po.sections.length > 0) {
       po.sections = buildProformaSectionsFromTemplate(po.sections, po.sections, proj);
       const termsSec = po.sections.find(s => s && s.type === 'terms');
