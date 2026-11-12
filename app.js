@@ -25300,7 +25300,13 @@ function initSortableWidgets() {
   };
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
-  const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = '• Payment terms: Due upon signing proposal / quote.\n• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.\n• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.';
+  const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
+    '• Project commencement begins upon receipt of deposit payment.',
+    '• This deposit proforma invoice covers the initial 50% project retainer / deposit. The remaining 50% milestone will be invoiced upon project completion and final deliverables sign-off.',
+    '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.',
+    '• All final high-resolution source and production files transfer to the Client upon completed settlement of final invoice.',
+    '• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.'
+  ].join('\n');
   const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
   function getDepositProformaDefaultTerms() {
     return DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT;
@@ -25374,7 +25380,9 @@ function initSortableWidgets() {
     const existingScope = prevSecs.find(s => s && (s.type === 'scope' || (s.type === 'custom' && (s.title || '').toLowerCase() === 'summary')));
     const existingTerms = prevSecs.find(s => s && s.type === 'terms');
     const existingCond = prevSecs.find(s => s && s.type === 'conditions');
-    const fallbackScopeText = existingScope?.content || (entity?.notes ? String(entity.notes).split('\n\n---\n\n')[0] : (entity?.title || ''));
+    const fallbackScopeText = isDeposit
+      ? 'As agreed upon signing quote / proposal'
+      : (existingScope?.content || (entity?.notes ? String(entity.notes).split('\n\n---\n\n')[0] : (entity?.title || '')));
 
     let out = Array.isArray(tplSections) && tplSections.length > 0
       ? JSON.parse(JSON.stringify(tplSections))
@@ -25395,10 +25403,28 @@ function initSortableWidgets() {
       out.splice(ovIdx + 1, 0, { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' });
     }
 
-    // Preserve scope/summary text if template's scope/summary is empty
+    // Preserve scope/summary text
     const tplScope = out.find(s => s && (s.type === 'scope' || (s.type === 'custom' && (s.title || '').toLowerCase() === 'summary')));
-    if (tplScope && (!tplScope.content || !String(tplScope.content).replace(/<[^>]*>/g, '').trim()) && fallbackScopeText) {
-      tplScope.content = fallbackScopeText;
+    if (tplScope) {
+      if (isDeposit) {
+        tplScope.title = 'SUMMARY';
+        if (!tplScope.content || tplScope.content.includes('[PROJECT SCOPE') || tplScope.content.trim() === '') {
+          tplScope.content = 'As agreed upon signing quote / proposal';
+        }
+      } else if ((!tplScope.content || !String(tplScope.content).replace(/<[^>]*>/g, '').trim()) && fallbackScopeText) {
+        tplScope.content = fallbackScopeText;
+      }
+    } else if (isDeposit) {
+      const ovPos = out.findIndex(s => s && s.type === 'divider');
+      const scopeBlock = {
+        id: 'sec_scope_' + Date.now(),
+        type: 'scope',
+        title: 'SUMMARY',
+        pageBreakBefore: false,
+        content: 'As agreed upon signing quote / proposal'
+      };
+      if (ovPos !== -1) out.splice(ovPos + 1, 0, scopeBlock);
+      else out.push(scopeBlock);
     }
 
     // Ensure Payment Terms section exists
@@ -25432,7 +25458,6 @@ function initSortableWidgets() {
       if (tplBank) {
         tplBank.title = 'BANK DETAILS';
         tplBank.content = DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT;
-        // Move immediately after terms if needed
         const curIdx = out.indexOf(tplBank);
         if (termsPos !== -1 && curIdx !== termsPos + 1) {
           out.splice(curIdx, 1);
@@ -25450,23 +25475,26 @@ function initSortableWidgets() {
         if (termsPos !== -1) out.splice(termsPos + 1, 0, bankBlock);
         else out.push(bankBlock);
       }
-    }
 
-    // Ensure Notice & Invoicing Notes / Deposit Notes section exists
-    const defaultConditions = isDeposit ? DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT : PROFORMA_DEFAULT_CONDITIONS_CONTENT;
-    const condTitle = isDeposit ? 'DEPOSIT NOTES & TERMS' : 'Notice & Invoicing Notes';
-    let tplCond = out.find(s => s && s.type === 'conditions');
-    if (tplCond) {
-      tplCond.title = condTitle;
-      tplCond.content = isDeposit ? defaultConditions : (existingCond?.content || defaultConditions);
+      // Remove any separate conditions block in deposit proforma (notes are already inside payment terms)
+      out = out.filter(s => !(s && s.type === 'conditions'));
     } else {
-      out.push({
-        id: existingCond?.id || ('sec_conditions_' + Date.now()),
-        type: 'conditions',
-        title: condTitle,
-        pageBreakBefore: false,
-        content: existingCond?.content || defaultConditions
-      });
+      // Ensure Notice & Invoicing Notes section exists for normal proforma
+      const defaultConditions = PROFORMA_DEFAULT_CONDITIONS_CONTENT;
+      const condTitle = 'Notice & Invoicing Notes';
+      let tplCond = out.find(s => s && s.type === 'conditions');
+      if (tplCond) {
+        tplCond.title = condTitle;
+        tplCond.content = existingCond?.content || defaultConditions;
+      } else {
+        out.push({
+          id: existingCond?.id || ('sec_conditions_' + Date.now()),
+          type: 'conditions',
+          title: condTitle,
+          pageBreakBefore: false,
+          content: existingCond?.content || defaultConditions
+        });
+      }
     }
 
     return out;
@@ -25518,11 +25546,10 @@ function initSortableWidgets() {
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_dep', type: 'scope', title: 'PROJECT SCOPE & OBJECTIVE', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
+        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: 'As agreed upon signing quote / proposal' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
         { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
-        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT },
-        { id: 'sec_conditions_dep', type: 'conditions', title: 'DEPOSIT NOTES & TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT }
       ],
       richText: {}
     };
@@ -32282,10 +32309,11 @@ function initSortableWidgets() {
       const todayStr = new Date().toISOString().split('T')[0];
       const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
 
+      const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Printable Design Bundle';
       let initialItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: (proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          description: `50% Project Commencement Deposit — \n${projItemName}`,
           qty: 1,
           rate: depositRate,
           amount: depositRate
@@ -32304,7 +32332,7 @@ function initSortableWidgets() {
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : '[PROJECT SCOPE & OBJECTIVE]'));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : 'As agreed upon signing quote / proposal'));
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
@@ -32341,7 +32369,7 @@ function initSortableWidgets() {
           {
             id: 'sec_scope_' + Date.now(),
             type: 'scope',
-            title: (srcScopeSec && srcScopeSec.title) || 'PROJECT SCOPE & OBJECTIVE',
+            title: 'SUMMARY',
             pageBreakBefore: false,
             content: initScopeContent
           },
@@ -32359,13 +32387,6 @@ function initSortableWidgets() {
             title: 'BANK DETAILS',
             pageBreakBefore: false,
             content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
-          },
-          {
-            id: 'sec_conditions_' + Date.now(),
-            type: 'conditions',
-            title: 'DEPOSIT NOTES & TERMS',
-            pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT
           }
         ],
         subtotal: initSubtotal,
@@ -32427,17 +32448,21 @@ function initSortableWidgets() {
 
     // Items
     const initDepositAmount = Math.round(((parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5) * 100) / 100;
+    const fallbackProjName = proj.title || proj.description || 'Printable Design Bundle';
     if (Array.isArray(po.items) && po.items.length > 0) {
       currentPoItems = JSON.parse(JSON.stringify(po.items));
       if (currentPoItems.length === 1 && (parseFloat(currentPoItems[0].amount) || 0) === 0 && initDepositAmount > 0) {
         currentPoItems[0].rate = initDepositAmount;
         currentPoItems[0].amount = (parseFloat(currentPoItems[0].qty) || 1) * initDepositAmount;
       }
+      if (currentPoItems.length === 1 && currentPoItems[0].description && (currentPoItems[0].description.includes('(50% Initial Deposit Milestone)') || currentPoItems[0].description === 'Project Scope & Deliverables')) {
+        currentPoItems[0].description = `50% Project Commencement Deposit — \n${fallbackProjName}`;
+      }
     } else {
       currentPoItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: (proj.title || proj.description || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          description: `50% Project Commencement Deposit — \n${fallbackProjName}`,
           qty: 1,
           rate: initDepositAmount,
           amount: initDepositAmount
