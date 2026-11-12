@@ -25313,7 +25313,7 @@ function initSortableWidgets() {
       return [
         '• Deposit payment is due upon signing the project proposal / quote.',
         '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
-        '• This proforma invoice covers the initial 50% project retainer / deposit. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
+        '• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
         '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.'
       ].join('\n');
     }
@@ -25326,6 +25326,9 @@ function initSortableWidgets() {
     return DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT;
   }
   function getDepositProformaDefaultCommunication() {
+    if (isDemoMode()) {
+      return 'MON-SAT VIA EMAIL: STUDIO@CREATIVE.DEMO / WHATSAPP: +49 30 1234 5678';
+    }
     return DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT;
   }
   function getProformaDefaultTerms() {
