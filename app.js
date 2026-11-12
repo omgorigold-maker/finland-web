@@ -25220,17 +25220,17 @@ function initSortableWidgets() {
 
   const DEFAULT_PO_TEMPLATE = {
     docTitle: 'Price Quote / Proposal',
-    docSubtitle: '',
+    docSubtitle: '[PROJECT NAME]',
     sender: {
-      name: 'Studio',
-      title: 'Creative Direction & Design',
-      contact: '',
-      location: ''
+      name: 'Ori Gold',
+      title: 'Creative Studio · Art & Graphics',
+      contact: 'Email: omg.ori.gold@gmail.com',
+      location: 'WhatsApp: +972 55 777 0026'
     },
     typography: {
       fontFamily: 'Inter, sans-serif',
       fontSize: 13,
-      lineHeight: 1.6,
+      lineHeight: 1.55,
       sectionGap: 22,
       titleGap: 8,
       titleSize: 12,
@@ -25239,32 +25239,77 @@ function initSortableWidgets() {
     },
     elementStyles: {
       doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+      doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
       sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
       sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
       sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
       sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
       client_email: { offsetY: -2 },
       client_address: { offsetY: -3 },
+      divider_overview: { offsetY: -1 },
+      sec_sec_div_overview: { offsetY: -4.5 },
       sec_sec_deliverables: { offsetY: 1 },
-      totals_sec_deliverables: { offsetY: -3 }
+      totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+      th_desc: { lineHeight: '1.7' },
+      item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+      item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
+      cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+      issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+      valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' }
     },
     labels: {
-      client: 'Client / Recipient',
-      reference: 'Reference',
+      client: 'Bill To / Client',
+      reference: 'Quote #',
       currency: 'Currency',
-      issueDate: 'Date Issued',
-      validUntil: 'Valid Until',
+      issueDate: 'Invoice Date',
+      validUntil: 'Payment Due',
       project: 'Project / Assignment',
-      thDesc: 'Deliverable / Description',
-      thQty: 'Qty',
-      thRate: 'Rate',
-      thAmount: 'Amount',
+      thDesc: 'ITEM / DESCRIPTION',
+      thQty: 'QTY',
+      thRate: 'RATE',
+      thAmount: 'AMOUNT',
       subtotal: 'Subtotal',
-      discount: 'Discount',
+      discount: 'Bundle Discount',
       tax: 'VAT / Tax',
-      totalInvestment: 'Total Investment'
+      totalInvestment: 'TOTAL'
     }
   };
+
+  const PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT = [
+    '<div>1. Concept & First Drafts: Delivered within 5–7 business days from signature & project kickoff.</div>',
+    '<div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div>',
+    '<div>3. Final Print-Ready Delivery: _________________</div>'
+  ].join('');
+
+  const PRICE_QUOTE_DEFAULT_TERMS_CONTENT = [
+    '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div>',
+    '<div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div>',
+    '<div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div>',
+    '<div>• The remaining 50% project balance will be invoiced upon final review and prior to file delivery.</div>'
+  ].join('');
+
+  const PRICE_QUOTE_DEFAULT_BANK_CONTENT = [
+    '<div>Name: Ori Gold</div>',
+    '<div>IBAN: BE63 9051 4444 2808</div>',
+    '<div>Swift/BIC: TRWIBEB1XXX</div>',
+    '<div>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</div>'
+  ].join('');
+
+  function getPriceQuoteDefaultSections(lead) {
+    const scopeContent = (lead && lead.notes)
+      ? String(lead.notes).split('\n\n---\n\n')[0]
+      : '<div>[Project Scope]</div>';
+    return [
+      { id: 'sec_header', type: 'header', title: 'Document Header' },
+      { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
+      { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
+      { id: 'sec_scope_quote', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: scopeContent },
+      { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
+      { id: 'sec_timeline_quote', type: 'terms', title: 'PROJECT TIMELINE & DELIVERY', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT },
+      { id: 'sec_terms_quote', type: 'terms', title: 'TERMS & CONDITIONS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TERMS_CONTENT },
+      { id: 'sec_bank_quote', type: 'text', title: 'BANK TRANSFER DETAILS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_BANK_CONTENT }
+    ];
+  }
 
   const PROFORMA_DEFAULT_LABELS = {
     client: 'Bill To / Client',
@@ -25587,19 +25632,25 @@ function initSortableWidgets() {
     try {
       localTpl = JSON.parse(localStorage.getItem('ft_po_default_template') || 'null');
     } catch (e) {}
-    const vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
+    let vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
+    if (vaultTpl && (vaultTpl.docType === 'deposit_proforma' || vaultTpl.docType === 'proforma' || String(vaultTpl.id || '').includes('proforma') || String(vaultTpl.docTitle || '').toUpperCase().includes('PROFORMA'))) {
+      vaultTpl = null;
+    }
+    if (localTpl && (localTpl.docType === 'deposit_proforma' || localTpl.docType === 'proforma' || String(localTpl.id || '').includes('proforma') || String(localTpl.docTitle || '').toUpperCase().includes('PROFORMA'))) {
+      localTpl = null;
+    }
     const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
     return {
       id: customTpl.id || 'tpl_price_quote_master',
       docType: 'price_quote',
       name: customTpl.name || 'Price Quote / Proposal Template',
       docTitle: 'Price Quote / Proposal',
-      docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
+      docSubtitle: customTpl.docSubtitle !== undefined && customTpl.docSubtitle !== '' ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
       sender: Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {}),
       typography: Object.assign({}, DEFAULT_PO_TEMPLATE.typography, customTpl.typography || {}),
       elementStyles: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_PO_TEMPLATE.elementStyles)), JSON.parse(JSON.stringify(customTpl.elementStyles || {}))),
       labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {}),
-      sections: Array.isArray(customTpl.sections) ? JSON.parse(JSON.stringify(customTpl.sections)) : null,
+      sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : getPriceQuoteDefaultSections(),
       richText: customTpl.richText ? JSON.parse(JSON.stringify(customTpl.richText)) : {}
     };
   }
@@ -29096,65 +29147,7 @@ function initSortableWidgets() {
       return clonedSecs;
     }
 
-    return [
-      {
-        id: 'sec_header',
-        type: 'header',
-        title: 'Document Header'
-      },
-      {
-        id: 'sec_overview',
-        type: 'overview',
-        title: 'Client & Project Details'
-      },
-      {
-        id: 'sec_div_overview',
-        type: 'divider',
-        title: 'Divider Line',
-        content: ''
-      },
-      {
-        id: 'sec_custom_summary',
-        type: 'custom',
-        title: 'summary',
-        pageBreakBefore: false,
-        content: po?.scope !== undefined ? po.scope : (lead?.notes ? String(lead.notes).split('\n\n---\n\n')[0] : '')
-      },
-      {
-        id: 'sec_deliverables',
-        type: 'deliverables',
-        title: 'Deliverables & Investment',
-        pageBreakBefore: false
-      },
-      {
-        id: 'sec_timeline',
-        type: 'timeline',
-        title: 'Project Timeline & Delivery',
-        pageBreakBefore: false,
-        content: po?.timeline || ''
-      },
-      {
-        id: 'sec_conditions',
-        type: 'conditions',
-        title: 'Terms & Conditions',
-        pageBreakBefore: false,
-        content: po?.conditions || ''
-      },
-      {
-        id: 'sec_acceptance',
-        type: 'acceptance',
-        title: '',
-        clientTitle: 'Authorized Client Signature',
-        providerTitle: 'Service Provider Signature',
-        pageBreakBefore: false,
-        signSealText: 'Signature & Seal',
-        signDateText: 'Date: _________________',
-        signNameText: 'Name: _________________',
-        signSealProviderText: 'Signature & Seal',
-        signDateProviderText: 'Date: _________________',
-        signNameProviderText: 'Name: _________________'
-      }
-    ];
+    return getPriceQuoteDefaultSections(lead);
   }
 
   // ==========================================
