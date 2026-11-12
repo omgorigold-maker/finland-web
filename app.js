@@ -23722,6 +23722,8 @@ function initSortableWidgets() {
     state.activeFollowupProjectId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
+    state.activeDepositProformaProjectId = null;
+    state.activeStudioDocId = null;
     try {
       localStorage.setItem('ft_active_followup_lead', leadId);
       localStorage.removeItem('ft_active_followup_project');
@@ -25288,7 +25290,7 @@ function initSortableWidgets() {
     currency: 'Currency',
     issueDate: 'Invoice Date',
     validUntil: 'Payment Due',
-    project: 'Project / Milestone',
+    project: 'Project / Assignment',
     thDesc: 'Milestone / Deliverable',
     thQty: 'Qty',
     thRate: 'Total',
@@ -25297,6 +25299,56 @@ function initSortableWidgets() {
     discount: 'Discount',
     tax: 'VAT / Tax',
     totalInvestment: 'Deposit Due'
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
+    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+    doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
+    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    client_email: { offsetY: -2 },
+    client_address: { offsetY: -3 },
+    divider_overview: { offsetY: -1 },
+    sec_sec_div_overview: { offsetY: -2.5 },
+    cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    sec_sec_deliverables: { offsetY: 1 },
+    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+    th_desc: { lineHeight: '1.7' },
+    th_amount: { offsetX: 5.75 },
+    item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+    item_amount_0: { offsetY: 0, offsetX: 5.5 },
+    item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
+    title_sec_terms_dep: { lineHeight: '1.3' },
+    content_sec_terms_dep: { lineHeight: '1.5' },
+    title_sec_bank_dep: { lineHeight: '1.3' },
+    content_sec_bank_dep: { marginBottom: 14.67, lineHeight: '1.5' },
+    title_sec_comm_dep: { lineHeight: '1.4', letterSpacing: '0.04em', color: '#475569' },
+    content_sec_comm_dep: { lineHeight: '1.5' },
+    title_sec_text_1794509158124: { lineHeight: '1.3' },
+    content_sec_text_1794509158124: { marginBottom: 14.67, lineHeight: '1.5' },
+    title_sec_text_1794514102748: { lineHeight: '1.4', letterSpacing: '0.04em', color: '#475569' },
+    content_sec_text_1794514102748: { lineHeight: '1.5' }
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT = {
+    title_sec_terms_dep: '<span style="display: inline-block; line-height: 1.3;" class="">PAYMENT TERMS</span>',
+    title_sec_comm_dep: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>',
+    title_sec_text_1794514102748: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>'
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 13,
+    lineHeight: 1.55,
+    sectionGap: 22,
+    titleGap: 8,
+    titleSize: 12,
+    sheetPadding: '36px 40px',
+    showPageNumbers: true
   };
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
@@ -25565,12 +25617,7 @@ function initSortableWidgets() {
 
   function getMasterDepositProformaTemplate() {
     const master = getMasterPoTemplate();
-    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
-    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
-      color: '#64748b',
-      fontWeight: '700',
-      letterSpacing: '0.05em'
-    });
+    const elemStyles = Object.assign({}, JSON.parse(JSON.stringify(master.elementStyles || {})), DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES);
     return {
       id: 'tpl_master_deposit_proforma',
       docType: 'deposit_proforma',
@@ -25580,20 +25627,20 @@ function initSortableWidgets() {
       docTitle: 'DEPOSIT PROFORMA INVOICE',
       docSubtitle: 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
       sender: Object.assign({}, master.sender),
-      typography: Object.assign({}, master.typography),
+      typography: Object.assign({}, master.typography, DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY),
       elementStyles: elemStyles,
       labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
       sections: [
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: 'As agreed upon signing quote / proposal' },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
-        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
-        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT },
-        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT }
+        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '<div>As agreed upon signing quote / proposal</div>' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: getDepositProformaDefaultTerms() },
+        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: getDepositProformaDefaultBank() },
+        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: getDepositProformaDefaultCommunication() }
       ],
-      richText: {}
+      richText: Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT)
     };
   }
 
@@ -25677,6 +25724,10 @@ function initSortableWidgets() {
       existingDep.docTitle = masterDep.docTitle;
       existingDep.docSubtitle = masterDep.docSubtitle;
       existingDep.sections = JSON.parse(JSON.stringify(masterDep.sections));
+      existingDep.typography = Object.assign({}, existingDep.typography || {}, masterDep.typography);
+      existingDep.elementStyles = Object.assign({}, existingDep.elementStyles || {}, masterDep.elementStyles);
+      existingDep.labels = Object.assign({}, existingDep.labels || {}, masterDep.labels);
+      existingDep.richText = Object.assign({}, existingDep.richText || {}, masterDep.richText);
     }
     if (!list.some(t => t.docType === 'proforma')) {
       list.push(getMasterProformaTemplate());
@@ -25906,7 +25957,7 @@ function initSortableWidgets() {
     const curDocType = getActiveDocType();
 
     // 1. DEPOSIT PROFORMA (50% Milestone) Target
-    if (curDocType === 'deposit_proforma' || state.activeDepositProformaProjectId) {
+    if (curDocType === 'deposit_proforma') {
       const depProjId = state.activeDepositProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
       const proj = (state.budget?.projects || []).find(p => p.id === depProjId);
       if (proj) {
@@ -25936,7 +25987,7 @@ function initSortableWidgets() {
     }
 
     // 2. PROFORMA INVOICE Target
-    if (curDocType === 'proforma' || state.activeProformaProjectId) {
+    if (curDocType === 'proforma') {
       const profProjId = state.activeProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
       const proj = (state.budget?.projects || []).find(p => p.id === profProjId);
       if (proj) {
@@ -27788,6 +27839,57 @@ function initSortableWidgets() {
         poApplyStyleProp(el, prop, st[prop]);
       });
     });
+
+    // Semantic section title/content fallback for deposit proforma
+    document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="title_sec_"]').forEach(el => {
+      const eid = el.getAttribute('data-elem-id');
+      if (poElementStyles[eid]) return;
+      const titleVal = (el.value || el.textContent || '').trim().toUpperCase();
+      let fallbackKey = null;
+      if (titleVal === 'PAYMENT TERMS') fallbackKey = 'title_sec_terms_dep';
+      else if (titleVal === 'BANK DETAILS') fallbackKey = 'title_sec_bank_dep';
+      else if (titleVal.startsWith('COMMUNICATION')) fallbackKey = 'title_sec_comm_dep';
+      if (fallbackKey && poElementStyles[fallbackKey]) {
+        const st = poElementStyles[fallbackKey];
+        Object.keys(st).forEach(prop => {
+          if (prop === 'deleted' || prop === 'domOrder') return;
+          poApplyStyleProp(el, prop, st[prop]);
+        });
+      }
+    });
+
+    document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="content_sec_"]').forEach(el => {
+      const eid = el.getAttribute('data-elem-id');
+      if (poElementStyles[eid]) return;
+      const secEl = el.closest('[data-sec-type]');
+      const secType = secEl ? secEl.getAttribute('data-sec-type') : null;
+      const titleEl = secEl ? secEl.querySelector('[data-elem-id^="title_sec_"]') : null;
+      const titleVal = titleEl ? (titleEl.value || titleEl.textContent || '').trim().toUpperCase() : '';
+      let fallbackKey = null;
+      if (secType === 'terms' || titleVal === 'PAYMENT TERMS') fallbackKey = 'content_sec_terms_dep';
+      else if (titleVal === 'BANK DETAILS') fallbackKey = 'content_sec_bank_dep';
+      else if (titleVal.startsWith('COMMUNICATION')) fallbackKey = 'content_sec_comm_dep';
+      if (fallbackKey && poElementStyles[fallbackKey]) {
+        const st = poElementStyles[fallbackKey];
+        Object.keys(st).forEach(prop => {
+          if (prop === 'deleted' || prop === 'domOrder') return;
+          poApplyStyleProp(el, prop, st[prop]);
+        });
+      }
+    });
+
+    // Also propagate row 0 amount alignment to all amount cells if not explicitly set
+    if (poElementStyles['item_amount_0']) {
+      const amt0 = poElementStyles['item_amount_0'];
+      document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="item_amount_"]').forEach(el => {
+        const eid = el.getAttribute('data-elem-id');
+        if (eid !== 'item_amount_0' && (!poElementStyles[eid] || (poElementStyles[eid].offsetX === undefined && poElementStyles[eid].offsetY === undefined))) {
+          if (amt0.offsetX !== undefined || amt0.offsetY !== undefined) {
+            el.style.transform = poBuildTransform(amt0);
+          }
+        }
+      });
+    }
 
     // Hide any metadata cell or total row whose inner [data-elem-id] children are all deleted
     document.querySelectorAll('#priceOfferingPrintArea .po-meta-cell, #priceOfferingPrintArea .po-total-row').forEach(cell => {
@@ -30714,9 +30816,10 @@ function initSortableWidgets() {
       return (el && container.contains(el)) ? el.value : fallback;
     };
 
-    const isStudioDoc = !!(lead._isStudioDoc || po._studioDoc);
-    const isDepositProforma = !!(lead._isDepositProforma || po._isDepositProforma || state.activeDepositProformaProjectId);
-    const isProforma = !isDepositProforma && !!(lead._isProforma || po._isProforma || state.activeProformaProjectId);
+    const curType = getActiveDocType();
+    const isStudioDoc = curType === 'studio' || !!(lead._isStudioDoc || po._studioDoc);
+    const isDepositProforma = curType === 'deposit_proforma' || (!isStudioDoc && !!(lead._isDepositProforma || po._isDepositProforma));
+    const isProforma = !isDepositProforma && !isStudioDoc && (curType === 'proforma' || !!(lead._isProforma || po._isProforma));
 
     const masterTpl = isDepositProforma
       ? getMasterDepositProformaTemplate()
@@ -31829,12 +31932,14 @@ function initSortableWidgets() {
 
   function getActiveDocType() {
     if (typeof poEditingMasterTemplateType !== 'undefined' && poEditingMasterTemplateType) return poEditingMasterTemplateType;
+    if (state.activeStudioDocId) return 'studio';
+    if (state.activePriceOfferingLeadId) return 'price_quote';
     if (state.activeDepositProformaProjectId) return 'deposit_proforma';
     if (state.activeProformaProjectId) return 'proforma';
     const target = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
+    if (target?._isStudioDoc || target?.priceOffering?._studioDoc) return 'studio';
     if (target?._isDepositProforma || target?.priceOffering?._isDepositProforma) return 'deposit_proforma';
     if (target?._isProforma || target?.priceOffering?._isProforma) return 'proforma';
-    if (target?._isStudioDoc || target?.priceOffering?._studioDoc) return 'studio';
     return 'price_quote';
   }
 
@@ -31857,8 +31962,13 @@ function initSortableWidgets() {
     clearTimeout(poAutoSaveTimeout);
     poAutoSaveTimeout = null;
     state.activeStudioDocId = null;
+    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = null;
     state.activePriceOfferingLeadId = leadId;
+    if (lead.priceOffering) {
+      lead.priceOffering._isDepositProforma = false;
+      lead.priceOffering._isProforma = false;
+    }
     if (isProj) {
       state.activeFollowupProjectId = leadId;
       state.activeFollowupLeadId = null;
@@ -32012,6 +32122,7 @@ function initSortableWidgets() {
     state.activeStudioDocId = null;
     state.activePriceOfferingLeadId = null;
     state.activeFollowupLeadId = null;
+    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = projectId;
     state.activeFollowupProjectId = projectId;
     poEditingTemplateDesignId = null;
@@ -32367,17 +32478,14 @@ function initSortableWidgets() {
       let initDiscPct = 0;
       let initTaxPct = 0;
       let initSubtotal = depositDue;
-      let initTotal = depositDue;
-      const initElementStyles = {
-        doc_heading: { fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' },
-        doc_subtitle: { fontSize: 11, fontWeight: '700', letterSpacing: '0.05em', color: '#64748b' }
-      };
-      const initRichText = {};
+      const initElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || {}));
+      const initRichText = JSON.parse(JSON.stringify(masterTpl.richText || {}));
+      const initTypography = JSON.parse(JSON.stringify(masterTpl.typography || {}));
 
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : 'As agreed upon signing quote / proposal'));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : '<div>As agreed upon signing quote / proposal</div>'));
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
@@ -32405,6 +32513,7 @@ function initSortableWidgets() {
         sender: baseSender,
         elementStyles: initElementStyles,
         richText: initRichText,
+        typography: initTypography,
         labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
         items: initialItems,
         sections: [
@@ -32412,33 +32521,33 @@ function initSortableWidgets() {
           { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
           { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
           {
-            id: 'sec_scope_' + Date.now(),
+            id: 'sec_scope_dep',
             type: 'scope',
             title: 'SUMMARY',
             pageBreakBefore: false,
             content: initScopeContent
           },
-          { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
           {
-            id: 'sec_terms_' + Date.now(),
+            id: 'sec_terms_dep',
             type: 'terms',
             title: 'PAYMENT TERMS',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT
+            content: getDepositProformaDefaultTerms()
           },
           {
-            id: 'sec_bank_' + Date.now(),
+            id: 'sec_bank_dep',
             type: 'text',
             title: 'BANK DETAILS',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
+            content: getDepositProformaDefaultBank()
           },
           {
-            id: 'sec_comm_' + Date.now(),
+            id: 'sec_comm_dep',
             type: 'text',
             title: 'COMMUNICATION AND INQUIRIES:',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT
+            content: getDepositProformaDefaultCommunication()
           }
         ],
         subtotal: initSubtotal,
@@ -32656,7 +32765,9 @@ function initSortableWidgets() {
         if (goBackInFinland()) return;
       }
       state.activePriceOfferingLeadId = null;
+      state.activeDepositProformaProjectId = null;
       state.activeProformaProjectId = null;
+      state.activeStudioDocId = null;
       state.activeFollowupProjectId = targetId;
       state.activeFollowupLeadId = null;
       document.getElementById('projectDetailPage')?.classList.remove('hidden');
@@ -32679,7 +32790,9 @@ function initSortableWidgets() {
       if (goBackInFinland()) return;
     }
     state.activePriceOfferingLeadId = null;
+    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = null;
+    state.activeStudioDocId = null;
     if (leadId) {
       const lead = (state.budget?.leads || []).find(l => l.id === leadId);
       if (lead) renderLeadDetailPage(lead, state.displayCurrency);
@@ -33466,6 +33579,7 @@ function initSortableWidgets() {
       openProjectProformaDocPage(targetId);
       showToast('Version Restored ✓', `${verLabel} loaded into the Proforma Invoice editor.`, 'success');
     } else {
+      restoredData._isDepositProforma = false;
       restoredData._isProforma = false;
       entity.priceOffering = restoredData;
       const isOngoingProjEntity = (state.budget?.projects || []).some(p => p.id === entity.id);
@@ -33677,7 +33791,7 @@ ${sectionsText}
   }
 
   async function deleteLeadPriceOffering(leadId) {
-    if (!leadId) leadId = state.activeFollowupLeadId || state.activeFollowupProjectId;
+    if (!leadId) leadId = state.activePriceOfferingLeadId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const isProj = (state.budget?.projects || []).some(p => p.id === leadId);
     const lead = (state.budget?.leads || []).find(l => l.id === leadId)
       || (state.budget?.projects || []).find(p => p.id === leadId);
@@ -33686,6 +33800,7 @@ ${sectionsText}
     if (await confirmAction(`Delete the editable Price Quote document for "${lead.client}"? (Your exported copies & attached files stay safe)`)) {
       const prevFp = getPoContentFingerprint(lead.priceOffering);
       delete lead.priceOffering;
+      if (lead._projectRef) delete lead._projectRef.priceOffering;
       if (prevFp && Array.isArray(lead.quoteExports) && lead.quoteExports.length > 0 && getPoContentFingerprint(lead.quoteExports[0].data) === prevFp) {
         lead.quoteExports.shift();
       }
@@ -33737,6 +33852,8 @@ ${sectionsText}
     state.activeFollowupLeadId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
+    state.activeDepositProformaProjectId = null;
+    state.activeStudioDocId = null;
     try {
       localStorage.setItem('ft_active_followup_project', projectId);
       localStorage.removeItem('ft_active_followup_lead');
