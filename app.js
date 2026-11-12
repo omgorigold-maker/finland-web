@@ -22844,9 +22844,8 @@ function initSortableWidgets() {
           proj.hasProformaDoc = true;
           const pi = proj.proformaInvoice;
           pi._isProforma = true;
-          const projTitle = (proj.title || proj.description || '').trim();
-          if (pi.docSubtitle === 'Print & Merch Design Bundle' && projTitle !== 'Print & Merch Design Bundle') {
-            pi.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
+          if ((pi.docSubtitle === 'Print & Merch Design Bundle' && projTitle !== 'Print & Merch Design Bundle') || pi.docSubtitle === 'Preliminary Invoice / Advance Payment Request' || pi.docSubtitle.trim() === 'Preliminary Invoice') {
+            pi.docSubtitle = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
             if (pi.richText) delete pi.richText.doc_subtitle;
           }
           if (!pi.labels || pi.labels.reference === 'Reference #' || pi.labels.validUntil === 'Valid Until' || pi.labels.totalEstimate === 'Total Estimate' || !pi.labels.issueDate) {
@@ -32296,7 +32295,7 @@ function initSortableWidgets() {
         _isProforma: true,
         templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_studio_master',
         docTitle: 'PROFORMA INVOICE',
-        docSubtitle: 'Preliminary Invoice / Advance Payment Request',
+        docSubtitle: 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
         refNo: `PI-${curYear}-${curProjNum}`,
         issueDate: todayStr,
         validUntil: dueStr,
@@ -32404,8 +32403,8 @@ function initSortableWidgets() {
     if (!po.docTitle || po.docTitle === 'Price Quote / Proposal') {
       po.docTitle = 'PROFORMA INVOICE';
     }
-    if (!po.docSubtitle || (po.docSubtitle === 'Print & Merch Design Bundle' && proj.title !== 'Print & Merch Design Bundle')) {
-      po.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
+    if (!po.docSubtitle || po.docSubtitle === 'Preliminary Invoice / Advance Payment Request' || po.docSubtitle.trim() === 'Preliminary Invoice' || (po.docSubtitle === 'Print & Merch Design Bundle' && proj.title !== 'Print & Merch Design Bundle')) {
+      po.docSubtitle = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
     }
     if (!po.sender || po.sender.name === 'Your Name / Studio') {
       po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
