@@ -22256,7 +22256,7 @@ function initSortableWidgets() {
       return !candName || candName === expectedName;
     };
 
-    const entityPrefixMatch = String(fallbackKey || attKey || '').match(/^((?:proj|lead)_[a-zA-Z0-9_]+?)_(?:quote|proforma|brief|invoice|receipt)(?:_|$)/);
+    const entityPrefixMatch = String(fallbackKey || attKey || '').match(/^((?:proj|lead)_[a-zA-Z0-9_]+?)_(?:quote|deposit_proforma|proforma|brief|invoice|receipt)(?:_|$)/);
     const entityId = entityPrefixMatch ? entityPrefixMatch[1] : '';
 
     // 1. Exact dedicated key lookup first
@@ -22277,6 +22277,7 @@ function initSortableWidgets() {
       const siblingKeys = [
         `${entityId}_brief`,
         `${entityId}_quote`,
+        `${entityId}_deposit_proforma`,
         `${entityId}_proforma`,
         `${entityId}_invoice`,
         `${entityId}_receipt`
@@ -22346,7 +22347,25 @@ function initSortableWidgets() {
         mimeType: file.type
       };
 
-      if (type === 'proforma') {
+      if (type === 'deposit_proforma') {
+        const existingList = getProjectDepositProformaAttachmentsList(p).map(x => Object.assign({}, x));
+        const attId = 'dpatt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        const attKey = `${projectId}_deposit_proforma_${attId}`;
+        await saveReceiptAttachment(attKey, att);
+        await saveReceiptAttachment(`${projectId}_deposit_proforma`, att);
+        existingList.unshift({
+          id: attId,
+          attKey,
+          fileName: file.name,
+          docType,
+          attachedAt: new Date().toISOString()
+        });
+        p.depositProformaAttachments = existingList;
+        p.hasDepositProformaAttachment = true;
+        p.hasDepositProformaDoc = true;
+        p.depositProformaDocName = file.name;
+        showToast('Document Attached', `${file.name} saved to Deposit Proforma files.`, 'success');
+      } else if (type === 'proforma') {
         const existingList = getProjectProformaAttachmentsList(p).map(x => Object.assign({}, x));
         // Migrate any legacy single-key item onto its own dedicated key BEFORE updating the shared key
         for (const item of existingList) {
@@ -22418,7 +22437,39 @@ function initSortableWidgets() {
     if (!p) return;
     if (!await confirmAction('Remove this attached document?')) return;
 
-    if (type === 'proforma') {
+    if (type === 'deposit_proforma') {
+      const list = getProjectDepositProformaAttachmentsList(p);
+      if (attId) {
+        const target = list.find(x => x.id === attId);
+        if (target && target.attKey && target.attKey !== `${projectId}_deposit_proforma`) {
+          await deleteReceiptAttachment(target.attKey);
+        }
+        p.depositProformaAttachments = list.filter(x => x.id !== attId);
+      } else {
+        for (const item of list) {
+          if (item.attKey) await deleteReceiptAttachment(item.attKey);
+        }
+        p.depositProformaAttachments = [];
+      }
+      if (!Array.isArray(p.depositProformaAttachments) || p.depositProformaAttachments.length === 0) {
+        p.depositProformaAttachments = [];
+        p.hasDepositProformaAttachment = false;
+        delete p.depositProformaDocName;
+        await deleteReceiptAttachment(`${projectId}_deposit_proforma`);
+        p.hasDepositProformaDoc = !!(p.depositProforma || (Array.isArray(p.depositProformaExports) && p.depositProformaExports.length > 0));
+      } else {
+        p.hasDepositProformaAttachment = true;
+        p.depositProformaDocName = p.depositProformaAttachments[0].fileName || 'deposit_proforma.pdf';
+        const topAtt = p.depositProformaAttachments[0];
+        if (topAtt && topAtt.attKey) {
+          const topData = await getReceiptAttachment(topAtt.attKey);
+          if (topData && topData.data) {
+            await saveReceiptAttachment(`${projectId}_deposit_proforma`, topData);
+          }
+        }
+      }
+      showToast('Document Removed', 'Attached deposit proforma file removed.', 'info');
+    } else if (type === 'proforma') {
       const list = getProjectProformaAttachmentsList(p);
       if (attId) {
         const target = list.find(x => x.id === attId);
@@ -33421,6 +33472,7 @@ ${sectionsText}
 
   function renderProjectDetailPage(proj, cur) {
     if (!proj) return;
+    state.activeFollowupProjectId = proj.id;
     const projCur = proj.currency || cur;
     const totalFee = parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0;
     const paid = parseFloat(proj.paidAmount) || 0;
@@ -34022,20 +34074,21 @@ ${sectionsText}
 
         depAttachments.forEach(att => {
           const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
+          const attKeyVal = att.attKey || `${proj.id}_deposit_proforma_${att.id}`;
           rowsHtml.push(`
             <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
               <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
+                <span class="px-1 py-0.5 rounded bg-pink-50 text-pink-700 border border-pink-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                 <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(att.fileName || 'Attached Deposit Proforma')}</p>
+                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(att.fileName || 'deposit_proforma.pdf')}</p>
                   <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Uploaded file')}</p>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="open-followup-attachment-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-att-key="${escapeHtml(att.attKey)}" data-file-name="${escapeHtml(att.fileName || '')}">
-                  Open
+                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(att.fileName || 'deposit_proforma.pdf')}">
+                  View
                 </button>
-                <button type="button" class="delete-deposit-proforma-attachment-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-att-id="${escapeHtml(att.id)}" title="Delete attachment">
+                <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="deposit_proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
                   <i data-lucide="x" class="w-3 h-3"></i>
                 </button>
               </div>
@@ -36103,9 +36156,11 @@ ${sectionsText}
     if (depositProformaFileInput) {
       depositProformaFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file && state.activeFollowupProjectId) {
-          handleDirectDocUpload(file, 'deposit_proforma', state.activeFollowupProjectId);
+        const targetId = depositProformaFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectDocUpload(file, 'deposit_proforma', targetId);
         }
+        depositProformaFileInput.removeAttribute('data-target-id');
         depositProformaFileInput.value = '';
       });
     }
@@ -36114,9 +36169,11 @@ ${sectionsText}
     if (proformaFileInput) {
       proformaFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file && state.activeFollowupProjectId) {
-          handleDirectDocUpload(file, 'proforma', state.activeFollowupProjectId);
+        const targetId = proformaFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectDocUpload(file, 'proforma', targetId);
         }
+        proformaFileInput.removeAttribute('data-target-id');
         proformaFileInput.value = '';
       });
     }
@@ -36125,9 +36182,11 @@ ${sectionsText}
     if (invoiceFileInput) {
       invoiceFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file && state.activeFollowupProjectId) {
-          handleDirectDocUpload(file, 'invoice', state.activeFollowupProjectId);
+        const targetId = invoiceFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectDocUpload(file, 'invoice', targetId);
         }
+        invoiceFileInput.removeAttribute('data-target-id');
         invoiceFileInput.value = '';
       });
     }
@@ -36136,9 +36195,11 @@ ${sectionsText}
     if (receiptFileInput) {
       receiptFileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file && state.activeFollowupProjectId) {
-          handleDirectDocUpload(file, 'receipt', state.activeFollowupProjectId);
+        const targetId = receiptFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectDocUpload(file, 'receipt', targetId);
         }
+        receiptFileInput.removeAttribute('data-target-id');
         receiptFileInput.value = '';
       });
     }
@@ -36146,24 +36207,61 @@ ${sectionsText}
     // Direct Document Action Delegation
     document.addEventListener('click', async (e) => {
       // Direct Attach Buttons
-      if (e.target.closest('.direct-attach-deposit-proforma-btn')) {
-        document.getElementById('directDepositProformaFileInput')?.click();
+      const depAttachBtn = e.target.closest('.direct-attach-deposit-proforma-btn');
+      if (depAttachBtn) {
+        const targetId = depAttachBtn.getAttribute('data-id') || state.activeFollowupProjectId || '';
+        const inp = document.getElementById('directDepositProformaFileInput');
+        if (inp) {
+          if (targetId) inp.setAttribute('data-target-id', targetId);
+          inp.click();
+        }
         return;
       }
-      if (e.target.closest('.direct-attach-proforma-btn')) {
-        document.getElementById('directProformaFileInput')?.click();
+      const profAttachBtn = e.target.closest('.direct-attach-proforma-btn');
+      if (profAttachBtn) {
+        const targetId = profAttachBtn.getAttribute('data-id') || state.activeFollowupProjectId || '';
+        const inp = document.getElementById('directProformaFileInput');
+        if (inp) {
+          if (targetId) inp.setAttribute('data-target-id', targetId);
+          inp.click();
+        }
         return;
       }
-      if (e.target.closest('.direct-attach-invoice-btn')) {
-        document.getElementById('directInvoiceFileInput')?.click();
+      const invAttachBtn = e.target.closest('.direct-attach-invoice-btn');
+      if (invAttachBtn) {
+        const targetId = invAttachBtn.getAttribute('data-id') || state.activeFollowupProjectId || '';
+        const inp = document.getElementById('directInvoiceFileInput');
+        if (inp) {
+          if (targetId) inp.setAttribute('data-target-id', targetId);
+          inp.click();
+        }
         return;
       }
-      if (e.target.closest('.direct-attach-receipt-btn')) {
-        document.getElementById('directReceiptFileInput')?.click();
+      const recAttachBtn = e.target.closest('.direct-attach-receipt-btn');
+      if (recAttachBtn) {
+        const targetId = recAttachBtn.getAttribute('data-id') || state.activeFollowupProjectId || '';
+        const inp = document.getElementById('directReceiptFileInput');
+        if (inp) {
+          if (targetId) inp.setAttribute('data-target-id', targetId);
+          inp.click();
+        }
         return;
       }
 
       // View Document Buttons
+      const viewDepProformaBtn = e.target.closest('.view-detail-deposit-proforma-btn');
+      if (viewDepProformaBtn) {
+        const id = viewDepProformaBtn.getAttribute('data-id');
+        const attKey = viewDepProformaBtn.getAttribute('data-att-key');
+        const fileName = viewDepProformaBtn.getAttribute('data-file-name');
+        if (id) {
+          const proj = (state.budget?.projects || []).find(p => p.id === id);
+          const titleLabel = proj ? `${proj.client || 'Project'} — Deposit Proforma Invoice` : 'Deposit Proforma Invoice';
+          await openFollowupAttachmentViewer(attKey, `${id}_deposit_proforma`, titleLabel, fileName || proj?.depositProformaDocName || 'deposit_proforma.pdf');
+        }
+        return;
+      }
+
       const viewProformaBtn = e.target.closest('.view-detail-proforma-btn');
       if (viewProformaBtn) {
         const id = viewProformaBtn.getAttribute('data-id');
