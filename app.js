@@ -31929,98 +31929,226 @@ function initSortableWidgets() {
     return clone.outerHTML;
   }
 
-  function buildFallbackSnapshotSheetHtml(snap) {
+  function buildRealPoSheetHtml(snap, entity = null, isProforma = false) {
     const d = (snap && snap.data) ? snap.data : (snap || {});
-    const cur = d.currency || state.displayCurrency || 'EUR';
+    if (!entity) {
+      const targetId = (snap && snap.ownerId) || (d && d.ownerId) || state.activeFollowupProjectId || state.activeFollowupLeadId || state.activePriceOfferingLeadId || state.activeProformaProjectId;
+      if (targetId) {
+        entity = (state.budget?.projects || []).find(p => p.id === targetId) || (state.budget?.leads || []).find(l => l.id === targetId);
+      }
+    }
+    if (entity && !isProforma) {
+      isProforma = (state.budget?.projects || []).some(p => p.id === entity.id) && !!entity.proformaInvoice;
+    }
+    const cur = d.currency || (entity && entity.currency) || state.displayCurrency || 'EUR';
+
+    const masterTpl = typeof getMasterPoTemplate === 'function' ? getMasterPoTemplate() : (typeof DEFAULT_PO_TEMPLATE !== 'undefined' ? DEFAULT_PO_TEMPLATE : {});
+    const snapTypo = Object.assign({}, (DEFAULT_PO_TEMPLATE && DEFAULT_PO_TEMPLATE.typography) || {}, masterTpl.typography || {}, d.typography || {});
+    const fontFamily = snapTypo.fontFamily || 'Inter, sans-serif';
+    const fontSize = snapTypo.fontSize || 13;
+    const lineHeight = snapTypo.lineHeight || 1.6;
+    const sectionGap = snapTypo.sectionGap !== undefined ? snapTypo.sectionGap : 22;
+    const titleGap = snapTypo.titleGap !== undefined ? snapTypo.titleGap : 8;
+    const titleSize = snapTypo.titleSize || 12;
+    const sheetPadding = snapTypo.sheetPadding || '36px 40px';
+
+    const elStyles = d.elementStyles || {};
+    const rich = d.richText || {};
+    const labels = typeof readPoLabels === 'function' ? readPoLabels(d.labels) : {};
+    const sender = d.sender || masterTpl.sender || { name: '', title: '', contact: '', location: '' };
+
+    const headingSt = Object.assign({ fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' }, elStyles.doc_heading || {});
+    const subSt = Object.assign({ fontSize: 11, fontWeight: '700', letterSpacing: '0.08em', color: '#475569' }, elStyles.doc_subtitle || {});
+    const docTitle = d.docTitle || snap.docTitle || (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal');
+    const docSubtitle = d.docSubtitle !== undefined ? d.docSubtitle : (snap.docSubtitle || '');
+    const headingHtml = rich.doc_heading || escapeHtml(docTitle);
+    const subtitleHtml = rich.doc_subtitle || escapeHtml(docSubtitle);
+
+    const clientName = d.client || (entity && entity.client) || '';
+    const clientEmail = d.clientEmail || '';
+    const clientAddress = d.clientAddress || '';
+    const refNo = d.refNo || snap.refNo || (isProforma ? 'PI' : 'PO');
+    const issueDate = d.issueDate || '';
+    const validUntil = d.validUntil || '';
+
     const items = Array.isArray(d.items) ? d.items : [];
-    const sections = Array.isArray(d.sections) ? d.sections : [];
-    const sender = d.sender || {};
-    const itemsRows = items.map(it => `
-      <tr class="border-b border-slate-200/80 text-xs">
-        <td class="py-2.5 px-3 text-slate-800 font-medium">${escapeHtml(it.description || 'Item')}</td>
-        <td class="py-2.5 px-3 text-center font-mono text-slate-600">${escapeHtml(String(it.qty ?? 1))}</td>
-        <td class="py-2.5 px-3 text-right font-mono text-slate-600">${formatMoney(parseFloat(it.rate) || 0, cur)}</td>
-        <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">${formatMoney(parseFloat(it.amount) || 0, cur)}</td>
-      </tr>
-    `).join('');
+    const subtotal = items.reduce((acc, it) => acc + (parseFloat(it.amount) || ((parseFloat(it.qty) || 1) * (parseFloat(it.rate) || 0))), 0);
+    const discountPct = parseFloat(d.discountPercent) || 0;
+    const taxPct = parseFloat(d.taxPercent) || 0;
+    const discountAmt = discountPct > 0 ? (subtotal * discountPct / 100) : 0;
+    const afterDiscount = subtotal - discountAmt;
+    const taxAmt = taxPct > 0 ? (afterDiscount * taxPct / 100) : 0;
+    const computedTotal = afterDiscount + taxAmt;
+    const finalTotal = (d.total !== undefined && d.total !== null && d.total !== '') ? (parseFloat(d.total) || 0) : computedTotal;
+
+    const thDesc = labels.thDesc || 'Deliverable / Description';
+    const thQty = labels.thQty || 'Qty';
+    const thRate = labels.thRate || 'Rate';
+    const thAmount = labels.thAmount || 'Amount';
+
+    const itemsRows = items.map(it => {
+      const q = it.qty !== undefined && it.qty !== null && it.qty !== '' ? it.qty : 1;
+      const r = parseFloat(it.rate) || 0;
+      const a = (it.amount !== undefined && it.amount !== null && it.amount !== '') ? (parseFloat(it.amount) || 0) : (parseFloat(q) * r);
+      return `
+        <tr class="border-b border-slate-100 text-xs">
+          <td class="py-2.5 px-3 text-slate-800 font-medium">${escapeHtml(it.description || '')}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-slate-600">${escapeHtml(String(q))}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-slate-600">${formatMoney(r, cur)}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">${formatMoney(a, cur)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const totalsHtml = `
+      <div class="flex justify-end pt-2 pb-1" style="margin-bottom:${sectionGap}px;">
+        <div class="w-64 space-y-1.5 text-xs">
+          ${(discountPct > 0 || taxPct > 0) ? `
+            <div class="flex justify-between text-slate-500">
+              <span>Subtotal</span>
+              <span class="font-mono text-slate-700">${formatMoney(subtotal, cur)}</span>
+            </div>
+          ` : ''}
+          ${discountPct > 0 ? `
+            <div class="flex justify-between text-slate-500">
+              <span>Discount (${discountPct}%)</span>
+              <span class="font-mono text-emerald-600 font-medium">− ${formatMoney(discountAmt, cur)}</span>
+            </div>
+          ` : ''}
+          ${taxPct > 0 ? `
+            <div class="flex justify-between text-slate-500">
+              <span>Tax (${taxPct}%)</span>
+              <span class="font-mono text-slate-700">+ ${formatMoney(taxAmt, cur)}</span>
+            </div>
+          ` : ''}
+          <div class="flex justify-between font-bold text-sm text-slate-900 pt-2 border-t-2 border-slate-900">
+            <span>${escapeHtml(labels.totalInvestment || (isProforma ? 'Total Amount Due' : 'Total Investment'))}</span>
+            <span class="font-mono font-bold">${formatMoney(finalTotal, cur)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const sections = (Array.isArray(d.sections) && d.sections.length > 0)
+      ? d.sections
+      : (typeof getDefaultPoSections === 'function' ? getDefaultPoSections(d, entity) : []);
 
     const textSectionsHtml = sections
       .filter(s => s && s.type !== 'header' && s.type !== 'overview' && s.type !== 'divider' && s.type !== 'deliverables')
-      .map(s => `
-        <div class="space-y-1.5 pt-3 border-t border-slate-100">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">${escapeHtml(s.title || '')}</div>
-          <div class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">${s.content || ''}</div>
-        </div>
-      `).join('');
+      .map(sec => {
+        const titleSt = Object.assign({
+          fontSize: Number(snapTypo.titleSize) || 12,
+          fontWeight: '800',
+          letterSpacing: '0.05em',
+          color: '#0f172a',
+          textAlign: 'left'
+        }, elStyles['title_' + sec.id] || {});
+        const contentSt = Object.assign({
+          fontSize: Number(snapTypo.fontSize) || 13,
+          lineHeight: Number(snapTypo.lineHeight) || 1.6,
+          color: '#334155',
+          textAlign: 'left'
+        }, elStyles['content_' + sec.id] || {});
+        const secTitleInner = rich['title_' + sec.id] || escapeHtml(sec.title || '');
+        const rawContent = rich['content_' + sec.id] || sec.content || '';
+        const bodyHtml = (typeof formatInitialContent === 'function') ? formatInitialContent(rawContent) : (rawContent ? escapeHtml(rawContent).replace(/\n/g, '<br>') : '');
+        const titleHtml = (sec.title || rich['title_' + sec.id])
+          ? `<div style="font-size:${titleSt.fontSize}px; font-weight:${titleSt.fontWeight}; letter-spacing:${titleSt.letterSpacing}; color:${titleSt.color}; text-transform:uppercase; margin-bottom:${titleGap}px; text-align:${titleSt.textAlign};">${secTitleInner}</div>`
+          : '';
+        return `
+          <div class="po-section" style="margin-bottom:${sectionGap}px;">
+            ${titleHtml}
+            <div style="font-size:${contentSt.fontSize}px; line-height:${contentSt.lineHeight}; color:${contentSt.color}; text-align:${contentSt.textAlign};">${bodyHtml}</div>
+          </div>
+        `;
+      }).join('');
 
     const signatures = Array.isArray(d.signatures) ? d.signatures : [];
-    const signaturesHtml = signatures.map((sig, i) => {
+    const signaturesHtml = signatures.map(sig => {
       const xMm = Number(sig.xMm || 130);
       const yMm = Number(sig.yMm || 230);
       const wMm = Math.max(12, Number(sig.widthMm || 48));
       const hMm = Math.max(6, Number(sig.heightMm || 18));
-      const inner = buildPoSignatureInnerSvg(sig);
+      const inner = (typeof buildPoSignatureInnerSvg === 'function') ? buildPoSignatureInnerSvg(sig) : '';
       return `<div class="po-signature-vector" style="position:absolute;left:${xMm}mm;top:${yMm}mm;width:${wMm}mm;height:${hMm}mm;pointer-events:none;">${inner}</div>`;
     }).join('');
 
     return `
-      <div class="p-10 bg-white text-slate-900 space-y-6 relative" style="min-height:297mm;">
-        <div class="flex items-start justify-between border-b border-slate-200 pb-5">
-          <div>
-            <div class="text-xl font-bold tracking-tight text-slate-900">${escapeHtml(d.docTitle || snap.docTitle || 'Document')}</div>
-            <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(d.docSubtitle || '')}</div>
+      <div class="po-page-sheet po-document-sheet price-offering-sheet shadow-2xl" style="--po-font-family:${fontFamily}; --po-font-size:${fontSize}px; --po-line-height:${lineHeight}; --po-section-gap:${sectionGap}px; --po-title-gap:${titleGap}px; --po-title-size:${titleSize}px; --po-sheet-padding:${sheetPadding}; width:210mm; min-height:297mm; max-width:210mm; box-sizing:border-box; background:#ffffff; position:relative; margin:0 auto; padding:${sheetPadding};">
+        <!-- Header -->
+        <div class="po-header-grid flex flex-col sm:flex-row sm:items-start justify-between gap-6" style="margin-bottom:${sectionGap}px;">
+          <div class="space-y-1 flex-1 min-w-0">
+            <div style="font-size:${headingSt.fontSize}px; font-weight:${headingSt.fontWeight || '800'}; letter-spacing:${headingSt.letterSpacing || '-0.02em'}; color:${headingSt.color || '#0f172a'}; line-height:1.15;">
+              ${headingHtml}
+            </div>
+            ${subtitleHtml ? `<div style="font-size:${subSt.fontSize}px; font-weight:${subSt.fontWeight || '700'}; letter-spacing:${subSt.letterSpacing || '0.08em'}; color:${subSt.color || '#475569'}; text-transform:uppercase; margin-top:4px; line-height:1.3;">${subtitleHtml}</div>` : ''}
           </div>
-          <div class="text-right text-xs text-slate-600 space-y-0.5">
-            <div class="font-bold text-slate-800">${escapeHtml(sender.name || '')}</div>
-            <div>${escapeHtml(sender.title || '')}</div>
-            <div>${escapeHtml(sender.contact || '')}</div>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200/70">
-          <div>
-            <div class="text-[10px] font-semibold uppercase text-slate-400">Client</div>
-            <div class="font-semibold text-slate-800 mt-0.5">${escapeHtml(d.client || '')}</div>
-          </div>
-          <div>
-            <div class="text-[10px] font-semibold uppercase text-slate-400">Reference</div>
-            <div class="font-mono font-semibold text-slate-800 mt-0.5">${escapeHtml(d.refNo || snap.refNo || '')}</div>
-          </div>
-          <div>
-            <div class="text-[10px] font-semibold uppercase text-slate-400">Date Issued</div>
-            <div class="font-mono text-slate-700 mt-0.5">${escapeHtml(d.issueDate || '')}</div>
-          </div>
-          <div>
-            <div class="text-[10px] font-semibold uppercase text-slate-400">Project</div>
-            <div class="font-semibold text-slate-800 mt-0.5">${escapeHtml(d.projectTitle || '')}</div>
+          <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs" style="color:#64748b; line-height:1.4;">
+            ${(sender.name || rich.sender_name) ? `<div style="font-weight:700; color:#0f172a; font-size:12px;">${rich.sender_name || escapeHtml(sender.name)}</div>` : ''}
+            ${(sender.title || rich.sender_title) ? `<div>${rich.sender_title || escapeHtml(sender.title)}</div>` : ''}
+            ${(sender.contact || rich.sender_contact) ? `<div>${rich.sender_contact || escapeHtml(sender.contact)}</div>` : ''}
+            ${(sender.location || rich.sender_location) ? `<div style="color:#94a3b8; font-size:10px;">${rich.sender_location || escapeHtml(sender.location)}</div>` : ''}
           </div>
         </div>
-        ${items.length > 0 ? `
-          <div class="space-y-3">
-            <table class="w-full border-collapse">
-              <thead>
-                <tr class="border-b-2 border-slate-900 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <th class="py-2 px-3 text-left">Description</th>
-                  <th class="py-2 px-3 text-center">Qty</th>
-                  <th class="py-2 px-3 text-right">Rate</th>
-                  <th class="py-2 px-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>${itemsRows}</tbody>
-            </table>
-            <div class="flex justify-end pt-2">
-              <div class="w-64 space-y-1 text-xs">
-                <div class="flex justify-between font-bold text-sm text-slate-900 pt-1.5 border-t border-slate-900">
-                  <span>Total</span>
-                  <span class="font-mono">${formatMoney(parseFloat(d.total ?? snap.total) || 0, cur)}</span>
-                </div>
-              </div>
+
+        <!-- Overview -->
+        <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" style="margin-bottom:${sectionGap}px;">
+          <div class="space-y-1 min-w-0">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.client || 'CLIENT / RECIPIENT')}</div>
+            <div class="font-bold text-slate-900 text-base leading-snug">${escapeHtml(clientName)}</div>
+            ${clientEmail ? `<div class="text-slate-600 text-xs">${escapeHtml(clientEmail)}</div>` : ''}
+            ${clientAddress ? `<div class="text-slate-500 text-[11px] whitespace-pre-line leading-relaxed">${escapeHtml(clientAddress)}</div>` : ''}
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-[11px] content-start">
+            <div class="po-meta-cell">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.reference || 'REFERENCE')}</div>
+              <div class="font-mono font-semibold text-slate-800">${escapeHtml(refNo)}</div>
+            </div>
+            <div class="po-meta-cell">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.currency || 'CURRENCY')}</div>
+              <div class="font-bold text-slate-800 uppercase">${escapeHtml(cur)}</div>
+            </div>
+            <div class="po-meta-cell">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.issueDate || 'DATE ISSUED')}</div>
+              <div class="font-medium text-slate-700">${escapeHtml(issueDate)}</div>
+            </div>
+            <div class="po-meta-cell">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.validUntil || (isProforma ? 'PAYMENT DUE' : 'VALID UNTIL'))}</div>
+              <div class="font-medium text-slate-700">${escapeHtml(validUntil)}</div>
             </div>
           </div>
+        </div>
+
+        <div class="po-divider-line" style="height:1px; background:#e2e8f0; width:100%; margin:${Math.round(sectionGap/2)}px 0 ${sectionGap}px 0;"></div>
+
+        <!-- Deliverables -->
+        ${items.length > 0 ? `
+          <div class="overflow-x-auto rounded-xl border border-slate-200" style="margin-bottom:${Math.round(sectionGap/2)}px;">
+            <table class="po-table w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th class="py-2.5 px-3">${escapeHtml(thDesc)}</th>
+                  <th class="py-2.5 px-3 text-center w-20">${escapeHtml(thQty)}</th>
+                  <th class="py-2.5 px-3 text-right w-28">${escapeHtml(thRate)}</th>
+                  <th class="py-2.5 px-3 text-right w-28">${escapeHtml(thAmount)}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 bg-white">
+                ${itemsRows}
+              </tbody>
+            </table>
+          </div>
+          ${totalsHtml}
         ` : ''}
+
         ${textSectionsHtml}
         ${signaturesHtml}
       </div>
     `;
+  }
+
+  function buildFallbackSnapshotSheetHtml(snap, entity = null, isProforma = false) {
+    return buildRealPoSheetHtml(snap, entity, isProforma);
   }
 
   function getPoContentFingerprint(docObj) {
@@ -32348,7 +32476,8 @@ function initSortableWidgets() {
     modal.setAttribute('data-target-id', targetId);
     modal.setAttribute('data-snapshot-id', snapshotId);
 
-    const verLabel = snap.label || `v${snap.version || 1} · Exported`;
+    const isDraft = snapshotId === '__draft__';
+    const verLabel = snap.label || (isDraft ? 'Live Document' : `v${snap.version || 1} · Exported`);
     if (badgeEl) {
       badgeEl.textContent = verLabel;
       badgeEl.className = isProforma
@@ -32356,7 +32485,7 @@ function initSortableWidgets() {
         : 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 shrink-0';
     }
     if (restoreBtn) {
-      if (snapshotId === '__draft__') {
+      if (isDraft) {
         restoreBtn.classList.add('hidden');
       } else {
         restoreBtn.className = isProforma
@@ -32372,30 +32501,17 @@ function initSortableWidgets() {
 
     const dateStr = formatFollowupDocTimestamp(snap.exportedAt);
     const moneyStr = formatMoney(parseFloat(snap.total) || 0, snap.currency || entity.currency || state.displayCurrency || 'EUR');
-    if (metaEl) metaEl.textContent = `${dateStr ? 'Logged ' + dateStr + ' • ' : ''}Total: ${moneyStr} • Read-only copy`;
+    if (metaEl) {
+      metaEl.textContent = isDraft
+        ? `Live Generator Document • Total: ${moneyStr}`
+        : `${dateStr ? 'Logged ' + dateStr + ' • ' : ''}Total: ${moneyStr} • Read-only copy`;
+    }
 
-    containerEl.innerHTML = snap.sheetHtml ? snap.sheetHtml : buildFallbackSnapshotSheetHtml(snap);
-    const renderedSheet = containerEl.querySelector('.price-offering-sheet');
-    if (renderedSheet) {
-      renderedSheet.classList.remove('po-paged');
-      renderedSheet.querySelectorAll('.po-page-bg-layer, .po-page-spacer, .po-page-divider, .no-print, .po-edit-cell, .po-section-toolbar, #poDropIndicator, .po-page-break-guide').forEach(el => el.remove());
-      renderedSheet.querySelectorAll('.po-section-block').forEach(block => {
-        block.style.marginTop = '';
-      });
-      const snapTypo = (snap.data && snap.data.typography) ? snap.data.typography : DEFAULT_PO_TEMPLATE.typography;
-      renderedSheet.style.setProperty('--po-font-family', snapTypo.fontFamily || 'Inter, sans-serif');
-      renderedSheet.style.setProperty('--po-font-size', (snapTypo.fontSize || 13) + 'px');
-      renderedSheet.style.setProperty('--po-line-height', String(snapTypo.lineHeight || 1.6));
-      renderedSheet.style.setProperty('--po-section-gap', (snapTypo.sectionGap !== undefined ? snapTypo.sectionGap : 22) + 'px');
-      renderedSheet.style.setProperty('--po-title-gap', (snapTypo.titleGap !== undefined ? snapTypo.titleGap : 8) + 'px');
-      renderedSheet.style.setProperty('--po-title-size', (snapTypo.titleSize || 12) + 'px');
-      renderedSheet.style.setProperty('--po-sheet-padding', snapTypo.sheetPadding || '36px 40px');
-      renderedSheet.style.transform = 'none';
-      renderedSheet.style.width = '100%';
-      renderedSheet.style.maxWidth = '210mm';
-      renderedSheet.style.minHeight = 'auto';
-      renderedSheet.style.margin = '0 auto';
-      renderedSheet.style.background = '#ffffff';
+    const isOldFallback = typeof snap.sheetHtml === 'string' && snap.sheetHtml.includes('grid-cols-2 sm:grid-cols-4');
+    if (!snap.sheetHtml || isOldFallback || isDraft) {
+      containerEl.innerHTML = buildRealPoSheetHtml(snap, entity, isProforma);
+    } else {
+      containerEl.innerHTML = snap.sheetHtml;
     }
 
     document.getElementById('poVersionsDropdownMenu')?.classList.add('hidden');
@@ -32411,6 +32527,37 @@ function initSortableWidgets() {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+  }
+
+  function printFollowupSnapshotDirectly() {
+    const modal = document.getElementById('followupExportSnapshotModal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    const titleEl = document.getElementById('followupSnapshotModalTitle');
+    const docTitle = titleEl ? titleEl.textContent.trim() : 'Document';
+    const cleanFileName = docTitle.replace(/[\\/:*?"<>|]/g, '_');
+
+    const origTitle = document.title;
+    document.title = cleanFileName;
+    document.body.classList.add('printing-snapshot-doc');
+
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      document.body.classList.remove('printing-snapshot-doc');
+      document.title = origTitle;
+      window.removeEventListener('afterprint', cleanup);
+      window.removeEventListener('focus', onFocusAfterPrint);
+    };
+    const onFocusAfterPrint = () => {
+      setTimeout(cleanup, 400);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.addEventListener('focus', onFocusAfterPrint);
+
+    setTimeout(() => {
+      window.print();
+    }, 100);
   }
 
   async function restoreFollowupExportSnapshot(targetType, targetId, snapshotId) {
@@ -36920,89 +37067,8 @@ ${sectionsText}
     }
     const followupSnapshotPrintBtn = document.getElementById('followupSnapshotPrintBtn');
     if (followupSnapshotPrintBtn) {
-      followupSnapshotPrintBtn.addEventListener('click', async () => {
-        const modal = document.getElementById('followupExportSnapshotModal');
-        if (!modal) return;
-        const kind = modal.getAttribute('data-target-type');
-        const ownerId = modal.getAttribute('data-target-id');
-        const snapshotId = modal.getAttribute('data-snapshot-id');
-        if (kind && ownerId && snapshotId) {
-          const isProj = kind === 'project';
-          const isOwnerProjectEntity = (state.budget?.projects || []).some(p => p.id === ownerId);
-          const owner = isProj
-            ? (state.budget?.projects || []).find(p => p.id === ownerId)
-            : ((state.budget?.leads || []).find(l => l.id === ownerId) || (state.budget?.projects || []).find(p => p.id === ownerId));
-          const list = owner ? (isProj ? owner.proformaExports : owner.quoteExports) : [];
-          const snap = Array.isArray(list) ? list.find(s => s.id === snapshotId) : null;
-          const snapDoc = snap ? (snap.data || snap.docData) : null;
-          if (owner && snapDoc) {
-            const wasInEditor = !document.getElementById('priceOfferingDocPage')?.classList.contains('hidden');
-            if (wasInEditor) {
-              savePriceOfferingDoc(false);
-            }
-            closeFollowupExportSnapshotModal();
-            if (isProj) {
-              const prevDraft = owner.proformaInvoice ? JSON.parse(JSON.stringify(owner.proformaInvoice)) : null;
-              owner.proformaInvoice = JSON.parse(JSON.stringify(snapDoc));
-              openProjectProformaDocPage(ownerId);
-              poAfterPrintRestoreFn = () => {
-                if (prevDraft) {
-                  owner.proformaInvoice = prevDraft;
-                } else {
-                  delete owner.proformaInvoice;
-                }
-                saveBudget();
-                if (wasInEditor) {
-                  openProjectProformaDocPage(ownerId);
-                } else {
-                  document.getElementById('priceOfferingDocPage')?.classList.add('hidden');
-                  state.activeProformaProjectId = null;
-                  state.activePriceOfferingLeadId = null;
-                  document.getElementById('projectDetailPage')?.classList.remove('hidden');
-                  renderProjectDetailPage(owner, state.displayCurrency);
-                  try { history.replaceState(null, '', '#project_followup/' + ownerId); } catch (e) {}
-                }
-              };
-              setTimeout(() => {
-                poSkipSnapshotOnPrint = true;
-                exportPriceOfferingPdf();
-              }, 250);
-            } else {
-              const prevDraft = owner.priceOffering ? JSON.parse(JSON.stringify(owner.priceOffering)) : null;
-              owner.priceOffering = JSON.parse(JSON.stringify(snapDoc));
-              openPriceOfferingDocPage(ownerId);
-              poAfterPrintRestoreFn = () => {
-                if (prevDraft) {
-                  owner.priceOffering = prevDraft;
-                } else {
-                  delete owner.priceOffering;
-                }
-                saveBudget();
-                if (wasInEditor) {
-                  openPriceOfferingDocPage(ownerId);
-                } else if (isOwnerProjectEntity) {
-                  document.getElementById('priceOfferingDocPage')?.classList.add('hidden');
-                  state.activeProformaProjectId = null;
-                  state.activePriceOfferingLeadId = null;
-                  document.getElementById('projectDetailPage')?.classList.remove('hidden');
-                  renderProjectDetailPage(owner, state.displayCurrency);
-                  try { history.replaceState(null, '', '#project_followup/' + ownerId); } catch (e) {}
-                } else {
-                  document.getElementById('priceOfferingDocPage')?.classList.add('hidden');
-                  state.activeProformaProjectId = null;
-                  state.activePriceOfferingLeadId = null;
-                  document.getElementById('leadDetailPage')?.classList.remove('hidden');
-                  renderLeadDetailPage(owner, state.displayCurrency);
-                  try { history.replaceState(null, '', '#project_followup/lead:' + ownerId); } catch (e) {}
-                }
-              };
-              setTimeout(() => {
-                poSkipSnapshotOnPrint = true;
-                exportPriceOfferingPdf();
-              }, 250);
-            }
-          }
-        }
+      followupSnapshotPrintBtn.addEventListener('click', () => {
+        printFollowupSnapshotDirectly();
       });
     }
 
@@ -42996,22 +43062,33 @@ ${sectionsText}
     const showMyPlanMini = myPlanCfg.showOnMiniCal !== false;
     const myPlanMiniScope = myPlanCfg.miniCalScope || 'week'; // 'week' (default: respective week) | 'all' (all month)
 
-    // Calculate the respective week boundary for 'week' scope matching Calendar & Plan
+    // Calculate the respective week boundary for 'week' scope (using sidebar mini-calendar's own weekStart)
     let weekStartYmd = '';
     let weekEndYmd = '';
     if (showMyPlanMini && myPlanMiniScope === 'week') {
+      const activePrefs = state.draftAppPrefs || state.appPrefs || DEFAULT_APP_PREFS;
+      const miniWeekStart = activePrefs.calendarWeekStart || 'sunday';
+      const getMiniStartOfWeek = (dObj) => {
+        const d = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
+        const day = d.getDay();
+        const diff = miniWeekStart === 'monday' ? (day === 0 ? -6 : 1 - day) : -day;
+        d.setDate(d.getDate() + diff);
+        return d;
+      };
       const now = new Date();
       let refDate = now;
       const anchor = (state.calendarPlan && state.calendarPlan.anchorDate) ? parseLocalYMD(state.calendarPlan.anchorDate) : null;
-      if (anchor) {
-        const anchorStart = getStartOfWeekDate(anchor);
-        const anchorEnd = new Date(anchorStart.getFullYear(), anchorStart.getMonth(), anchorStart.getDate() + 6);
-        if ((anchorStart.getFullYear() === year && anchorStart.getMonth() === month) || (anchorEnd.getFullYear() === year && anchorEnd.getMonth() === month)) {
+      if (anchor && anchor.getFullYear() === year && anchor.getMonth() === month) {
+        refDate = anchor;
+      } else if (now.getFullYear() === year && now.getMonth() === month) {
+        refDate = now;
+      } else {
+        const anchorStart = anchor ? getMiniStartOfWeek(anchor) : null;
+        const anchorEnd = anchorStart ? new Date(anchorStart.getFullYear(), anchorStart.getMonth(), anchorStart.getDate() + 6) : null;
+        if (anchorStart && ((anchorStart.getFullYear() === year && anchorStart.getMonth() === month) || (anchorEnd && anchorEnd.getFullYear() === year && anchorEnd.getMonth() === month))) {
           refDate = anchor;
-        } else if (now.getFullYear() === year && now.getMonth() === month) {
-          refDate = now;
         } else {
-          const nowStart = getStartOfWeekDate(now);
+          const nowStart = getMiniStartOfWeek(now);
           const nowEnd = new Date(nowStart.getFullYear(), nowStart.getMonth(), nowStart.getDate() + 6);
           if ((nowStart.getFullYear() === year && nowStart.getMonth() === month) || (nowEnd.getFullYear() === year && nowEnd.getMonth() === month)) {
             refDate = now;
@@ -43019,10 +43096,8 @@ ${sectionsText}
             refDate = new Date(year, month, 1);
           }
         }
-      } else if (now.getFullYear() === year && now.getMonth() === month) {
-        refDate = now;
       }
-      const startD = getStartOfWeekDate(refDate);
+      const startD = getMiniStartOfWeek(refDate);
       const endD = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate() + 6);
       weekStartYmd = formatLocalYMD(startD);
       weekEndYmd = formatLocalYMD(endD);

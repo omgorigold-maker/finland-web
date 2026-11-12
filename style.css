@@ -902,7 +902,7 @@ select:not(.hidden):focus {
   font-family: var(--po-font-family) !important;
   font-size: var(--po-title-size) !important;
   font-weight: 700 !important;
-  color: #d946ef;
+  color: #0f172a !important;
   letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   padding: 0 !important;
@@ -1548,9 +1548,50 @@ textarea.po-selectable,
   }
 
   /* Explicitly hide non-document views */
-  main > section,
-  #viewProjectFollowup > *:not(#priceOfferingDocPage) {
+  body:not(.printing-snapshot-doc) main > section,
+  body:not(.printing-snapshot-doc) #viewProjectFollowup > *:not(#priceOfferingDocPage) {
     display: none !important;
+  }
+
+  /* Snapshot Document Viewer Print Isolation */
+  body.printing-snapshot-doc,
+  body.printing-snapshot-doc > div.flex-1,
+  body.printing-snapshot-doc main,
+  body.printing-snapshot-doc #viewProjectFollowup,
+  body.printing-snapshot-doc #followupExportSnapshotModal,
+  body.printing-snapshot-doc #followupExportSnapshotModal > div,
+  body.printing-snapshot-doc #followupSnapshotSheetContainer {
+    display: block !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    height: auto !important;
+    min-height: auto !important;
+    position: static !important;
+    float: none !important;
+  }
+  body.printing-snapshot-doc #viewProjectFollowup > *:not(#followupExportSnapshotModal),
+  body.printing-snapshot-doc #followupExportSnapshotModal .shrink-0,
+  body.printing-snapshot-doc #followupExportSnapshotModal .no-print,
+  body.printing-snapshot-doc #followupExportSnapshotModal > div > div:first-child {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+  body.printing-snapshot-doc #followupSnapshotSheetContainer .price-offering-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
   }
 
   .po-selected-element {
