@@ -25428,9 +25428,10 @@ function initSortableWidgets() {
     const vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
     const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
     return {
-      id: customTpl.id || 'tpl_studio_master',
-      name: customTpl.name || 'Studio Template',
-      docTitle: customTpl.docTitle || DEFAULT_PO_TEMPLATE.docTitle,
+      id: customTpl.id || 'tpl_price_quote_master',
+      docType: 'price_quote',
+      name: customTpl.name || 'Price Quote / Proposal Template',
+      docTitle: 'Price Quote / Proposal',
       docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
       sender: Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {}),
       typography: Object.assign({}, DEFAULT_PO_TEMPLATE.typography, customTpl.typography || {}),
@@ -25441,9 +25442,75 @@ function initSortableWidgets() {
     };
   }
 
+  function getMasterDepositProformaTemplate() {
+    const master = getMasterPoTemplate();
+    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
+    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
+      color: '#db2777',
+      fontWeight: '700',
+      letterSpacing: '0.05em'
+    });
+    return {
+      id: 'tpl_master_deposit_proforma',
+      docType: 'deposit_proforma',
+      name: 'Deposit Proforma Template',
+      isDefault: true,
+      createdAt: new Date().toISOString(),
+      docTitle: 'DEPOSIT PROFORMA INVOICE',
+      docSubtitle: 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
+      sender: Object.assign({}, master.sender),
+      typography: Object.assign({}, master.typography),
+      elementStyles: elemStyles,
+      labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
+      sections: [
+        { id: 'sec_header', type: 'header', title: 'Document Header' },
+        { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
+        { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
+        { id: 'sec_scope_dep', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+        { id: 'sec_terms_dep', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
+        { id: 'sec_conditions_dep', type: 'conditions', title: 'Deposit Notes & Terms', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+      ],
+      richText: {}
+    };
+  }
+
+  function getMasterProformaTemplate() {
+    const master = getMasterPoTemplate();
+    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
+    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
+      color: '#db2777',
+      fontWeight: '700',
+      letterSpacing: '0.05em'
+    });
+    return {
+      id: 'tpl_master_proforma',
+      docType: 'proforma',
+      name: 'Proforma Invoice Template',
+      isDefault: true,
+      createdAt: new Date().toISOString(),
+      docTitle: 'PROFORMA INVOICE',
+      docSubtitle: 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
+      sender: Object.assign({}, master.sender),
+      typography: Object.assign({}, master.typography),
+      elementStyles: elemStyles,
+      labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, PROFORMA_DEFAULT_LABELS),
+      sections: [
+        { id: 'sec_header', type: 'header', title: 'Document Header' },
+        { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
+        { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
+        { id: 'sec_scope_prof', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
+        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
+        { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+      ],
+      richText: {}
+    };
+  }
+
   let activePoTemplateId = null;
 
-  function getPoSavedTemplates() {
+  function getAllPoSavedTemplates() {
     let list = (state.budget && Array.isArray(state.budget.poSavedTemplates)) ? state.budget.poSavedTemplates : null;
     if (!list || list.length === 0) {
       try {
@@ -25452,30 +25519,68 @@ function initSortableWidgets() {
       } catch (e) {}
     }
     if (!list || list.length === 0) {
-      const master = getMasterPoTemplate();
+      const masterQuote = getMasterPoTemplate();
       list = [
-        Object.assign({}, master, {
-          id: master.id || 'tpl_studio_master',
-          name: master.name || 'Studio Template',
+        Object.assign({}, masterQuote, {
+          id: 'tpl_price_quote_master',
+          docType: 'price_quote',
+          name: 'Price Quote / Proposal Template',
+          docTitle: 'Price Quote / Proposal',
           isDefault: true,
           createdAt: new Date().toISOString()
-        })
+        }),
+        getMasterDepositProformaTemplate(),
+        getMasterProformaTemplate()
       ];
-      if (state.budget) state.budget.poSavedTemplates = list;
     }
-    list.forEach(t => sanitizePoTemplateData(t));
-    if (!list.some(t => t.isDefault) && list.length > 0) {
-      list[0].isDefault = true;
+
+    // Ensure all items have a valid docType
+    list.forEach(t => {
+      sanitizePoTemplateData(t);
+      if (!t.docType) {
+        if (t.docTitle && t.docTitle.includes('DEPOSIT')) t.docType = 'deposit_proforma';
+        else if (t.docTitle && t.docTitle.includes('PROFORMA')) t.docType = 'proforma';
+        else t.docType = 'price_quote';
+      }
+    });
+
+    // Ensure dedicated default template exists for deposit_proforma and proforma
+    if (!list.some(t => t.docType === 'deposit_proforma')) {
+      list.push(getMasterDepositProformaTemplate());
     }
+    if (!list.some(t => t.docType === 'proforma')) {
+      list.push(getMasterProformaTemplate());
+    }
+    if (!list.some(t => t.docType === 'price_quote')) {
+      const mq = getMasterPoTemplate();
+      list.unshift(Object.assign({}, mq, {
+        id: 'tpl_price_quote_master',
+        docType: 'price_quote',
+        name: 'Price Quote Template',
+        isDefault: true
+      }));
+    }
+
+    if (state.budget) state.budget.poSavedTemplates = list;
     return list;
   }
 
-  function savePoSavedTemplates(list) {
+  function getPoSavedTemplates(filterDocType = null) {
+    if (!filterDocType) filterDocType = getActiveDocType();
+    const all = getAllPoSavedTemplates();
+    return all.filter(t => t.docType === filterDocType);
+  }
+
+  function savePoSavedTemplates(list, docType = null) {
+    if (!docType) docType = getActiveDocType();
+    const all = getAllPoSavedTemplates();
+    const others = all.filter(t => t.docType !== docType);
+    const combined = [...others, ...list];
     if (state.budget) {
-      state.budget.poSavedTemplates = list;
+      state.budget.poSavedTemplates = combined;
     }
     try {
-      localStorage.setItem('ft_po_saved_templates', JSON.stringify(list));
+      localStorage.setItem('ft_po_saved_templates', JSON.stringify(combined));
     } catch (e) {}
     saveBudget();
   }
@@ -25554,27 +25659,37 @@ function initSortableWidgets() {
 
   function captureCurrentPoTemplateSnapshot(customName) {
     flushLivePoDomToState();
-    const existingList = getPoSavedTemplates();
-    const fallbackName = `Studio Template ${existingList.length + 1}`;
+    const curDocType = getActiveDocType();
+    const existingList = getPoSavedTemplates(curDocType);
+    const fallbackName = curDocType === 'deposit_proforma'
+      ? `Deposit Proforma Template ${existingList.length + 1}`
+      : (curDocType === 'proforma' ? `Proforma Template ${existingList.length + 1}` : `Price Quote Template ${existingList.length + 1}`);
     const name = (customName && String(customName).trim()) ? String(customName).trim() : fallbackName;
     const target = getPoEditorTarget();
-    const isProforma = !!(state.activeProformaProjectId || (target && target._isProforma));
 
-    let snapDocTitle = document.getElementById('poDocHeading')?.value || 'Price Quote / Proposal';
-    if (isProforma) {
+    let snapDocTitle = 'Price Quote / Proposal';
+    let snapDocSubtitle = document.getElementById('poDocSubtitle')?.value || '';
+    if (curDocType === 'deposit_proforma') {
+      snapDocTitle = 'DEPOSIT PROFORMA INVOICE';
+      if (!snapDocSubtitle) snapDocSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    } else if (curDocType === 'proforma') {
+      snapDocTitle = 'PROFORMA INVOICE';
+      if (!snapDocSubtitle) snapDocSubtitle = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
+    } else if (curDocType === 'studio') {
+      snapDocTitle = document.getElementById('poDocHeading')?.value || '';
+    } else {
       snapDocTitle = 'Price Quote / Proposal';
     }
-    let snapDocSubtitle = document.getElementById('poDocSubtitle')?.value || '';
+
     if (customName !== '__backup__') {
-      if (isProforma && snapDocSubtitle === 'Preliminary Invoice / Advance Payment Request') {
-        snapDocSubtitle = '';
-      } else if (target && target.title && snapDocSubtitle.trim() === String(target.title).trim()) {
+      if (target && target.title && snapDocSubtitle.trim() === String(target.title).trim()) {
         snapDocSubtitle = '';
       }
     }
 
     const snap = {
       id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      docType: curDocType,
       name,
       isDefault: false,
       createdAt: new Date().toISOString(),
@@ -25656,8 +25771,13 @@ function initSortableWidgets() {
         }
       };
     }
-    if (state.activeDepositProformaProjectId) {
-      const proj = (state.budget?.projects || []).find(p => p.id === state.activeDepositProformaProjectId);
+
+    const curDocType = getActiveDocType();
+
+    // 1. DEPOSIT PROFORMA (50% Milestone) Target
+    if (curDocType === 'deposit_proforma' || state.activeDepositProformaProjectId) {
+      const depProjId = state.activeDepositProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
+      const proj = (state.budget?.projects || []).find(p => p.id === depProjId);
       if (proj) {
         return {
           id: proj.id,
@@ -25683,9 +25803,11 @@ function initSortableWidgets() {
         };
       }
     }
-    const projId = state.activeProformaProjectId || (!state.activePriceOfferingLeadId && leadId && state.budget?.projects?.some(p => p.id === leadId) ? leadId : null);
-    if (projId) {
-      const proj = (state.budget?.projects || []).find(p => p.id === projId);
+
+    // 2. PROFORMA INVOICE Target
+    if (curDocType === 'proforma' || state.activeProformaProjectId) {
+      const profProjId = state.activeProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
+      const proj = (state.budget?.projects || []).find(p => p.id === profProjId);
       if (proj) {
         return {
           id: proj.id,
@@ -25702,16 +25824,49 @@ function initSortableWidgets() {
             return proj.proformaInvoice;
           },
           set priceOffering(val) {
-            if (val && typeof val === 'object') val._isProforma = true;
+            if (val && typeof val === 'object') {
+              val._isProforma = true;
+              val._isDepositProforma = false;
+            }
             proj.proformaInvoice = val;
           }
         };
       }
     }
-    const id = leadId || state.activePriceOfferingLeadId || state.activeFollowupLeadId || state.activeFollowupProjectId;
-    return (state.budget?.leads || []).find(l => l.id === id)
-      || (state.budget?.projects || []).find(p => p.id === id)
-      || null;
+
+    // 3. PRICE QUOTE / PROPOSAL Target (Leads or Projects)
+    const targetLeadId = state.activePriceOfferingLeadId || leadId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const isProj = (state.budget?.projects || []).some(p => p.id === targetLeadId);
+    if (isProj) {
+      const proj = (state.budget?.projects || []).find(p => p.id === targetLeadId);
+      if (proj) {
+        return {
+          id: proj.id,
+          _isProforma: false,
+          _isDepositProforma: false,
+          _projectRef: proj,
+          client: proj.client || 'Client',
+          title: proj.title || proj.description || 'Project Scope',
+          amount: parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0,
+          currency: proj.currency || state.displayCurrency || 'EUR',
+          dueDate: proj.dueDate || '',
+          notes: proj.notes || '',
+          get priceOffering() {
+            return proj.priceOffering;
+          },
+          set priceOffering(val) {
+            if (val && typeof val === 'object') {
+              val._isProforma = false;
+              val._isDepositProforma = false;
+            }
+            proj.priceOffering = val;
+          }
+        };
+      }
+    }
+
+    const leadObj = (state.budget?.leads || []).find(l => l.id === targetLeadId);
+    return leadObj || null;
   }
 
   function reorderPoSavedTemplates(draggedId, targetId, placeAfter) {
@@ -25730,12 +25885,18 @@ function initSortableWidgets() {
 
   function previewPoTemplateOnHover(tplId) {
     if (poEditingTemplateNameId || poEditingTemplateDesignId || poDraggingTemplateId) return;
-    const list = getPoSavedTemplates();
-    const tpl = list.find(t => t.id === tplId);
+    const curDocType = getActiveDocType();
+    const list = getPoSavedTemplates(curDocType);
+    let tpl = list.find(t => t.id === tplId);
+    if (!tpl) {
+      const allList = (state.budget && Array.isArray(state.budget.poSavedTemplates)) ? state.budget.poSavedTemplates : [];
+      tpl = allList.find(t => t.id === tplId);
+    }
     if (!tpl) return;
 
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
+    if (!lead) return;
 
     if (!poHoverPreviewBackup) {
       const snap = captureCurrentPoTemplateSnapshot('__backup__');
@@ -25771,10 +25932,10 @@ function initSortableWidgets() {
 
     poElementStyles = JSON.parse(JSON.stringify(tpl.elementStyles || {}));
     poRichText = JSON.parse(JSON.stringify(tpl.richText || {}));
-    const isProforma = !!(lead?._isProforma || state.activeProformaProjectId);
+
     if (Array.isArray(tpl.sections) && tpl.sections.length > 0) {
-      if (isProforma) {
-        currentPoSections = buildProformaSectionsFromTemplate(tpl.sections, poHoverPreviewBackup.sections || currentPoSections, lead);
+      if (curDocType === 'deposit_proforma' || curDocType === 'proforma') {
+        currentPoSections = buildProformaSectionsFromTemplate(tpl.sections, poHoverPreviewBackup.sections || currentPoSections, lead, curDocType === 'deposit_proforma');
       } else {
         const prevSecs = poHoverPreviewBackup.sections || currentPoSections || [];
         let tplSecs = JSON.parse(JSON.stringify(tpl.sections));
@@ -25790,13 +25951,15 @@ function initSortableWidgets() {
     }
 
     const previewTypo = Object.assign({}, DEFAULT_PO_TEMPLATE.typography, tpl.typography || {});
-    const previewDocTitle = isProforma ? (poHoverPreviewBackup.docTitle || 'PROFORMA INVOICE') : (tpl.docTitle || poHoverPreviewBackup.docTitle);
-    const previewDocSubtitle = isProforma
-      ? (poHoverPreviewBackup.docSubtitle || 'Preliminary Invoice / Advance Payment Request')
-      : (tpl.docSubtitle || '');
-    const previewLabels = isProforma
-      ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, PROFORMA_DEFAULT_LABELS)
-      : (tpl.labels ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels) : poHoverPreviewBackup.labels);
+    // Locked docTitle & docSubtitle: NEVER change docTitle on hover!
+    const previewDocTitle = poHoverPreviewBackup.docTitle;
+    const previewDocSubtitle = poHoverPreviewBackup.docSubtitle;
+    const previewLabels = curDocType === 'deposit_proforma'
+      ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS)
+      : (curDocType === 'proforma'
+          ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, PROFORMA_DEFAULT_LABELS)
+          : (tpl.labels ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels) : poHoverPreviewBackup.labels));
+
     const previewPo = Object.assign({}, poHoverPreviewBackup.leadPriceOffering || {}, {
       templateId: tpl.id,
       typography: previewTypo,
@@ -25834,7 +25997,7 @@ function initSortableWidgets() {
       currentPoSignatures = JSON.parse(JSON.stringify(backup.signatures));
     }
 
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     if (lead) {
       lead.priceOffering = Object.assign({}, backup.leadPriceOffering ? JSON.parse(JSON.stringify(backup.leadPriceOffering)) : {}, {
@@ -25871,8 +26034,13 @@ function initSortableWidgets() {
   function applyPoTemplateToCurrentDoc(tplId, showNotification = true) {
     restorePoTemplateHoverPreview();
     flushLivePoDomToState();
-    const list = getPoSavedTemplates();
-    const tpl = list.find(t => t.id === tplId);
+    const curDocType = getActiveDocType();
+    const list = getPoSavedTemplates(curDocType);
+    let tpl = list.find(t => t.id === tplId);
+    if (!tpl) {
+      const allList = (state.budget && Array.isArray(state.budget.poSavedTemplates)) ? state.budget.poSavedTemplates : [];
+      tpl = allList.find(t => t.id === tplId);
+    }
     if (!tpl) return;
 
     pushPoUndoSnapshot();
@@ -25880,9 +26048,8 @@ function initSortableWidgets() {
     poElementStyles = JSON.parse(JSON.stringify(tpl.elementStyles || {}));
     poRichText = JSON.parse(JSON.stringify(tpl.richText || {}));
 
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
-    const isProforma = !!(lead?._isProforma || state.activeProformaProjectId);
     if (lead) {
       if (!lead.priceOffering) lead.priceOffering = {};
       lead.priceOffering.templateId = tpl.id;
@@ -25890,21 +26057,32 @@ function initSortableWidgets() {
       lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
       lead.priceOffering.richText = JSON.parse(JSON.stringify(poRichText));
       if (tpl.sender) lead.priceOffering.sender = Object.assign({}, tpl.sender);
-      if (isProforma) {
-        lead.priceOffering.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, PROFORMA_DEFAULT_LABELS);
+
+      // NEVER CHANGE DOCUMENT TYPE OR TITLES ACROSS DIFFERENT DOCS!
+      if (curDocType === 'deposit_proforma') {
+        lead.priceOffering._isDepositProforma = true;
+        lead.priceOffering._isProforma = false;
+        lead.priceOffering.docTitle = 'DEPOSIT PROFORMA INVOICE';
+        lead.priceOffering.docSubtitle = tpl.docSubtitle || 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+        lead.priceOffering.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS);
+      } else if (curDocType === 'proforma') {
+        lead.priceOffering._isProforma = true;
+        lead.priceOffering._isDepositProforma = false;
         lead.priceOffering.docTitle = 'PROFORMA INVOICE';
-        if (!lead.priceOffering.docSubtitle || lead.priceOffering.docSubtitle === 'Print & Merch Design Bundle') {
-          lead.priceOffering.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
-        }
-      } else {
-        if (tpl.labels) lead.priceOffering.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels);
-        if (tpl.docTitle) lead.priceOffering.docTitle = tpl.docTitle;
+        lead.priceOffering.docSubtitle = tpl.docSubtitle || 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
+        lead.priceOffering.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {}, PROFORMA_DEFAULT_LABELS);
+      } else if (curDocType === 'price_quote') {
+        lead.priceOffering._isProforma = false;
+        lead.priceOffering._isDepositProforma = false;
+        lead.priceOffering.docTitle = 'Price Quote / Proposal';
         lead.priceOffering.docSubtitle = tpl.docSubtitle || '';
+        lead.priceOffering.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, tpl.labels || {});
       }
+
       if (Array.isArray(tpl.sections) && tpl.sections.length > 0) {
         let tplSecs;
-        if (isProforma) {
-          tplSecs = buildProformaSectionsFromTemplate(tpl.sections, currentPoSections, lead);
+        if (curDocType === 'deposit_proforma' || curDocType === 'proforma') {
+          tplSecs = buildProformaSectionsFromTemplate(tpl.sections, currentPoSections, lead, curDocType === 'deposit_proforma');
         } else {
           const prevSecs = currentPoSections || [];
           tplSecs = JSON.parse(JSON.stringify(tpl.sections));
@@ -25923,7 +26101,7 @@ function initSortableWidgets() {
 
     applyPriceOfferingTypography(Object.assign({}, DEFAULT_PO_TEMPLATE.typography, tpl.typography || {}), false);
 
-    // Clear DOM inputs so renderPriceOfferingDocument uses the template's sender/docTitle/labels
+    // Clear DOM inputs so renderPriceOfferingDocument uses the correct values
     const printArea = document.getElementById('priceOfferingPrintArea');
     if (printArea) printArea.innerHTML = '';
 
@@ -26049,7 +26227,7 @@ function initSortableWidgets() {
     const ovrSelect = document.getElementById('poOverrideTemplateSelect');
 
     const list = getPoSavedTemplates();
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     const currentTplId = activePoTemplateId || lead?.priceOffering?.templateId || (list.find(t => t.isDefault) || list[0])?.id;
 
@@ -26102,19 +26280,16 @@ function initSortableWidgets() {
     snap.name = finalName;
     snap.isDefault = !!existing.isDefault;
 
-    const isProforma = !!(state.activeProformaProjectId || (getPoEditorTarget() && getPoEditorTarget()._isProforma));
-    if (isProforma) {
-      if (existing.docTitle) snap.docTitle = existing.docTitle;
-      const existingAcc = (existing.sections || []).find(s => s && s.type === 'acceptance');
-      if (existingAcc && !snap.sections.some(s => s && s.type === 'acceptance')) {
-        snap.sections.push(JSON.parse(JSON.stringify(existingAcc)));
-      }
-      const existingTerms = (existing.sections || []).find(s => s && s.type === 'terms');
-      const snapTerms = snap.sections.find(s => s && s.type === 'terms');
-      if (existingTerms && snapTerms && !existingTerms.content?.includes('Swift/BIC:')) {
-        snapTerms.title = existingTerms.title || 'Timeline & Payment Terms';
-        snapTerms.content = existingTerms.content;
-      }
+    const curDocType = getActiveDocType();
+    snap.docType = existing.docType || curDocType;
+    if (snap.docType === 'deposit_proforma') {
+      snap.docTitle = 'DEPOSIT PROFORMA INVOICE';
+      snap.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, snap.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS);
+    } else if (snap.docType === 'proforma') {
+      snap.docTitle = 'PROFORMA INVOICE';
+      snap.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, snap.labels || {}, PROFORMA_DEFAULT_LABELS);
+    } else if (snap.docType === 'price_quote') {
+      snap.docTitle = 'Price Quote / Proposal';
     }
 
     list[idx] = snap;
@@ -26147,7 +26322,7 @@ function initSortableWidgets() {
       return;
     }
 
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     const currentTplId = activePoTemplateId || lead?.priceOffering?.templateId || (list.find(t => t.isDefault) || list[0])?.id;
 
@@ -26275,8 +26450,8 @@ function initSortableWidgets() {
     const scopeBanner = document.getElementById('poTemplateScopeBanner');
     if (!scopeBanner) return;
 
-    const list = (state.budget && Array.isArray(state.budget.poSavedTemplates)) ? state.budget.poSavedTemplates : getPoSavedTemplates();
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const list = getPoSavedTemplates();
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     const currentTplId = activePoTemplateId || lead?.priceOffering?.templateId || (list.find(t => t.isDefault) || list[0])?.id;
     const currentTpl = list.find(t => t.id === currentTplId);
@@ -26337,8 +26512,8 @@ function initSortableWidgets() {
     updatePoTemplateScopeBanner();
     if (!grid) return;
 
-    const list = (state.budget && Array.isArray(state.budget.poSavedTemplates)) ? state.budget.poSavedTemplates : getPoSavedTemplates();
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const list = getPoSavedTemplates();
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     const currentTplId = activePoTemplateId || lead?.priceOffering?.templateId || (list.find(t => t.isDefault) || list[0])?.id;
 
@@ -26611,7 +26786,7 @@ function initSortableWidgets() {
   // ==========================================
   function getPoDocumentSnapshot() {
     flushLivePoDomToState();
-    const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     return {
       docHeading: document.getElementById('poDocHeading')?.value || '',
@@ -26686,9 +26861,10 @@ function initSortableWidgets() {
     if (!snap) return;
     poIsApplyingUndoRedo = true;
     try {
-      const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+      const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
       const lead = getPoEditorTarget(leadId);
-      const isProforma = !!(lead?._isProforma || state.activeProformaProjectId);
+      const isDepositProforma = !!(lead?._isDepositProforma || state.activeDepositProformaProjectId);
+      const isProforma = !isDepositProforma && !!(lead?._isProforma || state.activeProformaProjectId);
 
       currentPoSections = JSON.parse(JSON.stringify(snap.sections || []));
       currentPoItems = JSON.parse(JSON.stringify(snap.items || []));
@@ -26702,7 +26878,7 @@ function initSortableWidgets() {
 
       if (lead) {
         if (!lead.priceOffering) lead.priceOffering = {};
-        lead.priceOffering.docTitle = snap.docHeading || (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal');
+        lead.priceOffering.docTitle = snap.docHeading || (isDepositProforma ? 'DEPOSIT PROFORMA INVOICE' : (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'));
         lead.priceOffering.docSubtitle = snap.docSubtitle;
         lead.priceOffering.sender = {
           name: snap.senderName || '',
@@ -27007,7 +27183,7 @@ function initSortableWidgets() {
     }
     delete poElementStyles[poSelectedElementId];
     delete poRichText[poSelectedElementId];
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     renderPriceOfferingDocument(lead, lead?.priceOffering);
     triggerPriceOfferingAutoSave(true);
@@ -28068,7 +28244,7 @@ function initSortableWidgets() {
     currentPoSections.splice(insertAt, 0, clone);
     selectedPoSectionIndex = insertAt;
 
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     if (lead && lead.priceOffering) {
       lead.priceOffering.sections = currentPoSections;
@@ -28112,7 +28288,7 @@ function initSortableWidgets() {
     const prevSelectedElemId = poSelectedElementId;
     const prevSelectedMeta = poSelectedElementMeta ? Object.assign({}, poSelectedElementMeta) : null;
 
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
 
     const temp = currentPoSections[idx];
@@ -28193,7 +28369,7 @@ function initSortableWidgets() {
     poSelectedElementMeta = null;
     selectedPoSectionIndex = null;
 
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     if (lead) {
       if (!lead.priceOffering) lead.priceOffering = {};
@@ -28574,7 +28750,7 @@ function initSortableWidgets() {
     currentPoSections.splice(insertIdx, 0, newSec);
     selectedPoSectionIndex = insertIdx;
 
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     if (lead && lead.priceOffering) {
       lead.priceOffering.sections = currentPoSections;
@@ -28626,34 +28802,18 @@ function initSortableWidgets() {
       return JSON.parse(JSON.stringify(po.sections));
     }
 
+    if (po?._isDepositProforma || lead?._isDepositProforma || state.activeDepositProformaProjectId) {
+      const depMaster = getMasterDepositProformaTemplate();
+      if (depMaster && Array.isArray(depMaster.sections) && depMaster.sections.length > 0) {
+        return JSON.parse(JSON.stringify(depMaster.sections));
+      }
+    }
+
     if (po?._isProforma || lead?._isProforma || state.activeProformaProjectId) {
-      return [
-        { id: 'sec_header', type: 'header', title: 'Document Header' },
-        { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
-        { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        {
-          id: 'sec_scope_' + Date.now(),
-          type: 'scope',
-          title: 'Project Scope & Objective',
-          pageBreakBefore: false,
-          content: po?.scope !== undefined ? po.scope : (lead?.notes ? lead.notes.split('\n\n---\n\n')[0] : (lead?.title || ''))
-        },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
-        {
-          id: 'sec_terms_' + Date.now(),
-          type: 'terms',
-          title: 'Payment Terms & Bank Details',
-          pageBreakBefore: false,
-          content: po?.terms || getProformaDefaultTerms()
-        },
-        {
-          id: 'sec_conditions_' + Date.now(),
-          type: 'conditions',
-          title: 'Notice & Invoicing Notes',
-          pageBreakBefore: false,
-          content: po?.conditions || '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.'
-        }
-      ];
+      const profMaster = getMasterProformaTemplate();
+      if (profMaster && Array.isArray(profMaster.sections) && profMaster.sections.length > 0) {
+        return JSON.parse(JSON.stringify(profMaster.sections));
+      }
     }
 
     const masterTpl = getMasterPoTemplate();
@@ -30376,7 +30536,7 @@ function initSortableWidgets() {
   // Make sure legacy documents without structural blocks get them once, while allowing deliberate deletion
   function ensurePoStructuralBlocks(po) {
     if (!Array.isArray(currentPoSections)) currentPoSections = [];
-    if ((po && po._structuralMigrated) || (po && po._studioDoc) || (po && po._isProforma) || state.activeStudioDocId || state.activeProformaProjectId) {
+    if ((po && po._structuralMigrated) || (po && po._studioDoc) || (po && (po._isProforma || po._isDepositProforma)) || state.activeStudioDocId || state.activeProformaProjectId || state.activeDepositProformaProjectId) {
       if (po) po._structuralMigrated = true;
       return;
     }
@@ -30411,7 +30571,7 @@ function initSortableWidgets() {
     }
 
     if (!lead) {
-      const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+      const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
       lead = getPoEditorTarget(leadId);
     }
     if (!lead) return;
@@ -30423,9 +30583,14 @@ function initSortableWidgets() {
       return (el && container.contains(el)) ? el.value : fallback;
     };
 
-    const masterTpl = getMasterPoTemplate();
     const isStudioDoc = !!(lead._isStudioDoc || po._studioDoc);
-    const isProforma = !!(lead._isProforma || po._isProforma || state.activeProformaProjectId);
+    const isDepositProforma = !!(lead._isDepositProforma || po._isDepositProforma || state.activeDepositProformaProjectId);
+    const isProforma = !isDepositProforma && !!(lead._isProforma || po._isProforma || state.activeProformaProjectId);
+
+    const masterTpl = isDepositProforma
+      ? getMasterDepositProformaTemplate()
+      : (isProforma ? getMasterProformaTemplate() : getMasterPoTemplate());
+
     let savedSender = null;
     if (!isStudioDoc) {
       try {
@@ -30444,11 +30609,48 @@ function initSortableWidgets() {
       location: live('poSenderLocation', baseSender.location !== undefined ? baseSender.location : masterTpl.sender.location)
     };
 
-    const docTitle = live('poDocHeading', isStudioDoc ? (po.docTitle || '') : (po.docTitle || (isProforma ? 'PROFORMA INVOICE' : (masterTpl.docTitle || 'Price Quote / Proposal'))));
-    const docSubtitle = live('poDocSubtitle', po.docSubtitle !== undefined ? po.docSubtitle : (isStudioDoc ? '' : (isProforma ? 'Preliminary Invoice / Advance Payment Request' : (masterTpl.docSubtitle || ''))));
+    let defaultHeading = 'Price Quote / Proposal';
+    let defaultSub = '';
+    if (isDepositProforma) {
+      defaultHeading = 'DEPOSIT PROFORMA INVOICE';
+      defaultSub = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    } else if (isProforma) {
+      defaultHeading = 'PROFORMA INVOICE';
+      defaultSub = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
+    } else if (isStudioDoc) {
+      defaultHeading = '';
+      defaultSub = '';
+    }
+
+    let defaultDocTitle = defaultHeading;
+    if (isStudioDoc) {
+      defaultDocTitle = po.docTitle || '';
+    } else if (isDepositProforma) {
+      defaultDocTitle = (po.docTitle && !po.docTitle.includes('Price Quote') && !po.docTitle.includes('Proposal') && po.docTitle !== 'PROFORMA INVOICE') ? po.docTitle : 'DEPOSIT PROFORMA INVOICE';
+    } else if (isProforma) {
+      defaultDocTitle = (po.docTitle && !po.docTitle.includes('Price Quote') && !po.docTitle.includes('Proposal') && !po.docTitle.includes('DEPOSIT')) ? po.docTitle : 'PROFORMA INVOICE';
+    } else {
+      defaultDocTitle = (po.docTitle && !po.docTitle.includes('PROFORMA')) ? po.docTitle : 'Price Quote / Proposal';
+    }
+
+    const rawLiveHeading = live('poDocHeading', defaultDocTitle);
+    let docTitle = defaultDocTitle;
+    if (rawLiveHeading) {
+      if (isDepositProforma) {
+        docTitle = (!rawLiveHeading.includes('Price Quote') && !rawLiveHeading.includes('Proposal') && rawLiveHeading !== 'PROFORMA INVOICE') ? rawLiveHeading : 'DEPOSIT PROFORMA INVOICE';
+      } else if (isProforma) {
+        docTitle = (!rawLiveHeading.includes('Price Quote') && !rawLiveHeading.includes('Proposal') && !rawLiveHeading.includes('DEPOSIT')) ? rawLiveHeading : 'PROFORMA INVOICE';
+      } else if (isStudioDoc) {
+        docTitle = rawLiveHeading;
+      } else {
+        docTitle = (!rawLiveHeading.includes('PROFORMA')) ? rawLiveHeading : 'Price Quote / Proposal';
+      }
+    }
+
+    const docSubtitle = live('poDocSubtitle', po.docSubtitle !== undefined ? po.docSubtitle : defaultSub);
 
     const curYear = new Date().getFullYear();
-    const refPrefix = isProforma ? 'PI' : 'PO';
+    const refPrefix = isDepositProforma ? 'DPI' : (isProforma ? 'PI' : 'PO');
     const refNo = live('poRefNo', po.refNo || `${refPrefix}-${curYear}-${String(lead.id || '').replace(/\D/g, '').slice(-3) || '001'}`);
     const todayStr = new Date().toISOString().split('T')[0];
     const twoWeeksStr = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
@@ -30462,12 +30664,12 @@ function initSortableWidgets() {
     const projectTitle = live('poProjectTitle', po.projectTitle !== undefined ? po.projectTitle : (lead.title || lead.description || ''));
 
     const labels = readPoLabels(po.labels);
-    if (isProforma && (!po.labels || Object.keys(po.labels).length === 0)) {
+    if ((isProforma || isDepositProforma) && (!po.labels || Object.keys(po.labels).length === 0)) {
       if (!labels.client || labels.client === 'Client / Recipient') labels.client = 'Bill To / Client';
-      if (!labels.reference || labels.reference === 'Reference') labels.reference = 'Proforma Invoice #';
+      if (!labels.reference || labels.reference === 'Reference') labels.reference = isDepositProforma ? 'Deposit Invoice #' : 'Proforma Invoice #';
       if (!labels.issueDate || labels.issueDate === 'Date Issued') labels.issueDate = 'Invoice Date';
       if (!labels.validUntil || labels.validUntil === 'Valid Until') labels.validUntil = 'Payment Due';
-      if (!labels.totalInvestment || labels.totalInvestment === 'Total Investment') labels.totalInvestment = 'Total Amount Due';
+      if (!labels.totalInvestment || labels.totalInvestment === 'Total Investment') labels.totalInvestment = isDepositProforma ? 'Deposit Amount Due' : 'Total Amount Due';
     }
     const discountLive = live('poDiscountPercentInput', po.discountPercent);
     const taxLive = live('poTaxPercentInput', po.taxPercent);
@@ -31019,7 +31221,7 @@ function initSortableWidgets() {
     if (poHoverPreviewBackup) return;
     const poPage = document.getElementById('priceOfferingDocPage');
     if (poPage && poPage.classList && poPage.classList.contains('hidden')) return;
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     if (!leadId) return;
 
     clearTimeout(poAutoSaveTimeout);
@@ -31182,12 +31384,29 @@ function initSortableWidgets() {
       } catch (e) {}
     }
 
+    let finalDocTitle = document.getElementById('poDocHeading')?.value || '';
+    if (lead._isDepositProforma || state.activeDepositProformaProjectId) {
+      if (!finalDocTitle || finalDocTitle.includes('Price Quote') || finalDocTitle.includes('Proposal') || finalDocTitle === 'PROFORMA INVOICE') {
+        finalDocTitle = 'DEPOSIT PROFORMA INVOICE';
+      }
+    } else if (lead._isProforma || state.activeProformaProjectId) {
+      if (!finalDocTitle || finalDocTitle.includes('Price Quote') || finalDocTitle.includes('Proposal') || finalDocTitle.includes('DEPOSIT')) {
+        finalDocTitle = 'PROFORMA INVOICE';
+      }
+    } else if (!lead._isStudioDoc) {
+      if (!finalDocTitle || finalDocTitle.includes('PROFORMA')) {
+        finalDocTitle = 'Price Quote / Proposal';
+      }
+    }
+
+    const curRefPrefix = (lead._isDepositProforma || state.activeDepositProformaProjectId) ? 'DPI' : ((lead._isProforma || state.activeProformaProjectId) ? 'PI' : 'PO');
+
     const offeringData = {
       templateId: activePoTemplateId || lead.priceOffering?.templateId || 'tpl_studio_master',
-      docTitle: document.getElementById('poDocHeading')?.value || (lead._isStudioDoc ? (lead.priceOffering?.docTitle || '') : (lead._isDepositProforma ? 'PROFORMA INVOICE' : (lead._isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'))),
+      docTitle: finalDocTitle,
       docSubtitle: document.getElementById('poDocSubtitle')?.value || '',
       accentColor: currentPoAccentColor,
-      refNo: document.getElementById('poRefNo')?.value || (lead._isDepositProforma ? 'DPI-2026-001' : (lead._isProforma ? 'PI-2026-001' : 'PO-2026-001')),
+      refNo: document.getElementById('poRefNo')?.value || `${curRefPrefix}-2026-001`,
       issueDate: document.getElementById('poIssueDate')?.value || '',
       validUntil: document.getElementById('poValidUntil')?.value || '',
       currency: totals.currency,
@@ -33242,7 +33461,7 @@ function initSortableWidgets() {
     const totals = recalculatePriceOfferingTotals();
     const docHeading = document.getElementById('poDocHeading')?.value.trim() || 'PRICE OFFERING & PROPOSAL';
     const client = document.getElementById('poClientName')?.value.trim() || 'Client';
-    const targetEntity = getPoEditorTarget(state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId);
+    const targetEntity = getPoEditorTarget(state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId);
     const proj = document.getElementById('poProjectTitle')?.value.trim() || (targetEntity && (targetEntity.title || targetEntity.description)) || document.getElementById('poDocSubtitle')?.value.trim() || 'Project';
     const ref = document.getElementById('poRefNo')?.value.trim() || '';
     const date = document.getElementById('poIssueDate')?.value || '';
@@ -37689,7 +37908,7 @@ ${sectionsText}
         const snap = recordPoExportSnapshot();
         if (snap) {
           const vLabel = snap.label || (snap.version ? 'v' + snap.version : 'Copy');
-          showToast('Exported Copy Logged ✓', `Saved ${vLabel} to this ${state.activeProformaProjectId ? 'project' : 'lead'} while keeping your editor draft editable.`, 'success');
+          showToast('Exported Copy Logged ✓', `Saved ${vLabel} to this ${(state.activeDepositProformaProjectId || state.activeProformaProjectId) ? 'project' : 'lead'} while keeping your editor draft editable.`, 'success');
         }
       });
     }
@@ -38826,7 +39045,7 @@ ${sectionsText}
           restorePoTemplateHoverPreview();
           const list = getPoSavedTemplates();
           const targetTpl = list.find(t => t.id === tplId);
-          const leadId = state.activePriceOfferingLeadId || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
+          const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
           const lead = getPoEditorTarget(leadId);
           const currentTplId = activePoTemplateId || lead?.priceOffering?.templateId || (list.find(t => t.isDefault) || list[0])?.id;
           const currentTpl = list.find(t => t.id === currentTplId);
@@ -38866,7 +39085,7 @@ ${sectionsText}
             if (Object.keys(poElementStyles[k]).length === 0) delete poElementStyles[k];
           }
         });
-        const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+        const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
         const lead = getPoEditorTarget(leadId);
         if (lead && lead.priceOffering) {
           lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
@@ -38900,11 +39119,14 @@ ${sectionsText}
           showToast('Reset Layout', 'Cleared element drag offsets while keeping your text and styling.', 'info');
           return;
         }
-        const masterTpl = getMasterPoTemplate();
+        const curDocType = getActiveDocType();
+        const masterTpl = curDocType === 'deposit_proforma'
+          ? getMasterDepositProformaTemplate()
+          : (curDocType === 'proforma' ? getMasterProformaTemplate() : getMasterPoTemplate());
         poElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || DEFAULT_PO_TEMPLATE.elementStyles));
         poRichText = {};
         applyPriceOfferingTypography(Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {}), true);
-        const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+        const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
         const lead = getPoEditorTarget(leadId);
         if (lead && lead.priceOffering) {
           lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
@@ -39612,7 +39834,7 @@ ${sectionsText}
     }
 
     window.addEventListener('beforeunload', () => {
-      if ((state.activePriceOfferingLeadId || state.activeProformaProjectId) && poAutoSaveTimeout !== null) {
+      if ((state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId) && poAutoSaveTimeout !== null) {
         savePriceOfferingDoc(false);
       }
     });
@@ -46107,6 +46329,7 @@ ${sectionsText}
             state.activeFollowupProjectId = projId;
             state.activeFollowupLeadId = null;
             state.activePriceOfferingLeadId = null;
+            state.activeDepositProformaProjectId = null;
             state.activeProformaProjectId = null;
             window._ftSetActiveTab('project_followup');
             return;
@@ -46115,6 +46338,7 @@ ${sectionsText}
             state.activeFollowupLeadId = leadId;
             state.activeFollowupProjectId = null;
             state.activePriceOfferingLeadId = null;
+            state.activeDepositProformaProjectId = null;
             state.activeProformaProjectId = null;
             window._ftSetActiveTab('project_followup');
             return;
