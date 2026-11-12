@@ -3150,24 +3150,25 @@ ${escapeHtml(data || '')}
               const rawHash = (window.location.hash || '');
               const rawSubId = rawHash.split('/')[1] || localStorage.getItem('ft_active_followup_lead') || localStorage.getItem('ft_active_followup_project');
               const isOffering = rawHash.includes('/offering');
-              const isProforma = rawHash.includes('/proforma');
+              const isDepositProforma = rawHash.includes('/deposit_proforma');
+              const isProforma = !isDepositProforma && rawHash.includes('/proforma');
               if (rawSubId) {
                 if (rawSubId.startsWith('lead:') || rawSubId.startsWith('lead_')) {
                   const cleanLeadId = rawSubId.replace(/^lead:/, '').replace(/\/offering$/, '');
                   state.activeFollowupLeadId = cleanLeadId;
                   state.activeFollowupProjectId = null;
                   state.activeProformaProjectId = null;
+                  state.activeDepositProformaProjectId = null;
                   if (isOffering) {
                     state.activePriceOfferingLeadId = cleanLeadId;
                   }
                 } else {
-                  const cleanProjId = rawSubId.replace(/^proj:/, '').replace(/\/(proforma|offering)$/, '');
+                  const cleanProjId = rawSubId.replace(/^proj:/, '').replace(/\/(deposit_proforma|proforma|offering)$/, '');
                   state.activeFollowupProjectId = cleanProjId;
                   state.activeFollowupLeadId = null;
                   state.activePriceOfferingLeadId = isOffering ? cleanProjId : null;
-                  if (isProforma) {
-                    state.activeProformaProjectId = cleanProjId;
-                  }
+                  state.activeDepositProformaProjectId = isDepositProforma ? cleanProjId : null;
+                  state.activeProformaProjectId = isProforma ? cleanProjId : null;
                 }
               }
               renderProjectFollowupView();
@@ -11810,6 +11811,7 @@ FOLDER CONTENTS:
       state.activeFollowupProjectId = null;
       state.activePriceOfferingLeadId = null;
       state.activeProformaProjectId = null;
+      state.activeDepositProformaProjectId = null;
       try {
         localStorage.removeItem('ft_active_followup_lead');
         localStorage.removeItem('ft_active_followup_project');
@@ -11841,6 +11843,7 @@ FOLDER CONTENTS:
         state.activeFollowupProjectId = null;
         state.activePriceOfferingLeadId = isOffering ? cleanLeadId : null;
         state.activeProformaProjectId = null;
+        state.activeDepositProformaProjectId = null;
         try {
           localStorage.setItem('ft_active_followup_lead', cleanLeadId);
           localStorage.removeItem('ft_active_followup_project');
@@ -11874,6 +11877,7 @@ FOLDER CONTENTS:
         state.activeFollowupProjectId = null;
         state.activePriceOfferingLeadId = null;
         state.activeProformaProjectId = null;
+        state.activeDepositProformaProjectId = null;
         try {
           localStorage.removeItem('ft_active_followup_lead');
           localStorage.removeItem('ft_active_followup_project');
@@ -22697,9 +22701,10 @@ function initSortableWidgets() {
             proj.priceOffering = JSON.parse(JSON.stringify(proj.quoteExports[0].data));
             proj.priceOffering._isProforma = false;
           }
-          if (proj.proformaInvoice && proj.proformaExports.length === 0) {
-            delete proj.proformaInvoice;
-          }
+          if (!Array.isArray(proj.depositProformaExports)) proj.depositProformaExports = [];
+          if (!Array.isArray(proj.depositProformaAttachments)) proj.depositProformaAttachments = [];
+          proj.hasDepositProformaDoc = !!(proj.depositProforma || proj.depositProformaExports.length > 0 || proj.depositProformaAttachments.length > 0);
+          proj.depositProformaDocName = (proj.depositProformaAttachments[0] && proj.depositProformaAttachments[0].fileName) || (proj.depositProforma ? (proj.depositProforma.docTitle || 'Deposit Proforma Invoice (50%)') : '');
           proj.hasQuoteDoc = !!(proj.priceOffering || proj.quoteExports.length > 0 || proj.quoteAttachments.length > 0);
           proj.quoteDocName = (proj.quoteAttachments[0] && proj.quoteAttachments[0].fileName) || (proj.priceOffering && proj.priceOffering.docTitle) || '';
           proj.hasProformaAttachment = proj.proformaAttachments.length > 0;
@@ -22816,6 +22821,21 @@ function initSortableWidgets() {
     healFollowupLiveData();
 
     const cur = state.displayCurrency || 'EUR';
+
+    // If viewing a specific project's deposit proforma invoice
+    if (state.activeDepositProformaProjectId) {
+      const proj = (state.budget?.projects || []).find(p => p.id === state.activeDepositProformaProjectId);
+      if (proj) {
+        document.getElementById('projectFollowupOverview')?.classList.add('hidden');
+        document.getElementById('projectDetailPage')?.classList.add('hidden');
+        document.getElementById('leadDetailPage')?.classList.add('hidden');
+        document.getElementById('priceOfferingDocPage')?.classList.remove('hidden');
+        openProjectDepositProformaDocPage(state.activeDepositProformaProjectId);
+        return;
+      } else if (Array.isArray(state.budget?.projects) && state.budget.projects.length > 0) {
+        state.activeDepositProformaProjectId = null;
+      }
+    }
 
     // If viewing a specific project's proforma invoice
     if (state.activeProformaProjectId) {
@@ -25252,7 +25272,7 @@ function initSortableWidgets() {
     return tpl;
   }
 
-  function buildProformaSectionsFromTemplate(tplSections, existingSections, entity) {
+  function buildProformaSectionsFromTemplate(tplSections, existingSections, entity, isDeposit = false) {
     const prevSecs = Array.isArray(existingSections) ? existingSections : [];
     const existingScope = prevSecs.find(s => s && (s.type === 'scope' || (s.type === 'custom' && (s.title || '').toLowerCase() === 'summary')));
     const existingTerms = prevSecs.find(s => s && s.type === 'terms');
@@ -25302,18 +25322,20 @@ function initSortableWidgets() {
       else out.push(termsBlock);
     }
 
-    // Ensure Notice & Invoicing Notes section exists
+    // Ensure Notice & Invoicing Notes / Deposit Notes section exists
+    const defaultConditions = isDeposit ? DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT : PROFORMA_DEFAULT_CONDITIONS_CONTENT;
+    const condTitle = isDeposit ? 'Deposit Notes & Terms' : 'Notice & Invoicing Notes';
     let tplCond = out.find(s => s && s.type === 'conditions');
     if (tplCond) {
-      tplCond.title = 'Notice & Invoicing Notes';
-      tplCond.content = existingCond?.content || PROFORMA_DEFAULT_CONDITIONS_CONTENT;
+      tplCond.title = condTitle;
+      tplCond.content = existingCond?.content || defaultConditions;
     } else {
       out.push({
         id: existingCond?.id || ('sec_conditions_' + Date.now()),
         type: 'conditions',
-        title: 'Notice & Invoicing Notes',
+        title: condTitle,
         pageBreakBefore: false,
-        content: existingCond?.content || PROFORMA_DEFAULT_CONDITIONS_CONTENT
+        content: existingCond?.content || defaultConditions
       });
     }
 
@@ -25563,6 +25585,7 @@ function initSortableWidgets() {
         return {
           id: proj.id,
           _isProforma: true,
+          _isDepositProforma: false,
           _projectRef: proj,
           client: proj.client || 'Client',
           title: proj.title || proj.description || 'Project Scope',
@@ -30949,13 +30972,22 @@ function initSortableWidgets() {
     return out;
   }
 
+  function isPlaceholderClientName(name) {
+    if (!name || typeof name !== 'string') return true;
+    const trimmed = name.trim();
+    if (!trimmed) return true;
+    if (/^\[.*\]$/.test(trimmed)) return true;
+    const lower = trimmed.toLowerCase();
+    return lower === 'client' || lower === 'client name' || lower === 'client / recipient' || lower === 'recipient' || lower === 'bill to / client' || lower.includes('[client');
+  }
+
   function savePriceOfferingDoc(showNotification = true) {
     clearTimeout(poAutoSaveTimeout);
     poAutoSaveTimeout = null;
     if (poHoverPreviewBackup) return null;
     const poPage = document.getElementById('priceOfferingDocPage');
     if (poPage && poPage.classList && poPage.classList.contains('hidden')) return null;
-    const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
     const lead = getPoEditorTarget(leadId);
     if (!lead) return null;
 
@@ -31047,10 +31079,10 @@ function initSortableWidgets() {
 
     const offeringData = {
       templateId: activePoTemplateId || lead.priceOffering?.templateId || 'tpl_studio_master',
-      docTitle: document.getElementById('poDocHeading')?.value || (lead._isStudioDoc ? (lead.priceOffering?.docTitle || '') : (lead._isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal')),
+      docTitle: document.getElementById('poDocHeading')?.value || (lead._isStudioDoc ? (lead.priceOffering?.docTitle || '') : (lead._isDepositProforma ? 'PROFORMA INVOICE' : (lead._isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'))),
       docSubtitle: document.getElementById('poDocSubtitle')?.value || '',
       accentColor: currentPoAccentColor,
-      refNo: document.getElementById('poRefNo')?.value || (lead._isProforma ? 'PI-2026-001' : 'PO-2026-001'),
+      refNo: document.getElementById('poRefNo')?.value || (lead._isDepositProforma ? 'DPI-2026-001' : (lead._isProforma ? 'PI-2026-001' : 'PO-2026-001')),
       issueDate: document.getElementById('poIssueDate')?.value || '',
       validUntil: document.getElementById('poValidUntil')?.value || '',
       currency: totals.currency,
@@ -31075,6 +31107,7 @@ function initSortableWidgets() {
       terms: (currentPoSections.find(s => s.type === 'terms') || {}).content || '',
       conditions: (currentPoSections.find(s => s.type === 'conditions') || {}).content || '',
       _studioDoc: !!lead._isStudioDoc,
+      _isDepositProforma: !!lead._isDepositProforma,
       _isProforma: !!lead._isProforma,
       _structuralMigrated: true,
       updatedAt: new Date().toISOString()
@@ -31302,26 +31335,8 @@ function initSortableWidgets() {
   function updatePoDocTypeSwitcherPills() {
     const pills = document.getElementById('poDocTypeSwitcherPills');
     if (!pills) return;
-    const curType = getActiveDocType();
-    const projId = state.activeFollowupProjectId || state.activeDepositProformaProjectId || state.activeProformaProjectId || (state.budget?.projects || []).find(p => p.id === state.activePriceOfferingLeadId)?.id;
-    if (!projId || curType === 'studio') {
-      pills.classList.add('hidden');
-      pills.classList.remove('inline-flex');
-      return;
-    }
-    pills.classList.remove('hidden');
-    pills.classList.add('inline-flex');
-
-    const qBtn = document.getElementById('poSwitchToQuoteBtn');
-    const dBtn = document.getElementById('poSwitchToDepositBtn');
-    const pBtn = document.getElementById('poSwitchToProformaBtn');
-
-    const activeCls = 'px-2 py-0.5 rounded-md text-[11px] transition-all cursor-pointer bg-white text-slate-900 shadow-2xs font-bold';
-    const inactiveCls = 'px-2 py-0.5 rounded-md text-[11px] transition-all cursor-pointer text-slate-600 hover:text-slate-900 font-medium hover:bg-slate-200/50';
-
-    if (qBtn) qBtn.className = (curType === 'price_quote') ? activeCls : inactiveCls;
-    if (dBtn) dBtn.className = (curType === 'deposit_proforma') ? activeCls : inactiveCls;
-    if (pBtn) pBtn.className = (curType === 'proforma') ? activeCls : inactiveCls;
+    pills.classList.add('hidden');
+    pills.classList.remove('inline-flex');
   }
 
   function openPriceOfferingDocPage(leadId) {
@@ -31773,6 +31788,249 @@ function initSortableWidgets() {
     }
   }
 
+  function openProjectDepositProformaDocPage(projectId) {
+    if (!projectId) projectId = state.activeFollowupProjectId;
+    if (!projectId) return;
+
+    const proj = (state.budget?.projects || []).find(p => p.id === projectId);
+    if (!proj) return;
+
+    clearTimeout(poAutoSaveTimeout);
+    poAutoSaveTimeout = null;
+    state.activeStudioDocId = null;
+    state.activePriceOfferingLeadId = null;
+    state.activeFollowupLeadId = null;
+    state.activeProformaProjectId = null;
+    state.activeDepositProformaProjectId = projectId;
+    state.activeFollowupProjectId = projectId;
+    poEditingTemplateDesignId = null;
+    poTemplateDesignEditBackup = null;
+    poEditingTemplateNameId = null;
+
+    syncPoEditorModeUI(false);
+    const typeLabel = document.getElementById('priceOfferingDocTypeLabel');
+    if (typeLabel) typeLabel.textContent = 'Deposit Proforma Invoice · A4 Editor';
+
+    try {
+      history.replaceState(null, '', '#project_followup/' + projectId + '/deposit_proforma');
+      recordFinlandRoute('#project_followup/' + projectId + '/deposit_proforma');
+    } catch (e) {}
+
+    // Switch view
+    document.getElementById('projectFollowupOverview')?.classList.add('hidden');
+    document.getElementById('projectDetailPage')?.classList.add('hidden');
+    document.getElementById('leadDetailPage')?.classList.add('hidden');
+    const poPage = document.getElementById('priceOfferingDocPage');
+    if (poPage) poPage.classList.remove('hidden');
+
+    // Breadcrumb
+    const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
+    if (bcClient) bcClient.textContent = proj.client || 'Client';
+
+    const statusBadgeText = document.getElementById('priceOfferingSaveStatusText');
+    const statusDot = document.getElementById('priceOfferingSaveStatusDot');
+    if (statusBadgeText) statusBadgeText.textContent = proj.depositProforma ? 'Deposit Proforma · Saved' : 'Deposit Proforma · Draft';
+    if (statusDot) {
+      statusDot.className = proj.depositProforma ? 'w-1.5 h-1.5 rounded-full bg-indigo-600' : 'w-1.5 h-1.5 rounded-full bg-slate-300';
+    }
+
+    const masterTpl = getMasterPoTemplate();
+    const curYear = new Date().getFullYear();
+    const curProjNum = String(proj.id || '').replace(/\D/g, '').slice(-3) || '001';
+    const hadExistingDepositProforma = !!proj.depositProforma;
+
+    if (!proj.depositProforma) {
+      const fullProjAmount = parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0;
+      const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
+      const projCur = proj.currency || state.displayCurrency || 'EUR';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dueStr = proj.paymentDueDate || proj.dueDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+      const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
+
+      let initialItems = [
+        {
+          id: 'po_item_' + Date.now(),
+          description: (proj.title || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          qty: 1,
+          rate: depositRate,
+          amount: depositRate
+        }
+      ];
+      let initDiscPct = 0;
+      let initTaxPct = 0;
+      let initSubtotal = depositRate;
+      let initTotal = depositRate;
+      const initElementStyles = {};
+      const initRichText = {};
+
+      if (srcQuote && srcQuote.elementStyles && typeof srcQuote.elementStyles === 'object') {
+        Object.keys(srcQuote.elementStyles).forEach(k => {
+          if (/^item_(desc|qty|rate|amount)_\d+$/.test(k)) {
+            initElementStyles[k] = JSON.parse(JSON.stringify(srcQuote.elementStyles[k]));
+          }
+        });
+      }
+
+      const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
+      const initScopeContent = (srcScopeSec && srcScopeSec.content)
+        ? srcScopeSec.content
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : (proj.title || '')));
+
+      proj.depositProforma = {
+        _isDepositProforma: true,
+        _isProforma: false,
+        templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_studio_master',
+        docTitle: 'PROFORMA INVOICE',
+        docSubtitle: 'Advance Deposit / 50% Milestone Payment',
+        refNo: `DPI-${curYear}-${curProjNum}`,
+        issueDate: todayStr,
+        validUntil: dueStr,
+        currency: projCur,
+        client: proj.client || (srcQuote && srcQuote.client) || '',
+        clientEmail: (srcQuote && srcQuote.clientEmail) || '',
+        clientAddress: (srcQuote && srcQuote.clientAddress) || '',
+        projectTitle: proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || '',
+        elementStyles: initElementStyles,
+        richText: initRichText,
+        labels: Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_LABELS),
+        items: initialItems,
+        sections: [
+          { id: 'sec_header', type: 'header', title: 'Document Header' },
+          { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
+          { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
+          {
+            id: 'sec_scope_' + Date.now(),
+            type: 'scope',
+            title: (srcScopeSec && srcScopeSec.title) || 'Project Scope & Objective',
+            pageBreakBefore: false,
+            content: initScopeContent
+          },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+          {
+            id: 'sec_terms_' + Date.now(),
+            type: 'terms',
+            title: 'Payment Terms & Bank Details',
+            pageBreakBefore: false,
+            content: getProformaDefaultTerms()
+          },
+          {
+            id: 'sec_conditions_' + Date.now(),
+            type: 'conditions',
+            title: 'Deposit Notes & Terms',
+            pageBreakBefore: false,
+            content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT
+          }
+        ],
+        subtotal: initSubtotal,
+        discountPercent: initDiscPct,
+        taxPercent: initTaxPct,
+        total: initTotal,
+        _structuralMigrated: true,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    const po = proj.depositProforma;
+    po._isDepositProforma = true;
+    po._isProforma = false;
+
+    // Restore per-element InDesign-style styles
+    const baseElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || {}));
+    const projElementStyles = (po.elementStyles && typeof po.elementStyles === 'object') ? JSON.parse(JSON.stringify(po.elementStyles)) : {};
+    poElementStyles = {};
+    const allElemKeys = new Set([...Object.keys(baseElementStyles), ...Object.keys(projElementStyles)]);
+    allElemKeys.forEach(k => {
+      poElementStyles[k] = Object.assign({}, baseElementStyles[k] || {}, projElementStyles[k] || {});
+    });
+    poRichText = Object.assign(
+      {},
+      JSON.parse(JSON.stringify(masterTpl.richText || {})),
+      (po.richText && typeof po.richText === 'object') ? JSON.parse(JSON.stringify(po.richText)) : {}
+    );
+    poSelectedElementId = null;
+    poSelectedElementMeta = null;
+
+    const defaultTypography = Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {});
+    const initialTypography = po.typography ? Object.assign({}, defaultTypography, po.typography) : defaultTypography;
+
+    po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
+    if (!po.docTitle || po.docTitle === 'Price Quote / Proposal') {
+      po.docTitle = 'PROFORMA INVOICE';
+    }
+    if (!po.docSubtitle) {
+      po.docSubtitle = 'Advance Deposit / 50% Milestone Payment';
+    }
+    if (!po.sender || po.sender.name === 'Your Name / Studio') {
+      po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
+    }
+
+    applyPriceOfferingTypography(initialTypography, false);
+
+    // Sections
+    currentPoSections = Array.isArray(po.sections) && po.sections.length > 0
+      ? JSON.parse(JSON.stringify(po.sections))
+      : getDefaultPoSections(po, proj);
+
+    // Items
+    const initDepositAmount = Math.round(((parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5) * 100) / 100;
+    if (Array.isArray(po.items) && po.items.length > 0) {
+      currentPoItems = JSON.parse(JSON.stringify(po.items));
+      if (currentPoItems.length === 1 && (parseFloat(currentPoItems[0].amount) || 0) === 0 && initDepositAmount > 0) {
+        currentPoItems[0].rate = initDepositAmount;
+        currentPoItems[0].amount = (parseFloat(currentPoItems[0].qty) || 1) * initDepositAmount;
+      }
+    } else {
+      currentPoItems = [
+        {
+          id: 'po_item_' + Date.now(),
+          description: (proj.title || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          qty: 1,
+          rate: initDepositAmount,
+          amount: initDepositAmount
+        }
+      ];
+    }
+
+    selectedPoSectionIndex = null;
+    currentPoSignatures = Array.isArray(po.signatures) ? JSON.parse(JSON.stringify(po.signatures)) : [];
+    activePoTemplateId = po.templateId || masterTpl.id || 'tpl_studio_master';
+
+    const targetProxy = getPoEditorTarget(projectId);
+    const printAreaEl = document.getElementById('priceOfferingPrintArea');
+    if (printAreaEl) printAreaEl.innerHTML = '';
+    renderPriceOfferingDocument(targetProxy, po);
+    if (!hadExistingDepositProforma) {
+      savePriceOfferingDoc(false);
+    }
+    renderPoSavedTemplatesGallery();
+    renderPoVersionsDropdown();
+    if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setTimeout(() => {
+      poUndoStack = [getPoDocumentSnapshot()];
+      poRedoStack = [];
+      updatePoUndoRedoUI();
+    }, 60);
+  }
+
+  async function deleteProjectDepositProforma(projectId) {
+    if (!projectId) projectId = state.activeFollowupProjectId;
+    const proj = (state.budget?.projects || []).find(p => p.id === projectId);
+    if (!proj || !proj.depositProforma) return;
+
+    if (await confirmAction(`Delete the editable Deposit Proforma document for "${proj.client || 'Project'}"? (Your exported copies stay safe)`)) {
+      const prevFp = getPoContentFingerprint(proj.depositProforma);
+      delete proj.depositProforma;
+      if (prevFp && Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0 && getPoContentFingerprint(proj.depositProformaExports[0].data) === prevFp) {
+        proj.depositProformaExports.shift();
+      }
+      proj.hasDepositProformaDoc = Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0;
+      saveBudget();
+      renderProjectDetailPage(proj, state.displayCurrency);
+      showToast('Deposit Proforma Removed', 'Editable deposit proforma document cleared.', 'info');
+    }
+  }
+
   function closePriceOfferingDocPage() {
     const studioDoc = resolveActiveStudioDoc();
     clearTimeout(poAutoSaveTimeout);
@@ -31787,6 +32045,7 @@ function initSortableWidgets() {
       state.activeStudioDocId = null;
       state.activePriceOfferingLeadId = null;
       state.activeProformaProjectId = null;
+      state.activeDepositProformaProjectId = null;
       syncPoEditorModeUI(false);
       const typeLabel = document.getElementById('priceOfferingDocTypeLabel');
       if (typeLabel) typeLabel.textContent = 'Price Quote · A4 Editor';
@@ -31808,6 +32067,7 @@ function initSortableWidgets() {
       }
       const projId = state.activeProformaProjectId;
       state.activeProformaProjectId = null;
+      state.activeDepositProformaProjectId = null;
       state.activePriceOfferingLeadId = null;
       document.getElementById('projectDetailPage')?.classList.remove('hidden');
       const proj = (state.budget?.projects || []).find(p => p.id === projId);
@@ -31879,11 +32139,15 @@ function initSortableWidgets() {
     if (!clientEl && !refEl) {
       return docSub ? `${docHeading} — ${docSub}` : docHeading;
     }
-    const client = clientEl?.value.trim() || 'Client';
-    const targetEntity = getPoEditorTarget(state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId);
+    const isDeposit = !!state.activeDepositProformaProjectId;
+    const isProforma = !!state.activeProformaProjectId;
+    const targetEntity = getPoEditorTarget(state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId);
     const proj = document.getElementById('poProjectTitle')?.value.trim() || (targetEntity && (targetEntity.title || targetEntity.description)) || document.getElementById('poDocSubtitle')?.value.trim() || 'Project';
-    const ref = refEl?.value.trim() || (state.activeProformaProjectId ? 'PI' : 'PO');
-    if (state.activeProformaProjectId) {
+    const ref = refEl?.value.trim() || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO'));
+    if (isDeposit) {
+      return `Deposit Proforma - ${client} - ${proj} (${ref})`;
+    }
+    if (isProforma) {
       return `Proforma Invoice - ${client} - ${proj} (${ref})`;
     }
     return `Price Offering - ${client} - ${proj} (${ref})`;
@@ -32220,8 +32484,9 @@ function initSortableWidgets() {
 
   function recordPoExportSnapshot(opts = {}) {
     if (state.activeStudioDocId) return null;
+    const isDeposit = !!state.activeDepositProformaProjectId;
     const isProforma = !!state.activeProformaProjectId;
-    const targetId = isProforma ? state.activeProformaProjectId : state.activePriceOfferingLeadId;
+    const targetId = isDeposit ? state.activeDepositProformaProjectId : (isProforma ? state.activeProformaProjectId : state.activePriceOfferingLeadId);
     if (!targetId) return null;
 
     if (!opts.skipSave) {
@@ -32230,8 +32495,8 @@ function initSortableWidgets() {
       syncPriceOfferingTableMirrors();
     }
 
-    const proj = isProforma ? (state.budget?.projects || []).find(p => p.id === targetId) : null;
-    const lead = !isProforma
+    const proj = (isDeposit || isProforma) ? (state.budget?.projects || []).find(p => p.id === targetId) : null;
+    const lead = (!isDeposit && !isProforma)
       ? ((state.budget?.leads || []).find(l => l.id === targetId) || (state.budget?.projects || []).find(p => p.id === targetId))
       : null;
     if (!proj && !lead) return null;
@@ -32245,25 +32510,27 @@ function initSortableWidgets() {
       restorePoScreenLayout();
     }
 
-    const sourceData = isProforma ? proj.proformaInvoice : lead.priceOffering;
+    const sourceData = isDeposit ? proj.depositProforma : (isProforma ? proj.proformaInvoice : lead.priceOffering);
     if (!sourceData) return null;
 
-    if (isProforma) {
+    if (isDeposit) {
+      if (!Array.isArray(proj.depositProformaExports)) proj.depositProformaExports = [];
+    } else if (isProforma) {
       if (!Array.isArray(proj.proformaExports)) proj.proformaExports = [];
       markFollowupExportStepCompleted(proj, true);
     } else {
       if (!Array.isArray(lead.quoteExports)) lead.quoteExports = [];
       markFollowupExportStepCompleted(lead, false);
     }
-    const exportsArr = isProforma ? proj.proformaExports : lead.quoteExports;
+    const exportsArr = isDeposit ? proj.depositProformaExports : (isProforma ? proj.proformaExports : lead.quoteExports);
 
     // Deduplicate if the latest snapshot has the exact same content
     const curFingerprint = getPoContentFingerprint(sourceData);
     if (exportsArr.length > 0 && curFingerprint && getPoContentFingerprint(exportsArr[0].data) === curFingerprint) {
       const latest = exportsArr[0];
       latest.exportedAt = new Date().toISOString();
-      latest.refNo = sourceData.refNo || (isProforma ? 'PI' : 'PO');
-      latest.docTitle = sourceData.docTitle || (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal');
+      latest.refNo = sourceData.refNo || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO'));
+      latest.docTitle = sourceData.docTitle || (isDeposit ? 'PROFORMA INVOICE' : (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'));
       latest.total = parseFloat(sourceData.total) || 0;
       latest.currency = sourceData.currency || state.displayCurrency || 'EUR';
       latest.data = JSON.parse(JSON.stringify(sourceData));
@@ -32280,8 +32547,8 @@ function initSortableWidgets() {
       version: nextVer,
       label: `v${nextVer} · Exported`,
       exportedAt: new Date().toISOString(),
-      refNo: sourceData.refNo || (isProforma ? 'PI' : 'PO'),
-      docTitle: sourceData.docTitle || (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'),
+      refNo: sourceData.refNo || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO')),
+      docTitle: sourceData.docTitle || (isDeposit ? 'PROFORMA INVOICE' : (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal')),
       total: parseFloat(sourceData.total) || 0,
       currency: sourceData.currency || state.displayCurrency || 'EUR',
       data: JSON.parse(JSON.stringify(sourceData)),
@@ -32291,7 +32558,9 @@ function initSortableWidgets() {
     exportsArr.unshift(snap);
     if (exportsArr.length > 25) exportsArr.length = 25;
 
-    if (isProforma) {
+    if (isDeposit) {
+      proj.hasDepositProformaDoc = true;
+    } else if (isProforma) {
       proj.hasProformaDoc = true;
     }
 
@@ -32381,27 +32650,32 @@ function initSortableWidgets() {
     const listEl = document.getElementById('poVersionsDropdownList');
     if (!wrapper || !badge || !listEl) return;
 
-    if (state.activeStudioDocId || (!state.activePriceOfferingLeadId && !state.activeProformaProjectId)) {
+    if (state.activeStudioDocId || (!state.activePriceOfferingLeadId && !state.activeProformaProjectId && !state.activeDepositProformaProjectId)) {
       wrapper.classList.add('hidden');
       return;
     }
 
     wrapper.classList.remove('hidden');
+    const isDeposit = !!state.activeDepositProformaProjectId;
     const isProforma = !!state.activeProformaProjectId;
-    const targetType = isProforma ? 'project' : 'lead';
-    const targetId = isProforma ? state.activeProformaProjectId : state.activePriceOfferingLeadId;
-    const entity = isProforma
+    const targetType = isDeposit ? 'deposit_project' : (isProforma ? 'project' : 'lead');
+    const targetId = isDeposit ? state.activeDepositProformaProjectId : (isProforma ? state.activeProformaProjectId : state.activePriceOfferingLeadId);
+    const entity = (isDeposit || isProforma)
       ? (state.budget?.projects || []).find(p => p.id === targetId)
       : ((state.budget?.leads || []).find(l => l.id === targetId) || (state.budget?.projects || []).find(p => p.id === targetId));
     const exportsArr = entity
-      ? (isProforma ? (Array.isArray(entity.proformaExports) ? entity.proformaExports : []) : (Array.isArray(entity.quoteExports) ? entity.quoteExports : []))
+      ? (isDeposit
+          ? (Array.isArray(entity.depositProformaExports) ? entity.depositProformaExports : [])
+          : (isProforma ? (Array.isArray(entity.proformaExports) ? entity.proformaExports : []) : (Array.isArray(entity.quoteExports) ? entity.quoteExports : [])))
       : [];
 
     badge.textContent = String(exportsArr.length);
     badge.className = exportsArr.length > 0
-      ? (isProforma
-          ? 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 tabular-nums'
-          : 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 tabular-nums')
+      ? (isDeposit
+          ? 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 tabular-nums'
+          : (isProforma
+              ? 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 tabular-nums'
+              : 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 tabular-nums'))
       : 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 tabular-nums';
 
     if (exportsArr.length === 0) {
@@ -32411,8 +32685,8 @@ function initSortableWidgets() {
         </div>
       `;
     } else {
-      const pillClass = isProforma ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-800';
-      const viewBtnClass = isProforma ? 'bg-purple-50 hover:bg-purple-100 text-purple-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700';
+      const pillClass = isDeposit ? 'bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-800');
+      const viewBtnClass = isDeposit ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-50 hover:bg-purple-100 text-purple-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700');
       listEl.innerHTML = exportsArr.map(exp => {
         const expCur = exp.currency || state.displayCurrency || 'EUR';
         const expTot = parseFloat(exp.total) || 0;
@@ -46186,21 +46460,24 @@ ${sectionsText}
 
     if (tabToRestore === 'project_followup') {
       const isOffering = rawHash.includes('/offering');
-      const isProforma = rawHash.includes('/proforma');
+      const isDepositProforma = rawHash.includes('/deposit_proforma');
+      const isProforma = !isDepositProforma && rawHash.includes('/proforma');
       const savedLeadId = (hashSubId && (hashSubId.startsWith('lead:') || hashSubId.startsWith('lead_')))
         ? hashSubId.replace(/^lead:/, '').replace(/\/offering$/, '')
         : localStorage.getItem('ft_active_followup_lead');
-      const savedProjId = (!savedLeadId && hashSubId) ? hashSubId.replace(/^proj:/, '').replace(/\/(proforma|offering)$/, '') : localStorage.getItem('ft_active_followup_project');
+      const savedProjId = (!savedLeadId && hashSubId) ? hashSubId.replace(/^proj:/, '').replace(/\/(deposit_proforma|proforma|offering)$/, '') : localStorage.getItem('ft_active_followup_project');
 
       if (savedLeadId) {
         state.activeFollowupLeadId = savedLeadId;
         state.activeFollowupProjectId = null;
         state.activePriceOfferingLeadId = isOffering ? savedLeadId : null;
         state.activeProformaProjectId = null;
+        state.activeDepositProformaProjectId = null;
       } else if (savedProjId) {
         state.activeFollowupProjectId = savedProjId;
         state.activeFollowupLeadId = null;
         state.activePriceOfferingLeadId = isOffering ? savedProjId : null;
+        state.activeDepositProformaProjectId = isDepositProforma ? savedProjId : null;
         state.activeProformaProjectId = isProforma ? savedProjId : null;
       }
     } else if (tabToRestore === 'documents' && hashSubId && hashSubId.startsWith('studio:')) {
@@ -46232,7 +46509,7 @@ ${sectionsText}
         syncCategoryDropdowns();
         loadDocuments();
       });
-      if (state.activeStudioDocId || state.activePriceOfferingLeadId || state.activeProformaProjectId) {
+      if (state.activeStudioDocId || state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeDepositProformaProjectId) {
         safeInitStep('postSyncCalendar', () => renderSidebarSubscriptionCalendar());
         return;
       }
