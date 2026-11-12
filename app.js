@@ -25798,6 +25798,8 @@ function initSortableWidgets() {
     container.querySelectorAll('#poItemsTableBody tr').forEach((row, idx) => {
       if (!currentPoItems[idx]) return;
       const isDep = getActiveDocType() === 'deposit_proforma';
+      const qtyInput = row.querySelector('.po-item-qty');
+      const rateInput = row.querySelector('.po-item-rate');
       if (qtyInput) currentPoItems[idx].qty = parseFloat(qtyInput.value) || 0;
       if (rateInput) currentPoItems[idx].rate = parseFloat(rateInput.value) || 0;
       const qVal = currentPoItems[idx].qty || 0;
@@ -27035,7 +27037,7 @@ function initSortableWidgets() {
     const undoBtn = document.getElementById('poUndoBtn');
     const redoBtn = document.getElementById('poRedoBtn');
     if (undoBtn) {
-      const canUndo = poUndoStack.length > 1;
+      const canUndo = poUndoStack.length > 1 || !!poInputSnapshotTimer;
       undoBtn.disabled = !canUndo;
       undoBtn.classList.toggle('opacity-40', !canUndo);
       undoBtn.classList.toggle('pointer-events-none', !canUndo);
@@ -27051,9 +27053,14 @@ function initSortableWidgets() {
   function schedulePoInputSnapshot() {
     if (poIsApplyingUndoRedo) return;
     if (poInputSnapshotTimer) clearTimeout(poInputSnapshotTimer);
+    const undoBtn = document.getElementById('poUndoBtn');
+    if (undoBtn && poUndoStack.length > 0) {
+      undoBtn.disabled = false;
+      undoBtn.classList.remove('opacity-40', 'pointer-events-none');
+    }
     poInputSnapshotTimer = setTimeout(() => {
       pushPoUndoSnapshot();
-    }, 600);
+    }, 500);
   }
 
   function applyPoDocumentSnapshot(snap) {
@@ -27133,6 +27140,11 @@ function initSortableWidgets() {
     if (poInputSnapshotTimer) {
       clearTimeout(poInputSnapshotTimer);
       poInputSnapshotTimer = null;
+      const current = getPoDocumentSnapshot();
+      const top = poUndoStack[poUndoStack.length - 1];
+      if (top && JSON.stringify(top) !== JSON.stringify(current)) {
+        poUndoStack.push(current);
+      }
     }
     const current = getPoDocumentSnapshot();
     const top = poUndoStack[poUndoStack.length - 1];
@@ -27141,6 +27153,7 @@ function initSortableWidgets() {
     }
     if (poUndoStack.length <= 1) {
       showToast('Nothing to Undo', 'At oldest document state.', 'info');
+      updatePoUndoRedoUI();
       return;
     }
     const currentState = poUndoStack.pop();
@@ -27152,7 +27165,15 @@ function initSortableWidgets() {
   }
 
   function triggerPoRedo() {
-    if (poRedoStack.length === 0) return;
+    if (poInputSnapshotTimer) {
+      clearTimeout(poInputSnapshotTimer);
+      poInputSnapshotTimer = null;
+    }
+    if (poRedoStack.length === 0) {
+      showToast('Nothing to Redo', 'At newest document state.', 'info');
+      updatePoUndoRedoUI();
+      return;
+    }
     const target = poRedoStack.pop();
     poUndoStack.push(target);
     applyPoDocumentSnapshot(target);
@@ -30519,7 +30540,7 @@ function initSortableWidgets() {
 
   function updateSavedPoSignatureBannerUI() {
     const banner = document.getElementById('poSavedSignatureBanner');
-    const previewBox = document.getElementById('poSavedSignaturePreviewBox');
+    const previewBox = document.getElementById('poSavedSignatureThumb') || document.getElementById('poSavedSignaturePreviewBox');
     if (!banner || !previewBox) return;
     const saved = getSavedPoSignaturePreset();
     if (!saved) {
@@ -30606,7 +30627,9 @@ function initSortableWidgets() {
     if (!modal || modal._poSigInitialized) return;
     modal._poSigInitialized = true;
 
+    document.getElementById('poCloseSigModalBtn')?.addEventListener('click', closePoSignatureModal);
     document.getElementById('poCloseSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
+    document.getElementById('poCancelSigModalBtn')?.addEventListener('click', closePoSignatureModal);
     document.getElementById('poCancelSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closePoSignatureModal();
@@ -30615,10 +30638,12 @@ function initSortableWidgets() {
     document.getElementById('poSigTabDrawBtn')?.addEventListener('click', () => switchPoSigModalTab('draw'));
     document.getElementById('poSigTabUploadBtn')?.addEventListener('click', () => switchPoSigModalTab('upload'));
 
-    document.getElementById('poInsertSavedSignatureBtn')?.addEventListener('click', () => {
+    const insertSavedAction = () => {
       const saved = getSavedPoSignaturePreset();
       if (saved) placePoSignatureDataOnDocument(saved);
-    });
+    };
+    document.getElementById('poInsertSavedSigQuickBtn')?.addEventListener('click', insertSavedAction);
+    document.getElementById('poInsertSavedSignatureBtn')?.addEventListener('click', insertSavedAction);
 
     // Pen Pad SVG Pointer Events
     const svgPad = document.getElementById('poSigPadSvg');
@@ -30668,16 +30693,20 @@ function initSortableWidgets() {
       svgPad.addEventListener('pointercancel', finishStroke);
     }
 
-    document.getElementById('poSigUndoStrokeBtn')?.addEventListener('click', () => {
+    const undoSigStroke = () => {
       poSigPadStrokes.pop();
       renderPoSigPadStrokes();
-    });
+    };
+    document.getElementById('poSigPadUndoBtn')?.addEventListener('click', undoSigStroke);
+    document.getElementById('poSigUndoStrokeBtn')?.addEventListener('click', undoSigStroke);
 
-    document.getElementById('poSigClearPadBtn')?.addEventListener('click', () => {
+    const clearSigPad = () => {
       poSigPadStrokes = [];
       poSigCurrentStroke = null;
       renderPoSigPadStrokes();
-    });
+    };
+    document.getElementById('poSigPadClearBtn')?.addEventListener('click', clearSigPad);
+    document.getElementById('poSigClearPadBtn')?.addEventListener('click', clearSigPad);
 
     document.querySelectorAll('.po-sig-pad-color').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -30685,6 +30714,22 @@ function initSortableWidgets() {
         document.querySelectorAll('.po-sig-pad-color').forEach(b => {
           b.classList.toggle('ring-2', b === btn);
           b.classList.toggle('ring-slate-300', b === btn);
+        });
+        renderPoSigPadStrokes();
+      });
+    });
+
+    document.querySelectorAll('.po-sig-pad-width').forEach(btn => {
+      btn.addEventListener('click', () => {
+        poSigStrokeWidth = parseFloat(btn.getAttribute('data-width')) || 2.25;
+        document.querySelectorAll('.po-sig-pad-width').forEach(b => {
+          const isAct = b === btn;
+          b.classList.toggle('bg-white', isAct);
+          b.classList.toggle('text-slate-900', isAct);
+          b.classList.toggle('shadow-2xs', isAct);
+          b.classList.toggle('font-bold', isAct);
+          b.classList.toggle('text-slate-600', !isAct);
+          b.classList.toggle('font-semibold', !isAct);
         });
         renderPoSigPadStrokes();
       });
@@ -30757,7 +30802,7 @@ function initSortableWidgets() {
     });
 
     // Place Signature onto Document Button
-    document.getElementById('poPlaceSignatureBtn')?.addEventListener('click', () => {
+    const placeSigAction = () => {
       if (poSigModalActiveTab === 'draw') {
         const vecData = computeCroppedPoVectorSignature();
         if (!vecData) {
@@ -30783,7 +30828,9 @@ function initSortableWidgets() {
           heightMm
         });
       }
-    });
+    };
+    document.getElementById('poInsertSignatureBtn')?.addEventListener('click', placeSigAction);
+    document.getElementById('poPlaceSignatureBtn')?.addEventListener('click', placeSigAction);
   }
 
   // Make sure legacy documents without structural blocks get them once, while allowing deliberate deletion
@@ -38808,6 +38855,7 @@ ${sectionsText}
           const inSidebarOrTopInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT') && active.closest('#priceOfferingTopBar, #poRightSidebar');
           if (!inSidebarOrTopInput) {
             e.preventDefault();
+            e.stopImmediatePropagation();
             if (e.shiftKey) triggerPoRedo();
             else triggerPoUndo();
             return;
@@ -38816,6 +38864,7 @@ ${sectionsText}
           const inSidebarOrTopInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT') && active.closest('#priceOfferingTopBar, #poRightSidebar');
           if (!inSidebarOrTopInput) {
             e.preventDefault();
+            e.stopImmediatePropagation();
             triggerPoRedo();
             return;
           }
@@ -40168,22 +40217,6 @@ ${sectionsText}
       const isPoOpen = poPage && !poPage.classList.contains('hidden');
 
       if (isPoOpen) {
-        // Global Undo & Redo shortcuts
-        if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
-          e.preventDefault();
-          if (e.shiftKey) {
-            triggerPoRedo();
-          } else {
-            triggerPoUndo();
-          }
-          return;
-        }
-        if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
-          e.preventDefault();
-          triggerPoRedo();
-          return;
-        }
-
         if (e.key === 'Escape') {
           const sigModal = document.getElementById('poSignaturePadModal');
           if (sigModal && !sigModal.classList.contains('hidden')) {
