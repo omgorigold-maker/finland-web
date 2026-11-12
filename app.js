@@ -25351,7 +25351,7 @@ function initSortableWidgets() {
     showPageNumbers: true
   };
 
-  const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
+  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment terms: Due upon receipt / within 7 days of invoice date.</div><div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div><div>• Full commercial usage rights and release of all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.<br><br></div><div><i>Bank account details:</i></div><div><i>Name: Ori Gold</i></div><div><i>IBAN: BE63 9051 4444 2808</i></div><div><i>Swift/BIC: TRWIBEB1XXX</i></div><div><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></div>';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
     '• Deposit payment is due upon signing the project proposal / quote.',
     '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
@@ -25384,7 +25384,7 @@ function initSortableWidgets() {
     return DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT;
   }
   function getProformaDefaultTerms() {
-    if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
+    if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim() && state.appPrefs.proformaDefaultTerms.includes('Full commercial usage rights')) {
       return state.appPrefs.proformaDefaultTerms;
     }
     return GENERIC_PROFORMA_DEFAULT_TERMS;
@@ -25741,6 +25741,12 @@ function initSortableWidgets() {
       existingProf.isDefault = true;
       existingProf.docTitle = masterProf.docTitle;
       existingProf.docSubtitle = masterProf.docSubtitle;
+      if (Array.isArray(existingProf.sections)) {
+        const termsSec = existingProf.sections.find(s => s && s.type === 'terms');
+        if (termsSec && (!termsSec.content || !termsSec.content.includes('Full commercial usage rights'))) {
+          termsSec.content = getProformaDefaultTerms();
+        }
+      }
       if (!existingProf.elementStyles) existingProf.elementStyles = {};
       if (!existingProf.elementStyles.doc_subtitle) existingProf.elementStyles.doc_subtitle = {};
       if (!existingProf.elementStyles.doc_subtitle.color || existingProf.elementStyles.doc_subtitle.color === '#db2777') {
@@ -32361,7 +32367,7 @@ function initSortableWidgets() {
     if (Array.isArray(po.sections) && po.sections.length > 0) {
       po.sections = buildProformaSectionsFromTemplate(po.sections, po.sections, proj);
       const termsSec = po.sections.find(s => s && s.type === 'terms');
-      if (termsSec && (termsSec.content.includes('[Your Bank Name]') || termsSec.content.includes('within 14 days') || termsSec.content.includes('Address: Wise'))) {
+      if (termsSec && (termsSec.content.includes('[Your Bank Name]') || termsSec.content.includes('within 14 days') || termsSec.content.includes('Address: Wise') || termsSec.content.includes('Studio Creative') || termsSec.content.includes('European Commercial Bank') || !termsSec.content.includes('Full commercial usage rights'))) {
         termsSec.content = getProformaDefaultTerms();
       }
     }
