@@ -33535,11 +33535,11 @@ ${sectionsText}
     const toggleDoneBtn = document.getElementById('detailToggleDoneBtn');
     if (toggleDoneBtn) {
       if (isDone) {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200';
-        toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3 h-3"></i><span id="detailToggleDoneText">Reopen Project</span>`;
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 border border-slate-200/80';
+        toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Reopen Project</span>`;
       } else {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 text-white';
-        toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3 h-3"></i><span id="detailToggleDoneText">Mark as Done</span>`;
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white';
+        toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark as Done</span>`;
       }
     }
 
