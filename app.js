@@ -25407,6 +25407,9 @@ function initSortableWidgets() {
     if (!tpl.elementStyles || typeof tpl.elementStyles !== 'object') {
       tpl.elementStyles = {};
     }
+    if (tpl.elementStyles.doc_subtitle && (!tpl.elementStyles.doc_subtitle.color || tpl.elementStyles.doc_subtitle.color === '#db2777')) {
+      tpl.elementStyles.doc_subtitle.color = '#64748b';
+    }
     if (tpl.richText && typeof tpl.richText === 'object') {
       Object.keys(tpl.richText).forEach(rk => {
         const html = tpl.richText[rk];
@@ -25729,8 +25732,22 @@ function initSortableWidgets() {
       existingDep.labels = Object.assign({}, existingDep.labels || {}, masterDep.labels);
       existingDep.richText = Object.assign({}, existingDep.richText || {}, masterDep.richText);
     }
-    if (!list.some(t => t.docType === 'proforma')) {
-      list.push(getMasterProformaTemplate());
+    const masterProf = getMasterProformaTemplate();
+    const existingProf = list.find(t => t.docType === 'proforma');
+    if (!existingProf) {
+      list.push(masterProf);
+    } else {
+      existingProf.name = 'Proforma Invoice Template';
+      existingProf.isDefault = true;
+      existingProf.docTitle = masterProf.docTitle;
+      existingProf.docSubtitle = masterProf.docSubtitle;
+      if (!existingProf.elementStyles) existingProf.elementStyles = {};
+      if (!existingProf.elementStyles.doc_subtitle) existingProf.elementStyles.doc_subtitle = {};
+      if (!existingProf.elementStyles.doc_subtitle.color || existingProf.elementStyles.doc_subtitle.color === '#db2777') {
+        existingProf.elementStyles.doc_subtitle.color = '#64748b';
+      }
+      existingProf.elementStyles.doc_subtitle.fontWeight = '700';
+      existingProf.elementStyles.doc_subtitle.letterSpacing = '0.05em';
     }
     if (!list.some(t => t.docType === 'price_quote')) {
       const mq = getMasterPoTemplate();
@@ -27826,6 +27843,9 @@ function initSortableWidgets() {
       // Never allow a section body or section title to be hidden via elementStyles.deleted
       if (st.deleted && /^(content|title)_/.test(elemId)) {
         delete st.deleted;
+      }
+      if (elemId === 'doc_subtitle' && st.color === '#db2777') {
+        st.color = '#64748b';
       }
       const el = document.querySelector(`#priceOfferingPrintArea [data-elem-id="${elemId}"], #priceOfferingPrintArea [data-po-unit-id="${elemId}"]`);
       if (!el) return;
@@ -32181,7 +32201,9 @@ function initSortableWidgets() {
       let initTaxPct = 0;
       let initSubtotal = projAmount;
       let initTotal = projAmount;
-      const initElementStyles = {};
+      const initElementStyles = {
+        doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' }
+      };
       const initRichText = {};
 
       if (srcQuote && Array.isArray(srcQuote.items) && srcQuote.items.length > 0) {
@@ -32305,6 +32327,15 @@ function initSortableWidgets() {
     allElemKeys.forEach(k => {
       poElementStyles[k] = Object.assign({}, baseElementStyles[k] || {}, projElementStyles[k] || {});
     });
+    if (!poElementStyles.doc_subtitle) poElementStyles.doc_subtitle = {};
+    if (!poElementStyles.doc_subtitle.color || poElementStyles.doc_subtitle.color === '#db2777') {
+      poElementStyles.doc_subtitle.color = '#64748b';
+    }
+    poElementStyles.doc_subtitle.fontWeight = '700';
+    poElementStyles.doc_subtitle.letterSpacing = '0.05em';
+    if (po.elementStyles && po.elementStyles.doc_subtitle && po.elementStyles.doc_subtitle.color === '#db2777') {
+      po.elementStyles.doc_subtitle.color = '#64748b';
+    }
     poRichText = Object.assign(
       {},
       JSON.parse(JSON.stringify(masterTpl.richText || {})),
