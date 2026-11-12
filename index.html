@@ -2458,23 +2458,6 @@
           </div>
         </div>
 
-        <!-- Dedicated Master Template Editor Mode Banner (Hidden during document editing) -->
-        <div id="poTemplateEditorBanner" class="hidden bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs font-semibold shadow-xs transition-all z-20">
-          <div class="flex items-center gap-2 min-w-0">
-            <i data-lucide="layout-template" class="w-4 h-4 shrink-0"></i>
-            <span class="truncate">Editing Master Template: <strong id="poTemplateEditorBannerTitle">Proforma Invoice Template</strong></span>
-            <span class="text-amber-100 font-normal ml-1 hidden md:inline truncate">Changes here set the default layout &amp; bank terms for future documents.</span>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <button id="poCancelTemplateEditBtn" type="button" class="cursor-pointer px-2.5 py-1 bg-white/20 hover:bg-white/30 active:scale-95 text-white rounded text-[11px] font-medium transition-all">
-              Cancel / Exit
-            </button>
-            <button id="poSaveTemplateMasterBtn" type="button" class="cursor-pointer px-3 py-1 bg-white hover:bg-amber-50 active:scale-95 text-amber-900 rounded text-[11px] font-bold shadow-xs transition-all">
-              Save Template Defaults
-            </button>
-          </div>
-        </div>
-
         <!-- Workbench Body: Center Document Canvas + Right Design Sidebar -->
         <div id="poWorkbenchWrapper" class="flex flex-1 min-h-0 w-full overflow-hidden relative">
           <!-- Main Document Canvas Viewport (Scrollable desk) -->
@@ -2828,27 +2811,17 @@
                 </button>
               </div>
 
-              <!-- 3 MASTER TEMPLATES (Strictly Separated) -->
+              <!-- ACTIVE DOCUMENT SCOPE & ACTIONS -->
               <div id="poTemplatesSidebarSection" class="pt-4 border-t border-slate-100 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Templates</span>
-                  <span class="text-[10px] font-medium text-slate-400" id="poSavedTemplatesCountLabel">3 Master Presets</span>
-                </div>
-
-                <!-- Editing Scope Indicator (Distinguishes "Document Only" vs "Editing Template") -->
-                <div id="poTemplateScopeBanner" class="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-2 transition-all">
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                   <div class="flex items-center justify-between gap-1.5">
                     <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" id="poTemplateScopeDot"></span>
-                      <span id="poTemplateScopeTitle" class="text-[11px] font-semibold text-slate-700 truncate">Working on: This Document Only</span>
+                      <span class="w-2 h-2 rounded-full bg-pink-500 shrink-0"></span>
+                      <span id="poDocTypeBadge" class="text-[11px] font-bold text-slate-800 truncate">Price Quote / Proposal</span>
                     </div>
+                    <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-pink-100 text-pink-700 shrink-0">Active</span>
                   </div>
-                  <p id="poTemplateScopeDesc" class="text-[10px] text-slate-500 mt-0.5 leading-snug">Page tweaks stay on this document — master templates are untouched.</p>
-                </div>
-
-                <!-- 3 Master Template Cards (Price Quote, Deposit Proforma, Proforma Invoice) -->
-                <div id="poSavedTemplatesGrid" class="space-y-2">
-                  <!-- Populated dynamically by renderPoSavedTemplatesGallery() in app.js -->
+                  <p id="poDocTypeScopeHint" class="text-[10px] text-slate-500 mt-1 leading-snug">Changes you make here stay strictly on this document.</p>
                 </div>
 
                 <button type="button" id="poRestoreHiddenFieldsBtn" class="hidden w-full py-1.5 px-2.5 rounded-lg border border-amber-200 bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-semibold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-all" title="Restore any individual fields you deleted without losing your fonts or layout">
@@ -2856,8 +2829,9 @@
                   <span id="poRestoreHiddenFieldsBtnText">Restore Hidden Fields</span>
                 </button>
 
-                <button type="button" id="poResetLayoutBtn" class="w-full py-1 text-[11px] text-slate-400 hover:text-slate-700 transition-colors text-center cursor-pointer">
-                  Reset Layout &amp; Styles
+                <button type="button" id="poResetLayoutBtn" class="w-full py-1.5 px-2.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-all text-center cursor-pointer flex items-center justify-center gap-1.5" title="Reset this document to the default pink blueprint layout">
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>Reset to Default Layout</span>
                 </button>
               </div>
 

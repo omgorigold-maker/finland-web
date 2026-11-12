@@ -26476,7 +26476,6 @@ function initSortableWidgets() {
   ];
 
   function getActiveDocType() {
-    if (poEditingMasterTemplateType) return poEditingMasterTemplateType;
     if (state.activeDepositProformaProjectId) return 'deposit_proforma';
     if (state.activeProformaProjectId) return 'proforma';
     const target = getPoEditorTarget();
@@ -26486,291 +26485,52 @@ function initSortableWidgets() {
     return 'price_quote';
   }
 
-  function updatePoTemplateScopeBanner() {
-    const scopeBanner = document.getElementById('poTemplateScopeBanner');
-    if (!scopeBanner) return;
-
-    if (poEditingMasterTemplateType) {
-      const type = poEditingMasterTemplateType;
-      const typeLabel = type === 'deposit_proforma' ? 'Deposit Proforma' : (type === 'proforma' ? 'Proforma Invoice' : 'Price Quote / Proposal');
-      scopeBanner.className = 'bg-slate-900 text-white border border-slate-900 rounded-xl p-2.5 space-y-2 transition-all shadow-xs';
-      scopeBanner.innerHTML = `
-        <div class="flex items-center justify-between gap-1.5">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-            <span class="text-[11px] font-bold text-white truncate">Editing Master: &ldquo;${escapeHtml(typeLabel)}&rdquo;</span>
-          </div>
-          <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">Master Mode</span>
-        </div>
-        <p class="text-[10px] text-slate-300 leading-snug">Editing global layout, pink styling &amp; staple bracketed text for future ${escapeHtml(typeLabel)} documents.</p>
-        <div class="flex items-center gap-1.5 pt-0.5">
-          <button type="button" class="po-save-template-master-action flex-1 py-1 px-2 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs">
-            <i data-lucide="check" class="w-3 h-3"></i>
-            <span>Save Master</span>
-          </button>
-          <button type="button" class="po-cancel-template-edit-action py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold cursor-pointer transition-colors">
-            <span>Cancel</span>
-          </button>
-        </div>
-      `;
-      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
-      return;
+  function isPlaceholderClientName(val) {
+    if (!val) return true;
+    const trimmed = String(val).trim();
+    if (!trimmed) return true;
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) return true;
+    const lower = trimmed.toLowerCase();
+    if (lower === 'client' || lower === 'recipient' || lower === 'bill to' || lower === 'client name' || lower === 'client / recipient' || lower === 'client / recipient name') {
+      return true;
     }
+    return false;
+  }
 
-    const curType = getActiveDocType();
-    const typeLabel = curType === 'deposit_proforma' ? 'Deposit Proforma' : (curType === 'proforma' ? 'Proforma Invoice' : 'Price Quote');
-    scopeBanner.className = 'bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-2 transition-all';
-    scopeBanner.innerHTML = `
-      <div class="flex items-center justify-between gap-1.5">
-        <div class="flex items-center gap-1.5 min-w-0">
-          <span class="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0"></span>
-          <span class="text-[11px] font-semibold text-slate-800 truncate">Working on: ${escapeHtml(typeLabel)} (This Doc Only)</span>
-        </div>
-        <span class="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700 shrink-0">Isolated</span>
-      </div>
-      <p class="text-[10px] text-slate-500 mt-0.5 leading-snug">Changes you make here stay strictly on this client document. Master templates are untouched.</p>
-    `;
-    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+  function updatePoTemplateScopeBanner() {
+    renderPoSavedTemplatesGallery();
   }
 
   function renderPoSavedTemplatesGallery() {
-    const grid = document.getElementById('poSavedTemplatesGrid');
-    const countLabel = document.getElementById('poSavedTemplatesCountLabel');
-    updatePoTemplateScopeBanner();
-    if (!grid) return;
-
-    if (countLabel) {
-      if (poEditingMasterTemplateType) {
-        countLabel.textContent = `Master: ${poEditingMasterTemplateType}`;
+    const badge = document.getElementById('poDocTypeBadge');
+    const hint = document.getElementById('poDocTypeScopeHint');
+    const curType = getActiveDocType();
+    if (badge) {
+      if (curType === 'deposit_proforma') {
+        badge.textContent = 'Deposit Proforma Invoice';
+      } else if (curType === 'proforma') {
+        badge.textContent = 'Proforma Invoice';
+      } else if (curType === 'studio') {
+        badge.textContent = 'Studio Document';
       } else {
-        countLabel.textContent = '3 Master Presets';
+        badge.textContent = 'Price Quote / Proposal';
       }
     }
-
-    const curDocType = getActiveDocType();
-
-    grid.innerHTML = MASTER_PRESETS.map(preset => {
-      const isCur = (curDocType === preset.type);
-      const isEditingThis = (poEditingMasterTemplateType === preset.type);
-
-      return `
-        <div class="p-2.5 rounded-xl border ${isEditingThis ? 'bg-slate-900 border-slate-900 text-white' : (isCur ? 'bg-pink-50/40 border-pink-300/80 shadow-2xs' : 'bg-white border-slate-200/80 hover:border-slate-300')} transition-all group/preset">
-          <div class="flex items-start justify-between gap-1.5">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${isEditingThis ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : preset.badgeClass}">${escapeHtml(preset.badge)}</span>
-                ${isCur && !isEditingThis ? `<span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-pink-600 text-white">Active</span>` : ''}
-              </div>
-              <h4 class="font-bold text-xs ${isEditingThis ? 'text-white' : 'text-slate-900'} mt-1 truncate">${escapeHtml(preset.name)}</h4>
-              <p class="text-[10px] ${isEditingThis ? 'text-slate-300' : 'text-slate-500'} leading-tight mt-0.5 line-clamp-2">${escapeHtml(preset.description)}</p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-1.5 mt-2.5 pt-2 border-t ${isEditingThis ? 'border-slate-800' : 'border-slate-100'}">
-            ${isEditingThis ? `
-              <button type="button" class="po-save-template-master-action flex-1 h-6 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors">
-                <i data-lucide="check" class="w-3 h-3"></i>
-                <span>Save Master</span>
-              </button>
-              <button type="button" class="po-cancel-template-edit-action h-6 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold cursor-pointer transition-colors">
-                Cancel
-              </button>
-            ` : `
-              <button type="button" class="po-apply-master-preset-btn flex-1 h-6 rounded-lg ${isCur ? 'bg-pink-600 hover:bg-pink-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} text-[10px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors" data-type="${escapeHtml(preset.type)}" title="Apply this master template layout to current page">
-                <i data-lucide="sparkles" class="w-3 h-3"></i>
-                <span>Apply to Doc</span>
-              </button>
-              <button type="button" class="po-edit-master-preset-btn h-6 px-2 rounded-lg bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 text-[10px] font-medium flex items-center gap-1 cursor-pointer transition-colors" data-type="${escapeHtml(preset.type)}" title="Edit master layout & default staple text">
-                <i data-lucide="pencil" class="w-3 h-3"></i>
-                <span>Edit</span>
-              </button>
-              <button type="button" class="po-reset-master-preset-btn h-6 w-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center cursor-pointer transition-colors" data-type="${escapeHtml(preset.type)}" title="Reset to pink factory defaults">
-                <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-              </button>
-            `}
-          </div>
-        </div>
-      `;
-    }).join('');
-
+    if (hint) {
+      const label = curType === 'deposit_proforma' ? 'Deposit Proforma' : (curType === 'proforma' ? 'Proforma Invoice' : (curType === 'studio' ? 'Studio Document' : 'Price Quote'));
+      hint.textContent = 'Page tweaks stay strictly on this ' + label + ' — other documents are untouched.';
+    }
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
     }
   }
 
-  function startEditingMasterTemplate(type) {
-    const normType = (type === 'deposit_proforma' || type === 'proforma') ? type : 'price_quote';
-    if (!poTemplateEditorOriginalDocBackup) {
-      poTemplateEditorOriginalDocBackup = {
-        activePriceOfferingLeadId: state.activePriceOfferingLeadId,
-        activeDepositProformaProjectId: state.activeDepositProformaProjectId,
-        activeProformaProjectId: state.activeProformaProjectId,
-        docSnap: getPoDocumentSnapshot()
-      };
-    }
-    poEditingMasterTemplateType = normType;
-
-    const banner = document.getElementById('poTemplateEditorBanner');
-    const bannerTitle = document.getElementById('poTemplateEditorTitle');
-    const bannerSub = document.getElementById('poTemplateEditorSubtitle');
-    const typeLabel = normType === 'deposit_proforma' ? 'Deposit Proforma Invoice' : (normType === 'proforma' ? 'Proforma Invoice' : 'Price Quote / Proposal');
-
-    if (banner) {
-      banner.classList.remove('hidden');
-      if (bannerTitle) bannerTitle.textContent = `Editing Master Template: ${typeLabel}`;
-      if (bannerSub) bannerSub.textContent = `You are editing the master template. Tweak typography, sections, sender info and staple text below, then click "Save Master Template". Client documents remain untouched until applied.`;
-    }
-
-    const tpl = getMasterTemplateForType(normType);
-    const dummyLead = {
-      id: '__master_tpl__' + normType,
-      client: '[CLIENT / RECIPIENT NAME]',
-      title: normType === 'deposit_proforma' ? '[PROJECT TITLE / COMMENCEMENT SCOPE]' : (normType === 'proforma' ? '[PROJECT TITLE / FINAL SETTLEMENT]' : '[PROJECT / PACKAGE TITLE]'),
-      amount: normType === 'deposit_proforma' ? 500 : 1000,
-      currency: state.displayCurrency || 'EUR',
-      dueDate: '',
-      priceOffering: JSON.parse(JSON.stringify(tpl))
-    };
-
-    activePoTemplateId = 'tpl_' + normType;
-    poElementStyles = JSON.parse(JSON.stringify(tpl.elementStyles || {}));
-    poRichText = JSON.parse(JSON.stringify(tpl.richText || {}));
-    currentPoSections = JSON.parse(JSON.stringify(tpl.sections || []));
-
-    if (normType === 'deposit_proforma') {
-      currentPoItems = [
-        { id: 'po_item_dep', description: '50% Project Commencement Deposit — [PROJECT TITLE / SCOPE]', qty: 1, rate: 500, amount: 500 }
-      ];
-    } else if (normType === 'proforma') {
-      currentPoItems = [
-        { id: 'po_item_prof1', description: '[PROJECT TITLE / COMPLETED CREATIVE SCOPE]', qty: 1, rate: 1000, amount: 1000 },
-        { id: 'po_item_prof2', description: 'Less: 50% Advance Deposit Paid ([DPI REFERENCE])', qty: 1, rate: -500, amount: -500 }
-      ];
-    } else {
-      currentPoItems = [
-        { id: 'po_item_quote1', description: 'Complete Visual Identity & Production Assets', qty: 1, rate: 1000, amount: 1000 }
-      ];
-    }
-
-    currentPoSignatures = (normType === 'price_quote') ? [{ id: 'sig_1', role: 'Client', name: '' }, { id: 'sig_2', role: 'Provider', name: 'Ori Gold' }] : [];
-
-    applyPriceOfferingTypography(Object.assign({}, DEFAULT_PINK_TYPOGRAPHY, tpl.typography || {}), false);
-
-    const printArea = document.getElementById('priceOfferingPrintArea');
-    if (printArea) printArea.innerHTML = '';
-    renderPriceOfferingDocument(dummyLead, dummyLead.priceOffering);
-    renderPoSavedTemplatesGallery();
-    showToast(`Master Template Mode: ${typeLabel} ✎`, 'Tweak layout, styling and default text, then click Save Master.', 'info');
-  }
-
-  function commitEditingMasterTemplate() {
-    if (!poEditingMasterTemplateType) return;
-    const type = poEditingMasterTemplateType;
-    const snap = captureCurrentPoTemplateSnapshot('Master ' + type, type);
-    saveMasterTemplateForType(type, snap);
-
-    const banner = document.getElementById('poTemplateEditorBanner');
-    if (banner) banner.classList.add('hidden');
-
-    poEditingMasterTemplateType = null;
-
-    if (poTemplateEditorOriginalDocBackup && poTemplateEditorOriginalDocBackup.docSnap) {
-      applyPoDocumentSnapshot(poTemplateEditorOriginalDocBackup.docSnap);
-      savePriceOfferingDoc(false);
-      poTemplateEditorOriginalDocBackup = null;
-    }
-
-    renderPoSavedTemplatesGallery();
-    const typeLabel = type === 'deposit_proforma' ? 'Deposit Proforma' : (type === 'proforma' ? 'Proforma Invoice' : 'Price Quote / Proposal');
-    showToast(`Master Template Saved ✓`, `Updated default ${typeLabel} template.`, 'success');
-  }
-
-  function cancelEditingMasterTemplate() {
-    const banner = document.getElementById('poTemplateEditorBanner');
-    if (banner) banner.classList.add('hidden');
-
-    poEditingMasterTemplateType = null;
-
-    if (poTemplateEditorOriginalDocBackup && poTemplateEditorOriginalDocBackup.docSnap) {
-      applyPoDocumentSnapshot(poTemplateEditorOriginalDocBackup.docSnap);
-      savePriceOfferingDoc(false);
-      poTemplateEditorOriginalDocBackup = null;
-    }
-
-    renderPoSavedTemplatesGallery();
-    showToast('Editing Cancelled', 'Master template was not modified.', 'info');
-  }
-
-  async function resetMasterTemplateToDefaults(type) {
-    const normType = (type === 'deposit_proforma' || type === 'proforma') ? type : 'price_quote';
-    const typeLabel = normType === 'deposit_proforma' ? 'Deposit Proforma' : (normType === 'proforma' ? 'Proforma Invoice' : 'Price Quote / Proposal');
-    const confirmed = await confirmAction({
-      title: `Reset ${typeLabel} to defaults?`,
-      message: `Are you sure you want to restore the ${typeLabel} master template to the original pink factory preset? Any custom default staple text will be reset.`,
-      confirmText: 'Reset to Defaults',
-      cancelText: 'Cancel',
-      type: 'warning'
-    });
-    if (!confirmed) return;
-
-    let defTpl;
-    if (normType === 'deposit_proforma') defTpl = DEFAULT_DEPOSIT_PROFORMA_TEMPLATE;
-    else if (normType === 'proforma') defTpl = DEFAULT_PROFORMA_TEMPLATE;
-    else defTpl = DEFAULT_PRICE_QUOTE_TEMPLATE;
-
-    saveMasterTemplateForType(normType, JSON.parse(JSON.stringify(defTpl)));
-    renderPoSavedTemplatesGallery();
-    showToast('Reset to Defaults ✓', `${typeLabel} master restored to factory pink preset.`, 'success');
-  }
-
-  function applyMasterTemplateToCurrentDoc(type) {
-    const normType = (type === 'deposit_proforma' || type === 'proforma') ? type : 'price_quote';
-    const tpl = getMasterTemplateForType(normType);
-    if (!tpl) return;
-
-    pushPoUndoSnapshot();
-    activePoTemplateId = 'tpl_' + normType;
-    poElementStyles = JSON.parse(JSON.stringify(tpl.elementStyles || {}));
-    poRichText = JSON.parse(JSON.stringify(tpl.richText || {}));
-
-    const leadId = state.activePriceOfferingLeadId || (state.activeDepositProformaProjectId ? state.activeDepositProformaProjectId : null) || (state.activeProformaProjectId ? state.activeProformaProjectId : null) || state.activeFollowupLeadId || state.activeFollowupProjectId;
-    const lead = getPoEditorTarget(leadId);
-    if (!lead) return;
-
-    if (!lead.priceOffering) lead.priceOffering = {};
-    lead.priceOffering.templateId = 'tpl_' + normType;
-    lead.priceOffering.typography = Object.assign({}, DEFAULT_PINK_TYPOGRAPHY, tpl.typography || {});
-    lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
-    lead.priceOffering.richText = JSON.parse(JSON.stringify(poRichText));
-    lead.priceOffering.labels = Object.assign({}, tpl.labels || {});
-    lead.priceOffering.docTitle = tpl.docTitle;
-    lead.priceOffering.docSubtitle = tpl.docSubtitle || '';
-    if (tpl.sender) lead.priceOffering.sender = Object.assign({}, tpl.sender);
-
-    if (Array.isArray(tpl.sections) && tpl.sections.length > 0) {
-      const prevSecs = currentPoSections || [];
-      const tplSecs = JSON.parse(JSON.stringify(tpl.sections));
-      tplSecs.forEach(s => {
-        if (!s) return;
-        const prevMatch = prevSecs.find(ps => ps && (ps.id === s.id || (ps.type === s.type && s.type !== 'custom' && s.type !== 'text') || ((ps.title || '').toLowerCase() === (s.title || '').toLowerCase() && s.title)));
-        if (prevMatch && prevMatch.content && (!s.content || !String(s.content).replace(/<[^>]*>/g, '').trim())) {
-          s.content = prevMatch.content;
-        }
-      });
-      currentPoSections = tplSecs;
-      lead.priceOffering.sections = JSON.parse(JSON.stringify(tplSecs));
-    }
-
-    applyPriceOfferingTypography(Object.assign({}, DEFAULT_PINK_TYPOGRAPHY, tpl.typography || {}), false);
-
-    const printArea = document.getElementById('priceOfferingPrintArea');
-    if (printArea) printArea.innerHTML = '';
-
-    renderPriceOfferingDocument(lead, lead?.priceOffering);
-    savePriceOfferingDoc(false);
-    renderPoSavedTemplatesGallery();
-    showToast(`Applied "${tpl.name}" ✓`, 'Document updated with master template styling.', 'success');
-  }
+  // Safe stubs for any legacy listeners
+  function startEditingMasterTemplate() {}
+  function commitEditingMasterTemplate() {}
+  function cancelEditingMasterTemplate() {}
+  function resetMasterTemplateToDefaults() {}
+  function applyMasterTemplateToCurrentDoc() {}
 
   let activePoTypography = Object.assign({}, DEFAULT_PO_TEMPLATE.typography);
 
@@ -31616,43 +31376,76 @@ function initSortableWidgets() {
       return offeringData;
     }
 
+    if (lead._isDepositProforma && lead._projectRef) {
+      const proj = lead._projectRef;
+      const prevDraftFp = prevOfferingSnapshot ? getPoContentFingerprint(prevOfferingSnapshot) : '';
+      const prevUpdatedAt = prevOfferingSnapshot && prevOfferingSnapshot.updatedAt ? prevOfferingSnapshot.updatedAt : null;
+      offeringData._isDepositProforma = true;
+      offeringData._docType = 'deposit_proforma';
+      if (!showNotification && prevUpdatedAt && prevDraftFp && getPoContentFingerprint(offeringData) === prevDraftFp) {
+        offeringData.updatedAt = prevUpdatedAt;
+      }
+      proj.depositProforma = offeringData;
+      proj.hasDepositProformaDoc = true;
+
+      if (offeringData.client && !isPlaceholderClientName(offeringData.client)) {
+        proj.client = offeringData.client.trim();
+      }
+      const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
+      if (bcClient) bcClient.textContent = proj.client || 'Project';
+
+      if (!proj.title && offeringData.projectTitle && offeringData.projectTitle.trim() && !offeringData.projectTitle.startsWith('[')) {
+        proj.title = offeringData.projectTitle.trim();
+        proj.description = proj.title;
+      }
+      if (offeringData.validUntil) {
+        proj.depositDueDate = offeringData.validUntil;
+      }
+
+      saveBudget();
+      renderPoSavedTemplatesGallery();
+
+      if (!poStatusBadgeFlashTimer) {
+        syncPoStatusBadgeRestingState();
+      }
+
+      renderPoVersionsDropdown();
+
+      if (showNotification) {
+        showToast('Deposit Proforma Saved ✓', `Deposit proforma invoice for "${proj.client || 'Project'}" saved.`, 'success');
+      }
+
+      return offeringData;
+    }
+
     if (lead._isProforma && lead._projectRef) {
       const proj = lead._projectRef;
       const prevDraftFp = prevOfferingSnapshot ? getPoContentFingerprint(prevOfferingSnapshot) : '';
       const prevUpdatedAt = prevOfferingSnapshot && prevOfferingSnapshot.updatedAt ? prevOfferingSnapshot.updatedAt : null;
       offeringData._isProforma = true;
+      offeringData._docType = 'proforma';
       if (!showNotification && prevUpdatedAt && prevDraftFp && getPoContentFingerprint(offeringData) === prevDraftFp) {
         offeringData.updatedAt = prevUpdatedAt;
       }
       proj.proformaInvoice = offeringData;
       proj.hasProformaDoc = true;
 
-      if (offeringData.client && offeringData.client.trim()) {
+      if (offeringData.client && !isPlaceholderClientName(offeringData.client)) {
         proj.client = offeringData.client.trim();
       }
       const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
-      if (bcClient) bcClient.textContent = proj.client || offeringData.client || 'Project';
+      if (bcClient) bcClient.textContent = proj.client || 'Project';
 
-      if (!proj.title && offeringData.projectTitle && offeringData.projectTitle.trim()) {
+      if (!proj.title && offeringData.projectTitle && offeringData.projectTitle.trim() && !offeringData.projectTitle.startsWith('[')) {
         proj.title = offeringData.projectTitle.trim();
         proj.description = proj.title;
       }
       if (offeringData.validUntil) {
         proj.paymentDueDate = offeringData.validUntil;
       }
-      if (currentPoItems.length > 0 && !isNaN(totals.total) && totals.total >= 0) {
-        proj.amount = totals.total;
-        proj.fee = totals.total;
-        proj.currency = totals.currency;
-      }
 
       saveBudget();
-
-      if (!poEditingTemplateNameId && !poPreviewingTemplateId) {
-        renderPoSavedTemplatesGallery();
-      } else {
-        updatePoTemplateScopeBanner();
-      }
+      renderPoSavedTemplatesGallery();
 
       if (!poStatusBadgeFlashTimer) {
         syncPoStatusBadgeRestingState();
@@ -31675,14 +31468,14 @@ function initSortableWidgets() {
     lead._prevPriceOfferingFp = getPoContentFingerprint(offeringData);
     lead._prevPriceOfferingUpdatedAt = offeringData.updatedAt;
 
-    // Automatically keep ledger values in sync in background
-    if (offeringData.client && offeringData.client.trim()) {
+    // Automatically keep ledger values in sync in background (NEVER overwrite with placeholders)
+    if (offeringData.client && !isPlaceholderClientName(offeringData.client)) {
       lead.client = offeringData.client.trim();
       if (lead._projectRef) lead._projectRef.client = offeringData.client.trim();
     }
     const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
     if (bcClient) bcClient.textContent = lead.client || offeringData.client || 'Client';
-    if (!lead.title && offeringData.projectTitle && offeringData.projectTitle.trim()) {
+    if (!lead.title && offeringData.projectTitle && offeringData.projectTitle.trim() && !offeringData.projectTitle.startsWith('[')) {
       lead.title = offeringData.projectTitle.trim();
     }
     const isOngoingProjEntity = (state.budget?.projects || []).some(p => p.id === lead.id);
@@ -31709,12 +31502,7 @@ function initSortableWidgets() {
     }
 
     saveBudget();
-
-    if (!poEditingTemplateNameId && !poPreviewingTemplateId) {
-      renderPoSavedTemplatesGallery();
-    } else {
-      updatePoTemplateScopeBanner();
-    }
+    renderPoSavedTemplatesGallery();
 
     if (!poStatusBadgeFlashTimer) {
       syncPoStatusBadgeRestingState();
@@ -31723,7 +31511,7 @@ function initSortableWidgets() {
     renderPoVersionsDropdown();
 
     if (showNotification) {
-      showToast('Price Offering Saved ✓', `Proposal for ${lead.client || 'lead'} saved to your ledger.`, 'success');
+      showToast('Price Quote Saved ✓', `Price quote for "${lead.client || 'Client'}" saved.`, 'success');
     }
 
     return offeringData;
@@ -39020,7 +38808,7 @@ ${sectionsText}
         return;
       }
 
-      // Reset Layout to Default Studio Template (Sidebar)
+      // Reset Layout to Default Blueprint (Sidebar)
       if (e.target.closest('#poResetLayoutBtn')) {
         e.stopPropagation();
         pushPoUndoSnapshot();
@@ -39042,18 +38830,76 @@ ${sectionsText}
           showToast('Reset Layout', 'Cleared element drag offsets while keeping your text and styling.', 'info');
           return;
         }
-        const masterTpl = getMasterPoTemplate();
-        poElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || DEFAULT_PO_TEMPLATE.elementStyles));
-        poRichText = {};
-        applyPriceOfferingTypography(Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {}), true);
-        const leadId = state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+
+        const docType = getActiveDocType();
+        let defTpl = DEFAULT_PRICE_QUOTE_TEMPLATE;
+        if (docType === 'deposit_proforma') {
+          defTpl = DEFAULT_DEPOSIT_PROFORMA_TEMPLATE;
+        } else if (docType === 'proforma') {
+          defTpl = DEFAULT_PROFORMA_TEMPLATE;
+        }
+
+        const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
         const lead = getPoEditorTarget(leadId);
-        if (lead && lead.priceOffering) {
+        if (!lead) return;
+
+        poElementStyles = JSON.parse(JSON.stringify(defTpl.elementStyles || DEFAULT_PINK_ELEMENT_STYLES));
+        poRichText = {};
+        applyPriceOfferingTypography(Object.assign({}, DEFAULT_PINK_TYPOGRAPHY, defTpl.typography || {}), true);
+
+        currentPoSections = JSON.parse(JSON.stringify(defTpl.sections || []));
+        if (docType === 'price_quote') {
+          currentPoSignatures = [
+            { id: 'sig_1', role: 'Client', name: '' },
+            { id: 'sig_2', role: 'Provider', name: 'Ori Gold' }
+          ];
+        } else {
+          currentPoSignatures = [];
+        }
+
+        const projAmount = parseFloat(lead.amount !== undefined ? lead.amount : lead.fee) || 0;
+        if (docType === 'deposit_proforma') {
+          const depAmount = Math.round((projAmount * 0.5) * 100) / 100;
+          currentPoItems = [
+            {
+              id: 'po_item_dep_' + Date.now(),
+              description: `50% Project Commencement Deposit — ${lead.title || 'Project Scope & Deliverables'}`,
+              qty: 1,
+              rate: depAmount,
+              amount: depAmount
+            }
+          ];
+        } else if (docType === 'proforma') {
+          const depAmount = Math.round((projAmount * 0.5) * 100) / 100;
+          currentPoItems = [
+            {
+              id: 'po_item_prof_' + Date.now(),
+              description: lead.title || 'Completed Project Scope & Deliverables',
+              qty: 1,
+              rate: projAmount,
+              amount: projAmount
+            },
+            {
+              id: 'po_item_dep_deduct_' + Date.now(),
+              description: `Less: 50% Advance Deposit Paid (DPI Reference)`,
+              qty: 1,
+              rate: -depAmount,
+              amount: -depAmount
+            }
+          ];
+        }
+
+        if (lead.priceOffering) {
           lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
           lead.priceOffering.richText = {};
+          lead.priceOffering.sections = JSON.parse(JSON.stringify(currentPoSections));
+          lead.priceOffering.items = JSON.parse(JSON.stringify(currentPoItems));
         }
+
         renderPriceOfferingDocument(lead, lead?.priceOffering);
-        showToast('Reset to Studio Template', 'Restored studio template typography and element positions.', 'info');
+        savePriceOfferingDoc(false);
+        const docName = docType === 'deposit_proforma' ? 'Deposit Proforma' : (docType === 'proforma' ? 'Proforma Invoice' : 'Price Quote');
+        showToast('Reset to Default Blueprint ✓', `Restored ${docName} pink factory styling and layout.`, 'success');
         return;
       }
 
