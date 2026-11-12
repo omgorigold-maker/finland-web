@@ -2264,6 +2264,20 @@
                 <span class="text-slate-300 text-xs shrink-0 hidden 2xl:inline">•</span>
                 <span id="priceOfferingDocTypeLabel" class="text-xs text-slate-400 font-medium whitespace-nowrap shrink-0 hidden 2xl:inline">Proposal &amp; Quote</span>
               </div>
+
+              <!-- Project Documents Switcher Pills (Quote · Deposit Proforma · Proforma Invoice) -->
+              <div id="poDocTypeSwitcherPills" class="hidden items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200/80 gap-0.5 shrink-0">
+                <button type="button" id="poSwitchToQuoteBtn" class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer text-slate-600 hover:text-slate-900" title="Switch to Price Quote / Proposal generator">
+                  Quote
+                </button>
+                <button type="button" id="poSwitchToDepositBtn" class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer text-slate-600 hover:text-slate-900" title="Switch to Deposit Proforma Invoice generator">
+                  Deposit Proforma
+                </button>
+                <button type="button" id="poSwitchToProformaBtn" class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer text-slate-600 hover:text-slate-900" title="Switch to Proforma Invoice generator">
+                  Proforma Invoice
+                </button>
+              </div>
+
               <span id="priceOfferingSaveStatusBadge" class="inline-flex items-center gap-1.5 h-6 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-200/70 px-2.5 rounded-full whitespace-nowrap shrink-0 transition-colors duration-200">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" id="priceOfferingSaveStatusDot"></span>
                 <span id="priceOfferingSaveStatusText" class="whitespace-nowrap">Document Only · Saved</span>

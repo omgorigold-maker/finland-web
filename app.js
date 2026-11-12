@@ -31540,6 +31540,32 @@ function initSortableWidgets() {
     if (copyBtn) {
       copyBtn.title = isStudioDoc ? 'Copy Document Text' : 'Copy Proposal Summary';
     }
+    updatePoDocTypeSwitcherPills();
+  }
+
+  function updatePoDocTypeSwitcherPills() {
+    const pills = document.getElementById('poDocTypeSwitcherPills');
+    if (!pills) return;
+    const curType = getActiveDocType();
+    const projId = state.activeFollowupProjectId || state.activeDepositProformaProjectId || state.activeProformaProjectId || (state.budget?.projects || []).find(p => p.id === state.activePriceOfferingLeadId)?.id;
+    if (!projId || curType === 'studio') {
+      pills.classList.add('hidden');
+      pills.classList.remove('inline-flex');
+      return;
+    }
+    pills.classList.remove('hidden');
+    pills.classList.add('inline-flex');
+
+    const qBtn = document.getElementById('poSwitchToQuoteBtn');
+    const dBtn = document.getElementById('poSwitchToDepositBtn');
+    const pBtn = document.getElementById('poSwitchToProformaBtn');
+
+    const activeCls = 'px-2 py-0.5 rounded-md text-[11px] transition-all cursor-pointer bg-white text-slate-900 shadow-2xs font-bold';
+    const inactiveCls = 'px-2 py-0.5 rounded-md text-[11px] transition-all cursor-pointer text-slate-600 hover:text-slate-900 font-medium hover:bg-slate-200/50';
+
+    if (qBtn) qBtn.className = (curType === 'price_quote') ? activeCls : inactiveCls;
+    if (dBtn) dBtn.className = (curType === 'deposit_proforma') ? activeCls : inactiveCls;
+    if (pBtn) pBtn.className = (curType === 'proforma') ? activeCls : inactiveCls;
   }
 
   function openPriceOfferingDocPage(leadId) {
@@ -37526,6 +37552,25 @@ ${sectionsText}
     if (backFromOfferingBtn) {
       backFromOfferingBtn.addEventListener('click', closePriceOfferingDocPage);
     }
+
+    document.getElementById('poSwitchToQuoteBtn')?.addEventListener('click', () => {
+      const projId = state.activeFollowupProjectId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activePriceOfferingLeadId;
+      if (!projId) return;
+      savePriceOfferingDoc(false);
+      openPriceOfferingDocPage(projId);
+    });
+    document.getElementById('poSwitchToDepositBtn')?.addEventListener('click', () => {
+      const projId = state.activeFollowupProjectId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activePriceOfferingLeadId;
+      if (!projId) return;
+      savePriceOfferingDoc(false);
+      openProjectDepositProformaDocPage(projId);
+    });
+    document.getElementById('poSwitchToProformaBtn')?.addEventListener('click', () => {
+      const projId = state.activeFollowupProjectId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activePriceOfferingLeadId;
+      if (!projId) return;
+      savePriceOfferingDoc(false);
+      openProjectProformaDocPage(projId);
+    });
 
     const exportPoBtn = document.getElementById('exportPriceOfferingPdfBtn');
     if (exportPoBtn) {
