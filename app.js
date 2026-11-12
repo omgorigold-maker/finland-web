@@ -25284,24 +25284,24 @@ function initSortableWidgets() {
   };
 
   const DEPOSIT_PROFORMA_DEFAULT_LABELS = {
-    client: 'Bill To / Client',
-    reference: 'Deposit Invoice #',
+    client: 'Client / Recipient',
+    reference: 'Reference',
     currency: 'Currency',
-    issueDate: 'Invoice Date',
-    validUntil: 'Payment Due',
+    issueDate: 'Date Issued',
+    validUntil: 'Valid Until',
     project: 'Project / Assignment',
-    thDesc: 'Milestone / Deliverable',
+    thDesc: 'Deliverable / Description',
     thQty: 'Qty',
     thRate: 'Total',
     thAmount: 'Deposit (50%)',
-    subtotal: 'Deposit Subtotal (50%)',
+    subtotal: 'Subtotal',
     discount: 'Discount',
     tax: 'VAT / Tax',
-    totalInvestment: 'Deposit Due'
+    totalInvestment: 'Total Investment'
   };
 
   const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
-    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif", color: '#0f172a' },
     doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
     sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
     sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
@@ -25317,9 +25317,9 @@ function initSortableWidgets() {
     sec_sec_deliverables: { offsetY: 1 },
     totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
     th_desc: { lineHeight: '1.7' },
-    th_amount: { offsetX: 5.75 },
+    th_amount: { offsetX: 10.5 },
     item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-    item_amount_0: { offsetY: 0, offsetX: 5.5 },
+    item_amount_0: { offsetY: 0, offsetX: 10 },
     item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
     title_sec_terms_dep: { lineHeight: '1.3' },
     content_sec_terms_dep: { lineHeight: '1.5' },
@@ -25334,6 +25334,7 @@ function initSortableWidgets() {
   };
 
   const DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT = {
+    doc_heading: '<span style="color: rgb(15, 23, 42);" class="">DEPOSIT PROFORMA INVOICE</span>',
     title_sec_terms_dep: '<span style="display: inline-block; line-height: 1.3;" class="">PAYMENT TERMS</span>',
     title_sec_comm_dep: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>',
     title_sec_text_1794514102748: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>'
@@ -25342,7 +25343,7 @@ function initSortableWidgets() {
   const DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY = {
     fontFamily: 'Inter, sans-serif',
     fontSize: 13,
-    lineHeight: 1.55,
+    lineHeight: 1.6,
     sectionGap: 22,
     titleGap: 8,
     titleSize: 12,
@@ -25352,13 +25353,13 @@ function initSortableWidgets() {
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment terms: Due upon receipt / within 7 days of invoice date.</div><div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div><div>• Full commercial usage rights and release of all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.</div><div>• All project work remains the property of the provider until payment is completed.<br><br></div><div><i>Bank account details:</i></div><div><i>Name: Ori Gold</i></div><div><i>IBAN: BE63 9051 4444 2808</i></div><div><i>Swift/BIC: TRWIBEB1XXX</i></div><div><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></div>';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
-    '• Deposit payment is due upon signing the project proposal / quote.',
-    '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
-    '• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
-    '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.'
-  ].join('\n');
-  const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
-  const DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT = 'MON-SAT VIA EMAIL: OMG.ORI.GOLD@GMAIL.COM / WHATSAPP: +972 55 777 0026';
+    '<div>• Deposit payment is due upon signing the project proposal / quote.</div>',
+    '<div>• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.</div>',
+    '<div>• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.</div>',
+    '<div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div>'
+  ].join('');
+  const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = '<div>Name: Ori Gold</div><div>IBAN: BE63 9051 4444 2808</div><div>Swift/BIC: TRWIBEB1XXX</div><div>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</div>';
+  const DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT = '<div>MON-SAT VIA EMAIL: OMG.ORI.GOLD@GMAIL.COM / WHATSAPP: +972 55 777 0026</div>';
   function getDepositProformaDefaultTerms() {
     if (isDemoMode()) {
       return [
@@ -25713,6 +25714,9 @@ function initSortableWidgets() {
       existingDep.sections = JSON.parse(JSON.stringify(masterDep.sections));
       existingDep.typography = Object.assign({}, existingDep.typography || {}, masterDep.typography);
       existingDep.elementStyles = Object.assign({}, existingDep.elementStyles || {}, masterDep.elementStyles);
+      existingDep.elementStyles.th_amount = Object.assign({}, masterDep.elementStyles.th_amount);
+      existingDep.elementStyles.item_amount_0 = Object.assign({}, masterDep.elementStyles.item_amount_0);
+      existingDep.elementStyles.doc_heading = Object.assign({}, masterDep.elementStyles.doc_heading);
       existingDep.labels = Object.assign({}, existingDep.labels || {}, masterDep.labels);
       existingDep.richText = Object.assign({}, existingDep.richText || {}, masterDep.richText);
     }
@@ -32639,6 +32643,14 @@ function initSortableWidgets() {
     }
     poElementStyles.doc_subtitle.fontWeight = '700';
     poElementStyles.doc_subtitle.letterSpacing = '0.05em';
+    if (!poElementStyles.doc_heading) poElementStyles.doc_heading = {};
+    if (!poElementStyles.doc_heading.color) poElementStyles.doc_heading.color = '#0f172a';
+    if (!poElementStyles.th_amount || poElementStyles.th_amount.offsetX === 5.75) {
+      poElementStyles.th_amount = Object.assign({}, poElementStyles.th_amount || {}, { offsetX: 10.5 });
+    }
+    if (!poElementStyles.item_amount_0 || poElementStyles.item_amount_0.offsetX === 5.5) {
+      poElementStyles.item_amount_0 = Object.assign({}, poElementStyles.item_amount_0 || {}, { offsetY: 0, offsetX: 10 });
+    }
     if (po.elementStyles && po.elementStyles.doc_subtitle && po.elementStyles.doc_subtitle.color === '#db2777') {
       po.elementStyles.doc_subtitle.color = '#64748b';
     }
@@ -39480,13 +39492,13 @@ ${sectionsText}
           ? getMasterDepositProformaTemplate()
           : (curDocType === 'proforma' ? getMasterProformaTemplate() : getMasterPoTemplate());
         poElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || DEFAULT_PO_TEMPLATE.elementStyles));
-        poRichText = {};
+        poRichText = JSON.parse(JSON.stringify(masterTpl.richText || {}));
         applyPriceOfferingTypography(Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {}), true);
         const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
         const lead = getPoEditorTarget(leadId);
         if (lead && lead.priceOffering) {
           lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
-          lead.priceOffering.richText = {};
+          lead.priceOffering.richText = JSON.parse(JSON.stringify(poRichText));
         }
         renderPriceOfferingDocument(lead, lead?.priceOffering);
         showToast('Reset to Studio Template', 'Restored studio template typography and element positions.', 'info');
