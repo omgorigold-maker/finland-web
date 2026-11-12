@@ -11859,7 +11859,12 @@ FOLDER CONTENTS:
         if (isDepositProforma && typeof openProjectDepositProformaDocPage === 'function') {
           openProjectDepositProformaDocPage(cleanProjId);
         } else if (isProforma && typeof openProjectProformaDocPage === 'function') {
-          openProjectProformaDocPage(cleanProjId);
+          const p = (state.budget?.projects || []).find(x => x.id === cleanProjId);
+          if (p && (p.depositProforma || !p.proformaInvoice)) {
+            openProjectDepositProformaDocPage(cleanProjId);
+          } else {
+            openProjectProformaDocPage(cleanProjId);
+          }
         } else if (isOffering && typeof openPriceOfferingDocPage === 'function') {
           openPriceOfferingDocPage(cleanProjId);
         }
@@ -16471,8 +16476,8 @@ function initSortableWidgets() {
             ${dateFooter}
 
             <div class="flex items-center gap-1.5 flex-wrap">
-              ${(p.hasProformaDoc || p.proformaInvoice)
-                ? `<button class="view-project-proforma-btn px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium border border-indigo-200/80 flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="View Proforma Invoice">
+              ${(p.hasDepositProformaDoc || p.depositProforma || p.hasProformaDoc || p.proformaInvoice)
+                ? `<button class="view-project-proforma-btn px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium border border-indigo-200/80 flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="View Deposit Proforma Invoice">
                     <i data-lucide="file-text" class="w-3 h-3 text-indigo-600"></i>
                     <span>Proforma</span>
                   </button>`
@@ -17721,12 +17726,18 @@ function initSortableWidgets() {
           return;
         }
 
-        // A2. View Proforma Invoice
+        // A2. View Proforma Invoice (defaults to Deposit Proforma)
         if (e.target.closest('.view-project-proforma-btn')) {
-          if (proj && proj.proformaInvoice) {
-            openProjectProformaDocPage(id);
+          if (proj && (proj.depositProforma || (!proj.proformaInvoice && proj.hasDepositProformaDoc))) {
+            openProjectDepositProformaDocPage(id);
+          } else if (proj && proj.proformaInvoice) {
+            openProjectDepositProformaDocPage(id);
+          } else if (proj && Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) {
+            openFollowupExportSnapshotModal('deposit_project', id, proj.depositProformaExports[0].id);
+          } else if (proj && Array.isArray(proj.proformaExports) && proj.proformaExports.length > 0) {
+            openFollowupExportSnapshotModal('project', id, proj.proformaExports[0].id);
           } else {
-            await openReceiptViewer(`${id}_proforma`);
+            openProjectDepositProformaDocPage(id);
           }
           return;
         }
@@ -25289,6 +25300,10 @@ function initSortableWidgets() {
   };
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
+  const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = '• Payment terms: Due upon signing proposal / quote.\n• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.\n• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.\n\nBANK DETAILS\nName: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
+  function getDepositProformaDefaultTerms() {
+    return DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT;
+  }
   function getProformaDefaultTerms() {
     if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
       return state.appPrefs.proformaDefaultTerms;
@@ -25384,17 +25399,23 @@ function initSortableWidgets() {
 
     // Ensure Payment Terms & Bank Details section exists
     let tplTerms = out.find(s => s && s.type === 'terms');
+    const defaultTerms = isDeposit ? getDepositProformaDefaultTerms() : getProformaDefaultTerms();
+    const termsTitle = isDeposit ? 'PAYMENT TERMS' : 'Payment Terms & Bank Details';
     if (tplTerms) {
-      tplTerms.title = 'Payment Terms & Bank Details';
-      tplTerms.content = existingTerms?.content || getProformaDefaultTerms();
+      tplTerms.title = termsTitle;
+      if (!tplTerms.content || tplTerms.content.includes('European Commercial Bank') || tplTerms.content.includes('Studio Creative') || isDeposit) {
+        tplTerms.content = defaultTerms;
+      } else {
+        tplTerms.content = existingTerms?.content || defaultTerms;
+      }
     } else {
       const delivIdx = out.findIndex(s => s && s.type === 'deliverables');
       const termsBlock = {
         id: existingTerms?.id || ('sec_terms_' + Date.now()),
         type: 'terms',
-        title: 'Payment Terms & Bank Details',
+        title: termsTitle,
         pageBreakBefore: false,
-        content: existingTerms?.content || getProformaDefaultTerms()
+        content: existingTerms?.content || defaultTerms
       };
       if (delivIdx !== -1) out.splice(delivIdx + 1, 0, termsBlock);
       else out.push(termsBlock);
@@ -25402,11 +25423,11 @@ function initSortableWidgets() {
 
     // Ensure Notice & Invoicing Notes / Deposit Notes section exists
     const defaultConditions = isDeposit ? DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT : PROFORMA_DEFAULT_CONDITIONS_CONTENT;
-    const condTitle = isDeposit ? 'Deposit Notes & Terms' : 'Notice & Invoicing Notes';
+    const condTitle = isDeposit ? 'DEPOSIT NOTES & TERMS' : 'Notice & Invoicing Notes';
     let tplCond = out.find(s => s && s.type === 'conditions');
     if (tplCond) {
       tplCond.title = condTitle;
-      tplCond.content = existingCond?.content || defaultConditions;
+      tplCond.content = isDeposit ? defaultConditions : (existingCond?.content || defaultConditions);
     } else {
       out.push({
         id: existingCond?.id || ('sec_conditions_' + Date.now()),
@@ -25415,6 +25436,11 @@ function initSortableWidgets() {
         pageBreakBefore: false,
         content: existingCond?.content || defaultConditions
       });
+    }
+
+    // Filter out redundant separate bank details text blocks in deposit proforma since bank details are in PAYMENT TERMS
+    if (isDeposit) {
+      out = out.filter(s => !(s && s.type === 'text' && (s.title || '').trim().toLowerCase() === 'bank details'));
     }
 
     return out;
@@ -25468,8 +25494,8 @@ function initSortableWidgets() {
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
         { id: 'sec_scope_dep', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
-        { id: 'sec_terms_dep', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
-        { id: 'sec_conditions_dep', type: 'conditions', title: 'Deposit Notes & Terms', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
+        { id: 'sec_conditions_dep', type: 'conditions', title: 'DEPOSIT NOTES & TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
       richText: {}
     };
@@ -25545,8 +25571,16 @@ function initSortableWidgets() {
     });
 
     // Ensure dedicated default template exists for deposit_proforma and proforma
-    if (!list.some(t => t.docType === 'deposit_proforma')) {
-      list.push(getMasterDepositProformaTemplate());
+    const masterDep = getMasterDepositProformaTemplate();
+    const existingDep = list.find(t => t.docType === 'deposit_proforma');
+    if (!existingDep) {
+      list.push(masterDep);
+    } else {
+      existingDep.name = 'Deposit Proforma Template';
+      existingDep.isDefault = true;
+      existingDep.docTitle = masterDep.docTitle;
+      existingDep.docSubtitle = masterDep.docSubtitle;
+      existingDep.sections = JSON.parse(JSON.stringify(masterDep.sections));
     }
     if (!list.some(t => t.docType === 'proforma')) {
       list.push(getMasterProformaTemplate());
@@ -31667,6 +31701,8 @@ function initSortableWidgets() {
   }
 
   function syncPoEditorModeUI(isStudioDoc) {
+    const curDocType = getActiveDocType();
+    const hideTemplates = isStudioDoc || curDocType === 'deposit_proforma';
     const quoteOnlyTypes = ['deliverables', 'terms', 'conditions', 'acceptance'];
     document.querySelectorAll('.po-sidebar-add-choice').forEach(btn => {
       const t = btn.getAttribute('data-type');
@@ -31674,7 +31710,7 @@ function initSortableWidgets() {
         btn.classList.toggle('hidden', !!isStudioDoc);
       }
     });
-    document.getElementById('poTemplatesSidebarSection')?.classList.toggle('hidden', !!isStudioDoc);
+    document.getElementById('poTemplatesSidebarSection')?.classList.toggle('hidden', !!hideTemplates);
     document.getElementById('poStudioDocFooterSection')?.classList.toggle('hidden', !isStudioDoc);
     document.getElementById('poVersionsDropdownWrapper')?.classList.toggle('hidden', !!isStudioDoc);
     document.getElementById('poVersionsDropdownMenu')?.classList.add('hidden');
@@ -31683,11 +31719,11 @@ function initSortableWidgets() {
     }
     const sidebarHeaderTitle = document.getElementById('poSidebarHeaderTitle');
     if (sidebarHeaderTitle && !poSelectedElementId) {
-      sidebarHeaderTitle.textContent = isStudioDoc ? 'Page & Layout' : 'Page & Template';
+      sidebarHeaderTitle.textContent = (isStudioDoc || hideTemplates) ? 'Page & Layout' : 'Page & Template';
     }
     const copyBtn = document.getElementById('copyPriceOfferingSummaryBtn');
     if (copyBtn) {
-      copyBtn.title = isStudioDoc ? 'Copy Document Text' : 'Copy Proposal Summary';
+      copyBtn.title = isStudioDoc ? 'Copy Document Text' : (curDocType === 'deposit_proforma' ? 'Copy Deposit Proforma' : 'Copy Proposal Summary');
     }
     updatePoDocTypeSwitcherPills();
   }
@@ -31910,7 +31946,7 @@ function initSortableWidgets() {
       statusDot.className = proj.proformaInvoice ? 'w-1.5 h-1.5 rounded-full bg-purple-600' : 'w-1.5 h-1.5 rounded-full bg-slate-300';
     }
 
-    const masterTpl = getMasterPoTemplate();
+    const masterTpl = getMasterProformaTemplate();
     const curYear = new Date().getFullYear();
     const curProjNum = String(proj.id || '').replace(/\D/g, '').slice(-3) || '001';
     const hadExistingProforma = !!proj.proformaInvoice;
@@ -32116,7 +32152,7 @@ function initSortableWidgets() {
 
     selectedPoSectionIndex = null;
     currentPoSignatures = Array.isArray(po.signatures) ? JSON.parse(JSON.stringify(po.signatures)) : [];
-    activePoTemplateId = po.templateId || masterTpl.id || 'tpl_studio_master';
+    activePoTemplateId = po.templateId || masterTpl.id || 'tpl_master_proforma';
 
     const targetProxy = getPoEditorTarget(projectId);
     const printAreaEl = document.getElementById('priceOfferingPrintArea');
@@ -32205,23 +32241,24 @@ function initSortableWidgets() {
       statusDot.className = proj.depositProforma ? 'w-1.5 h-1.5 rounded-full bg-indigo-600' : 'w-1.5 h-1.5 rounded-full bg-slate-300';
     }
 
-    const masterTpl = getMasterPoTemplate();
+    const masterTpl = getMasterDepositProformaTemplate();
     const curYear = new Date().getFullYear();
     const curProjNum = String(proj.id || '').replace(/\D/g, '').slice(-3) || '001';
     const hadExistingDepositProforma = !!proj.depositProforma;
 
     if (!proj.depositProforma) {
-      const fullProjAmount = parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0;
-      const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
-      const projCur = proj.currency || state.displayCurrency || 'EUR';
-      const todayStr = new Date().toISOString().split('T')[0];
-      const dueStr = proj.paymentDueDate || proj.dueDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
       const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
+      const quoteTotal = parseFloat(srcQuote && srcQuote.total) || 0;
+      const fullProjAmount = quoteTotal > 0 ? quoteTotal : (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0);
+      const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
+      const projCur = proj.currency || (srcQuote && srcQuote.currency) || state.displayCurrency || 'EUR';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
 
       let initialItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: (proj.title || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          description: (proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
           qty: 1,
           rate: depositRate,
           amount: depositRate
@@ -32231,39 +32268,44 @@ function initSortableWidgets() {
       let initTaxPct = 0;
       let initSubtotal = depositRate;
       let initTotal = depositRate;
-      const initElementStyles = {};
+      const initElementStyles = {
+        doc_heading: { fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' },
+        doc_subtitle: { fontSize: 11, fontWeight: '700', letterSpacing: '0.05em', color: '#db2777' }
+      };
       const initRichText = {};
-
-      if (srcQuote && srcQuote.elementStyles && typeof srcQuote.elementStyles === 'object') {
-        Object.keys(srcQuote.elementStyles).forEach(k => {
-          if (/^item_(desc|qty|rate|amount)_\d+$/.test(k)) {
-            initElementStyles[k] = JSON.parse(JSON.stringify(srcQuote.elementStyles[k]));
-          }
-        });
-      }
 
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : (proj.title || '')));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : '[PROJECT SCOPE & OBJECTIVE]'));
+
+      const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
+        ? Object.assign({}, srcQuote.sender)
+        : {
+            name: 'Ori Gold',
+            title: 'Creative Studio · Art & Graphics',
+            contact: 'Email: omg.ori.gold@gmail.com',
+            location: 'WhatsApp: +972 55 777 0026'
+          };
 
       proj.depositProforma = {
         _isDepositProforma: true,
         _isProforma: false,
-        templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_studio_master',
-        docTitle: 'PROFORMA INVOICE',
-        docSubtitle: 'Advance Deposit / 50% Milestone Payment',
+        templateId: masterTpl.id,
+        docTitle: 'DEPOSIT PROFORMA INVOICE',
+        docSubtitle: 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
         refNo: `DPI-${curYear}-${curProjNum}`,
         issueDate: todayStr,
         validUntil: dueStr,
         currency: projCur,
-        client: proj.client || (srcQuote && srcQuote.client) || '',
-        clientEmail: (srcQuote && srcQuote.clientEmail) || '',
-        clientAddress: (srcQuote && srcQuote.clientAddress) || '',
+        client: proj.client || (srcQuote && srcQuote.client) || 'Client',
+        clientEmail: (srcQuote && srcQuote.clientEmail) || proj.clientEmail || 'client@company.com',
+        clientAddress: (srcQuote && srcQuote.clientAddress) || proj.clientAddress || 'Billing Address / City / Tax ID',
         projectTitle: proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || '',
+        sender: baseSender,
         elementStyles: initElementStyles,
         richText: initRichText,
-        labels: Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_LABELS),
+        labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
         items: initialItems,
         sections: [
           { id: 'sec_header', type: 'header', title: 'Document Header' },
@@ -32272,22 +32314,22 @@ function initSortableWidgets() {
           {
             id: 'sec_scope_' + Date.now(),
             type: 'scope',
-            title: (srcScopeSec && srcScopeSec.title) || 'Project Scope & Objective',
+            title: (srcScopeSec && srcScopeSec.title) || 'PROJECT SCOPE & OBJECTIVE',
             pageBreakBefore: false,
             content: initScopeContent
           },
-          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
           {
             id: 'sec_terms_' + Date.now(),
             type: 'terms',
-            title: 'Payment Terms & Bank Details',
+            title: 'PAYMENT TERMS',
             pageBreakBefore: false,
-            content: getProformaDefaultTerms()
+            content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT
           },
           {
             id: 'sec_conditions_' + Date.now(),
             type: 'conditions',
-            title: 'Deposit Notes & Terms',
+            title: 'DEPOSIT NOTES & TERMS',
             pageBreakBefore: false,
             content: DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT
           }
@@ -32313,6 +32355,11 @@ function initSortableWidgets() {
     allElemKeys.forEach(k => {
       poElementStyles[k] = Object.assign({}, baseElementStyles[k] || {}, projElementStyles[k] || {});
     });
+    if (!poElementStyles.doc_subtitle) poElementStyles.doc_subtitle = {};
+    poElementStyles.doc_subtitle.color = '#db2777';
+    poElementStyles.doc_subtitle.fontWeight = '700';
+    poElementStyles.doc_subtitle.letterSpacing = '0.05em';
+
     poRichText = Object.assign(
       {},
       JSON.parse(JSON.stringify(masterTpl.richText || {})),
@@ -32325,22 +32372,24 @@ function initSortableWidgets() {
     const initialTypography = po.typography ? Object.assign({}, defaultTypography, po.typography) : defaultTypography;
 
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
-    if (!po.docTitle || po.docTitle === 'Price Quote / Proposal') {
-      po.docTitle = 'PROFORMA INVOICE';
-    }
-    if (!po.docSubtitle) {
-      po.docSubtitle = 'Advance Deposit / 50% Milestone Payment';
-    }
-    if (!po.sender || po.sender.name === 'Your Name / Studio') {
-      po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
+    po.docTitle = 'DEPOSIT PROFORMA INVOICE';
+    po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    if (!po.sender || !po.sender.name || po.sender.name === 'Your Name / Studio') {
+      po.sender = {
+        name: 'Ori Gold',
+        title: 'Creative Studio · Art & Graphics',
+        contact: 'Email: omg.ori.gold@gmail.com',
+        location: 'WhatsApp: +972 55 777 0026'
+      };
     }
 
     applyPriceOfferingTypography(initialTypography, false);
 
     // Sections
     currentPoSections = Array.isArray(po.sections) && po.sections.length > 0
-      ? JSON.parse(JSON.stringify(po.sections))
+      ? buildProformaSectionsFromTemplate(po.sections, po.sections, proj, true)
       : getDefaultPoSections(po, proj);
+    po.sections = JSON.parse(JSON.stringify(currentPoSections));
 
     // Items
     const initDepositAmount = Math.round(((parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5) * 100) / 100;
@@ -32354,7 +32403,7 @@ function initSortableWidgets() {
       currentPoItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: (proj.title || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
+          description: (proj.title || proj.description || 'Project Scope & Deliverables') + ' (50% Initial Deposit Milestone)',
           qty: 1,
           rate: initDepositAmount,
           amount: initDepositAmount
@@ -32364,7 +32413,7 @@ function initSortableWidgets() {
 
     selectedPoSectionIndex = null;
     currentPoSignatures = Array.isArray(po.signatures) ? JSON.parse(JSON.stringify(po.signatures)) : [];
-    activePoTemplateId = po.templateId || masterTpl.id || 'tpl_studio_master';
+    activePoTemplateId = 'tpl_master_deposit_proforma';
 
     const targetProxy = getPoEditorTarget(projectId);
     const printAreaEl = document.getElementById('priceOfferingPrintArea');
