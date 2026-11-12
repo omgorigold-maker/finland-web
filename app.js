@@ -25309,11 +25309,6 @@ function initSortableWidgets() {
   ].join('\n');
   const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
   function getDepositProformaDefaultTerms() {
-<<<<<<< Updated upstream
-    return DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT;
-  }
-  function getDepositProformaDefaultBank() {
-=======
     if (isDemoMode()) {
       return [
         '• Deposit payment is due upon signing the project proposal / quote.',
@@ -25328,7 +25323,6 @@ function initSortableWidgets() {
     if (isDemoMode()) {
       return 'Name: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
     }
->>>>>>> Stashed changes
     return DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT;
   }
   function getProformaDefaultTerms() {
