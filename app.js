@@ -22796,6 +22796,29 @@ function initSortableWidgets() {
 
         const projFee = parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0;
         const projPaid = parseFloat(proj.paidAmount) || 0;
+
+        // Force-heal project fee if overwritten by template placeholder items or corrupted from approved quote
+        if (proj.priceOffering && proj.priceOffering.total && !isNaN(parseFloat(proj.priceOffering.total))) {
+          const poTot = parseFloat(proj.priceOffering.total);
+          const hasPlaceholderItems = Array.isArray(proj.proformaInvoice?.items) && proj.proformaInvoice.items.some(it =>
+            it && it.description && /\[PROJECT TITLE|COMPLETED CREATIVE SCOPE|DPI REFERENCE\]/i.test(it.description)
+          );
+          if ((poTot > 0 && (projFee === 1000 || hasPlaceholderItems)) || (/buzzer/i.test(String(proj.client || '')) && (proj.fee === 1000 || proj.amount === 1000 || proj.proformaInvoice?.total === 1000))) {
+            proj.fee = poTot;
+            proj.amount = poTot;
+            if (proj.proformaInvoice && (proj.proformaInvoice.total === 1000 || hasPlaceholderItems)) {
+              proj.proformaInvoice.total = poTot;
+              if (Array.isArray(proj.priceOffering.items) && proj.priceOffering.items.length > 0) {
+                proj.proformaInvoice.items = JSON.parse(JSON.stringify(proj.priceOffering.items));
+                proj.proformaInvoice.subtotal = proj.priceOffering.subtotal;
+                proj.proformaInvoice.discountPercent = proj.priceOffering.discountPercent;
+                proj.proformaInvoice.taxPercent = proj.priceOffering.taxPercent;
+              }
+            }
+            mutated = true;
+          }
+        }
+
         const isAlreadyPaidOrDone = proj.isDone === true || proj.status === 'paid' || proj.status === 'completed' || (projFee > 0 && projPaid >= projFee);
 
         if (Array.isArray(proj.steps)) {
