@@ -33568,11 +33568,14 @@ ${sectionsText}
     if (totalFeeEquivEl) {
       if (projCur !== cur && totalFee > 0) {
         totalFeeEquivEl.textContent = `≈ ${formatMoney(convertCurrency(totalFee, projCur, cur), cur)}`;
-        totalFeeEquivEl.classList.remove('hidden');
       } else {
-        totalFeeEquivEl.textContent = '';
-        totalFeeEquivEl.classList.add('hidden');
+        const feeSub = (paid > 0 && paid < totalFee)
+          ? `${formatMoney(paid, projCur)} paid`
+          : (paid >= totalFee && totalFee > 0 ? 'Paid in full' : 'Agreed fee');
+        totalFeeEquivEl.textContent = feeSub;
       }
+      totalFeeEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
+      totalFeeEquivEl.classList.remove('hidden');
     }
     const totalFeeDisplay = document.getElementById('detailTotalFeeDisplay');
     if (totalFeeDisplay) totalFeeDisplay.classList.remove('hidden');
@@ -33591,11 +33594,14 @@ ${sectionsText}
     if (remEquivEl) {
       if (projCur !== cur && remaining > 0) {
         remEquivEl.textContent = `≈ ${formatMoney(convertCurrency(remaining, projCur, cur), cur)}`;
-        remEquivEl.classList.remove('hidden');
       } else {
-        remEquivEl.textContent = '';
-        remEquivEl.classList.add('hidden');
+        const remSub = (remaining <= 0 && totalFee > 0)
+          ? 'Fully settled'
+          : (paid > 0 ? 'Balance due' : 'Awaiting payment');
+        remEquivEl.textContent = remSub;
       }
+      remEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
+      remEquivEl.classList.remove('hidden');
     }
     const remHeaderLabel = document.getElementById('detailRemainingHeaderLabel');
     if (remHeaderLabel) {
@@ -33622,7 +33628,6 @@ ${sectionsText}
     const deadlineInput = document.getElementById('detailDeadlineInput');
     if (deadlineInput) deadlineInput.value = proj.dueDate || '';
 
-    const workDone = isProjectWorkDone(proj);
     const deadlineTextEl = document.getElementById('detailDeadlineText');
     const deadlineCountdownEl = document.getElementById('detailDeadlineCountdown');
     if (proj.dueDate) {
@@ -33633,40 +33638,28 @@ ${sectionsText}
         const diffDays = Math.round((d.getTime() - today.getTime()) / 86400000);
         if (deadlineTextEl) deadlineTextEl.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         if (deadlineCountdownEl) {
+          deadlineCountdownEl.removeAttribute('title');
           if (isDone) {
-            deadlineCountdownEl.textContent = 'Project finished';
-            deadlineCountdownEl.className = 'text-[10px] font-semibold text-emerald-600 mt-0.5';
-          } else if (workDone) {
-            deadlineCountdownEl.textContent = 'Work Done ✓';
-            deadlineCountdownEl.className = 'text-[10px] font-bold text-emerald-600 hover:underline mt-0.5 inline-block cursor-pointer';
-            deadlineCountdownEl.title = 'Click to reopen work deadline';
+            deadlineCountdownEl.textContent = 'Completed';
+            deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           } else if (diffDays < 0) {
-            deadlineCountdownEl.textContent = `Overdue by ${Math.abs(diffDays)}d · Mark Done ✓`;
-            deadlineCountdownEl.className = 'text-[10px] font-bold text-rose-600 hover:text-emerald-600 mt-0.5 inline-block cursor-pointer transition-colors';
-            deadlineCountdownEl.title = 'Click to mark project work as done';
+            deadlineCountdownEl.textContent = `Overdue by ${Math.abs(diffDays)}d`;
+            deadlineCountdownEl.className = 'text-[10px] font-semibold text-rose-600 mt-0.5';
           } else if (diffDays === 0) {
-            deadlineCountdownEl.textContent = 'Due Today · Mark Done ✓';
-            deadlineCountdownEl.className = 'text-[10px] font-bold text-amber-600 hover:text-emerald-600 mt-0.5 inline-block cursor-pointer transition-colors';
-            deadlineCountdownEl.title = 'Click to mark project work as done';
+            deadlineCountdownEl.textContent = 'Due today';
+            deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           } else {
-            deadlineCountdownEl.textContent = `${diffDays} days left · Mark Done ✓`;
-            deadlineCountdownEl.className = (diffDays <= 7 ? 'text-[10px] font-semibold text-amber-600' : 'text-[10px] font-semibold text-emerald-600') + ' hover:underline mt-0.5 inline-block cursor-pointer';
-            deadlineCountdownEl.title = 'Click to mark project work as done';
+            deadlineCountdownEl.textContent = `in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+            deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           }
         }
       }
     } else {
-      if (deadlineTextEl) deadlineTextEl.textContent = 'No deadline';
+      if (deadlineTextEl) deadlineTextEl.textContent = isDone ? 'Completed' : 'Not set';
       if (deadlineCountdownEl) {
-        if (workDone) {
-          deadlineCountdownEl.textContent = 'Work Done ✓';
-          deadlineCountdownEl.className = 'text-[10px] font-bold text-emerald-600 hover:underline mt-0.5 inline-block cursor-pointer';
-          deadlineCountdownEl.title = 'Click to reopen work deadline';
-        } else {
-          deadlineCountdownEl.textContent = 'Click to set date';
-          deadlineCountdownEl.className = 'text-[10px] text-slate-400 mt-0.5';
-          deadlineCountdownEl.title = '';
-        }
+        deadlineCountdownEl.removeAttribute('title');
+        deadlineCountdownEl.textContent = isDone ? 'Finished' : 'Click to set date';
+        deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-400 mt-0.5';
       }
     }
 
@@ -33690,25 +33683,25 @@ ${sectionsText}
         if (payDueTextEl) payDueTextEl.textContent = pd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         if (payDueCountdownEl) {
           if (isPaid || isDone) {
-            payDueCountdownEl.textContent = 'Paid ✓';
-            payDueCountdownEl.className = 'text-[10px] font-bold text-emerald-600 mt-0.5';
+            payDueCountdownEl.textContent = 'Paid in full';
+            payDueCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           } else if (payDiffDays < 0) {
-            payDueCountdownEl.textContent = `Payment overdue by ${Math.abs(payDiffDays)}d`;
-            payDueCountdownEl.className = 'text-[10px] font-bold text-rose-600 mt-0.5';
+            payDueCountdownEl.textContent = `Overdue by ${Math.abs(payDiffDays)}d`;
+            payDueCountdownEl.className = 'text-[10px] font-semibold text-rose-600 mt-0.5';
           } else if (payDiffDays === 0) {
-            payDueCountdownEl.textContent = 'Due Today';
-            payDueCountdownEl.className = 'text-[10px] font-bold text-purple-600 mt-0.5';
+            payDueCountdownEl.textContent = 'Due today';
+            payDueCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           } else {
             payDueCountdownEl.textContent = `in ${payDiffDays} ${payDiffDays === 1 ? 'day' : 'days'}`;
-            payDueCountdownEl.className = payDiffDays <= 5 ? 'text-[10px] font-semibold text-purple-600 mt-0.5' : 'text-[10px] font-semibold text-slate-500 mt-0.5';
+            payDueCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
           }
         }
       }
     } else {
       if (payDueTextEl) payDueTextEl.textContent = isPaid ? 'Settled' : 'Not set';
       if (payDueCountdownEl) {
-        payDueCountdownEl.textContent = isPaid ? 'Paid in full ✓' : 'Synced with Proforma';
-        payDueCountdownEl.className = isPaid ? 'text-[10px] font-semibold text-emerald-600 mt-0.5' : 'text-[10px] text-slate-400 mt-0.5';
+        payDueCountdownEl.textContent = isPaid ? 'Paid in full' : 'Click to set date';
+        payDueCountdownEl.className = 'text-[10px] font-semibold text-slate-400 mt-0.5';
       }
     }
 
@@ -35687,16 +35680,6 @@ ${sectionsText}
     }
 
     // Deadline In-Box Edit events
-    const deadlineCountdownEl = document.getElementById('detailDeadlineCountdown');
-    if (deadlineCountdownEl) {
-      deadlineCountdownEl.addEventListener('click', (e) => {
-        const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
-        if (p && (p.dueDate || isProjectWorkDone(p)) && !isProjectDone(p)) {
-          e.stopPropagation();
-          toggleProjectWorkDone();
-        }
-      });
-    }
     const deadlineBox = document.getElementById('detailDeadlineContainer');
     if (deadlineBox) {
       deadlineBox.addEventListener('click', (e) => {
