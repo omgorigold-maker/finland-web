@@ -25291,8 +25291,8 @@ function initSortableWidgets() {
     project: 'Project / Milestone',
     thDesc: 'Milestone / Deliverable',
     thQty: 'Qty',
-    thRate: 'Deposit Amount',
-    thAmount: 'Amount Due',
+    thRate: 'Total',
+    thAmount: 'Deposit (50%)',
     subtotal: 'Deposit Subtotal (50%)',
     discount: 'Discount',
     tax: 'VAT / Tax',
@@ -25729,11 +25729,12 @@ function initSortableWidgets() {
     });
     container.querySelectorAll('#poItemsTableBody tr').forEach((row, idx) => {
       if (!currentPoItems[idx]) return;
-      const qtyInput = row.querySelector('.po-item-qty');
-      const rateInput = row.querySelector('.po-item-rate');
+      const isDep = getActiveDocType() === 'deposit_proforma';
       if (qtyInput) currentPoItems[idx].qty = parseFloat(qtyInput.value) || 0;
       if (rateInput) currentPoItems[idx].rate = parseFloat(rateInput.value) || 0;
-      currentPoItems[idx].amount = (currentPoItems[idx].qty || 0) * (currentPoItems[idx].rate || 0);
+      const qVal = currentPoItems[idx].qty || 0;
+      const rVal = currentPoItems[idx].rate || 0;
+      currentPoItems[idx].amount = isDep ? Math.round((qVal * rVal * 0.5) * 100) / 100 : Math.round((qVal * rVal) * 100) / 100;
     });
     container.querySelectorAll('.po-section-title-input').forEach(inp => {
       const secId = inp.getAttribute('data-sec-id');
@@ -31171,10 +31172,11 @@ function initSortableWidgets() {
       return;
     }
 
+    const isDeposit = getActiveDocType() === 'deposit_proforma';
     tbody.innerHTML = currentPoItems.map((item, idx) => {
       const q = parseFloat(item.qty) || 1;
       const r = parseFloat(item.rate) || 0;
-      const amt = q * r;
+      const amt = isDeposit ? Math.round((q * r * 0.5) * 100) / 100 : Math.round((q * r) * 100) / 100;
       item.amount = amt;
 
       return `
@@ -31248,6 +31250,7 @@ function initSortableWidgets() {
     document.querySelectorAll('.poTableCurrencyLabel').forEach(el => el.textContent = cur);
 
     let subtotal = 0;
+    const isDeposit = getActiveDocType() === 'deposit_proforma';
     const rows = document.querySelectorAll('#poItemsTableBody tr');
     rows.forEach((row, idx) => {
       const qtyInput = row.querySelector('.po-item-qty');
@@ -31256,7 +31259,7 @@ function initSortableWidgets() {
 
       const q = parseFloat(qtyInput?.value) || 0;
       const r = parseFloat(rateInput?.value) || 0;
-      const amt = q * r;
+      const amt = isDeposit ? Math.round((q * r * 0.5) * 100) / 100 : Math.round((q * r) * 100) / 100;
       subtotal += amt;
 
       if (amtDisplay) amtDisplay.textContent = formatMoney(amt, cur);
@@ -32346,7 +32349,7 @@ function initSortableWidgets() {
       const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
       const quoteTotal = parseFloat(srcQuote && srcQuote.total) || 0;
       const fullProjAmount = quoteTotal > 0 ? quoteTotal : (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0);
-      const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
+      const depositDue = Math.round((fullProjAmount * 0.5) * 100) / 100;
       const projCur = proj.currency || (srcQuote && srcQuote.currency) || state.displayCurrency || 'EUR';
       const todayStr = new Date().toISOString().split('T')[0];
       const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
@@ -32357,14 +32360,14 @@ function initSortableWidgets() {
           id: 'po_item_' + Date.now(),
           description: `50% Project Commencement Deposit — \n${projItemName}`,
           qty: 1,
-          rate: depositRate,
-          amount: depositRate
+          rate: fullProjAmount,
+          amount: depositDue
         }
       ];
       let initDiscPct = 0;
       let initTaxPct = 0;
-      let initSubtotal = depositRate;
-      let initTotal = depositRate;
+      let initSubtotal = depositDue;
+      let initTotal = depositDue;
       const initElementStyles = {
         doc_heading: { fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' },
         doc_subtitle: { fontSize: 11, fontWeight: '700', letterSpacing: '0.05em', color: '#64748b' }
@@ -32481,6 +32484,8 @@ function initSortableWidgets() {
     const initialTypography = po.typography ? Object.assign({}, defaultTypography, po.typography) : defaultTypography;
 
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
+    po.labels.thRate = 'Total';
+    po.labels.thAmount = 'Deposit (50%)';
     po.docTitle = 'DEPOSIT PROFORMA INVOICE';
     po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
     if (!po.sender || !po.sender.name || po.sender.name === 'Your Name / Studio') {
@@ -32501,14 +32506,22 @@ function initSortableWidgets() {
     po.sections = JSON.parse(JSON.stringify(currentPoSections));
 
     // Items
-    const initDepositAmount = Math.round(((parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5) * 100) / 100;
-    const fallbackProjName = proj.title || proj.description || 'Printable Design Bundle';
+    const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
+    const quoteTotal = parseFloat(srcQuote && srcQuote.total) || 0;
+    const fullProjAmount = quoteTotal > 0 ? quoteTotal : (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0);
+    const initDepositAmount = Math.round((fullProjAmount * 0.5) * 100) / 100;
+    const fallbackProjName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Printable Design Bundle';
     if (Array.isArray(po.items) && po.items.length > 0) {
       currentPoItems = JSON.parse(JSON.stringify(po.items));
-      if (currentPoItems.length === 1 && (parseFloat(currentPoItems[0].amount) || 0) === 0 && initDepositAmount > 0) {
-        currentPoItems[0].rate = initDepositAmount;
-        currentPoItems[0].amount = (parseFloat(currentPoItems[0].qty) || 1) * initDepositAmount;
-      }
+      currentPoItems.forEach(it => {
+        const q = parseFloat(it.qty) || 1;
+        if (fullProjAmount > 0 && Math.abs((parseFloat(it.rate) || 0) - initDepositAmount) < 0.01 && Math.abs(fullProjAmount - initDepositAmount) > 0.01) {
+          it.rate = fullProjAmount;
+        } else if ((parseFloat(it.rate) || 0) === 0 && fullProjAmount > 0) {
+          it.rate = fullProjAmount;
+        }
+        it.amount = Math.round((q * (parseFloat(it.rate) || fullProjAmount) * 0.5) * 100) / 100;
+      });
       if (currentPoItems.length === 1 && currentPoItems[0].description && (currentPoItems[0].description.includes('(50% Initial Deposit Milestone)') || currentPoItems[0].description === 'Project Scope & Deliverables')) {
         currentPoItems[0].description = `50% Project Commencement Deposit — \n${fallbackProjName}`;
       }
@@ -32518,7 +32531,7 @@ function initSortableWidgets() {
           id: 'po_item_' + Date.now(),
           description: `50% Project Commencement Deposit — \n${fallbackProjName}`,
           qty: 1,
-          rate: initDepositAmount,
+          rate: fullProjAmount,
           amount: initDepositAmount
         }
       ];
