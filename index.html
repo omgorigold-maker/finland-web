@@ -1434,7 +1434,12 @@
             <span>Back to All Projects</span>
           </button>
 
-          <div class="flex items-center gap-2">
+            <!-- Generate / Edit Deposit Proforma (50%) Button -->
+            <button id="projectDetailGenerateDepositBtn" type="button" class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold rounded-lg shadow-2xs transition-all bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white" title="Generate or edit a 50% deposit proforma invoice for this project">
+              <i data-lucide="file-check" class="w-3 h-3"></i>
+              <span id="projectDetailGenerateDepositBtnText">Generate Deposit Proforma</span>
+            </button>
+
             <!-- Generate / Edit Proforma Invoice Button -->
             <button id="projectDetailGenerateProformaBtn" type="button" class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold rounded-lg shadow-2xs transition-all bg-purple-600 hover:bg-purple-700 active:scale-95 text-white" title="Generate or edit a proforma invoice for this project">
               <i data-lucide="file-text" class="w-3 h-3"></i>
@@ -1707,6 +1712,7 @@
               
               <!-- Hidden Direct File Inputs -->
               <input type="file" id="directReceiptFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
+              <input type="file" id="directDepositProformaFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
               <input type="file" id="directProformaFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
               <input type="file" id="directInvoiceFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
 
@@ -1725,6 +1731,28 @@
                     <div id="detailQuoteActions" class="shrink-0 flex items-center gap-1 flex-wrap justify-end"></div>
                   </div>
                   <div id="detailQuoteSavedList" class="hidden pt-2 border-t border-slate-200/70 space-y-1.5"></div>
+                </div>
+
+                <!-- Deposit Proforma doc row (50% Milestone Generator + Saved Versions / Attached Files) -->
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <i data-lucide="file-check" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                      <div class="min-w-0">
+                        <div class="font-semibold text-slate-800 truncate">Deposit Proforma Invoice (50%)</div>
+                        <div id="detailDepositProformaStatusText" class="text-[10px] text-slate-400 truncate">Not created</div>
+                      </div>
+                    </div>
+                    <div id="detailDepositProformaActions" class="shrink-0 flex items-center gap-1 flex-wrap justify-end">
+                      <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all">
+                        + Generate Doc
+                      </button>
+                      <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-medium cursor-pointer">
+                        Attach
+                      </button>
+                    </div>
+                  </div>
+                  <div id="detailDepositProformaSavedList" class="hidden pt-2 border-t border-slate-200/70 space-y-1.5"></div>
                 </div>
                 
                 <!-- Proforma doc row (Primary Generator + Saved Versions / Attached Files) -->

@@ -11804,7 +11804,8 @@ FOLDER CONTENTS:
     const tab = hashSlugToTab(parts[0] || 'transactions');
     const subId = parts[1] || '';
     const isOffering = raw.includes('/offering');
-    const isProforma = raw.includes('/proforma');
+    const isDepositProforma = raw.includes('/deposit_proforma');
+    const isProforma = !isDepositProforma && raw.includes('/proforma');
 
     if (tab === 'documents') {
       state.activeFollowupLeadId = null;
@@ -11855,10 +11856,11 @@ FOLDER CONTENTS:
           openPriceOfferingDocPage(cleanLeadId);
         }
       } else if (subId) {
-        const cleanProjId = subId.replace(/^proj:/, '').replace(/\/(proforma|offering)$/, '');
+        const cleanProjId = subId.replace(/^proj:/, '').replace(/\/(deposit_proforma|proforma|offering)$/, '');
         state.activeFollowupProjectId = cleanProjId;
         state.activeFollowupLeadId = null;
         state.activePriceOfferingLeadId = isOffering ? cleanProjId : null;
+        state.activeDepositProformaProjectId = isDepositProforma ? cleanProjId : null;
         state.activeProformaProjectId = isProforma ? cleanProjId : null;
         try {
           localStorage.setItem('ft_active_followup_project', cleanProjId);
@@ -11867,7 +11869,9 @@ FOLDER CONTENTS:
         if (typeof window._ftSetActiveTab === 'function') {
           window._ftSetActiveTab('project_followup');
         }
-        if (isProforma && typeof openProjectProformaDocPage === 'function') {
+        if (isDepositProforma && typeof openProjectDepositProformaDocPage === 'function') {
+          openProjectDepositProformaDocPage(cleanProjId);
+        } else if (isProforma && typeof openProjectProformaDocPage === 'function') {
           openProjectProformaDocPage(cleanProjId);
         } else if (isOffering && typeof openPriceOfferingDocPage === 'function') {
           openPriceOfferingDocPage(cleanProjId);
@@ -22331,7 +22335,26 @@ function initSortableWidgets() {
         mimeType: file.type
       };
 
-      if (type === 'proforma') {
+      if (type === 'deposit_proforma') {
+        if (!Array.isArray(p.depositProformaAttachments)) p.depositProformaAttachments = [];
+        const existingList = p.depositProformaAttachments.map(x => Object.assign({}, x));
+        const attId = 'dpatt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        const attKey = `${projectId}_deposit_proforma_${attId}`;
+        await saveReceiptAttachment(attKey, att);
+        await saveReceiptAttachment(`${projectId}_deposit_proforma`, att);
+        existingList.unshift({
+          id: attId,
+          attKey,
+          fileName: file.name,
+          docType,
+          attachedAt: new Date().toISOString()
+        });
+        p.depositProformaAttachments = existingList;
+        p.hasDepositProformaAttachment = true;
+        p.hasDepositProformaDoc = true;
+        p.depositProformaDocName = file.name;
+        showToast('Document Attached', `${file.name} saved to Deposit Proforma files.`, 'success');
+      } else if (type === 'proforma') {
         const existingList = getProjectProformaAttachmentsList(p).map(x => Object.assign({}, x));
         // Migrate any legacy single-key item onto its own dedicated key BEFORE updating the shared key
         for (const item of existingList) {
@@ -22403,7 +22426,40 @@ function initSortableWidgets() {
     if (!p) return;
     if (!await confirmAction('Remove this attached document?')) return;
 
-    if (type === 'proforma') {
+    if (type === 'deposit_proforma') {
+      if (!Array.isArray(p.depositProformaAttachments)) p.depositProformaAttachments = [];
+      const list = p.depositProformaAttachments;
+      if (attId) {
+        const target = list.find(x => x.id === attId);
+        if (target && target.attKey && target.attKey !== `${projectId}_deposit_proforma`) {
+          await deleteReceiptAttachment(target.attKey);
+        }
+        p.depositProformaAttachments = list.filter(x => x.id !== attId);
+      } else {
+        for (const item of list) {
+          if (item.attKey) await deleteReceiptAttachment(item.attKey);
+        }
+        p.depositProformaAttachments = [];
+      }
+      if (!Array.isArray(p.depositProformaAttachments) || p.depositProformaAttachments.length === 0) {
+        p.depositProformaAttachments = [];
+        p.hasDepositProformaAttachment = false;
+        delete p.depositProformaDocName;
+        await deleteReceiptAttachment(`${projectId}_deposit_proforma`);
+        p.hasDepositProformaDoc = !!(p.depositProforma || (Array.isArray(p.depositProformaExports) && p.depositProformaExports.length > 0));
+      } else {
+        p.hasDepositProformaAttachment = true;
+        p.depositProformaDocName = p.depositProformaAttachments[0].fileName || 'deposit_proforma.pdf';
+        const topAtt = p.depositProformaAttachments[0];
+        if (topAtt && topAtt.attKey) {
+          const topData = await getReceiptAttachment(topAtt.attKey);
+          if (topData && topData.data) {
+            await saveReceiptAttachment(`${projectId}_deposit_proforma`, topData);
+          }
+        }
+      }
+      showToast('Document Removed', 'Attached deposit proforma file removed.', 'info');
+    } else if (type === 'proforma') {
       const list = getProjectProformaAttachmentsList(p);
       if (attId) {
         const target = list.find(x => x.id === attId);
@@ -25211,6 +25267,23 @@ function initSortableWidgets() {
     totalInvestment: 'Total Amount Due'
   };
 
+  const DEPOSIT_PROFORMA_DEFAULT_LABELS = {
+    client: 'Bill To / Client',
+    reference: 'Deposit Invoice #',
+    currency: 'Currency',
+    issueDate: 'Invoice Date',
+    validUntil: 'Payment Due',
+    project: 'Project / Milestone',
+    thDesc: 'Milestone / Deliverable',
+    thQty: 'Qty',
+    thRate: 'Deposit Amount',
+    thAmount: 'Amount Due',
+    subtotal: 'Deposit Subtotal (50%)',
+    discount: 'Discount',
+    tax: 'VAT / Tax',
+    totalInvestment: 'Deposit Due'
+  };
+
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
   function getProformaDefaultTerms() {
     if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
@@ -25219,6 +25292,7 @@ function initSortableWidgets() {
     return GENERIC_PROFORMA_DEFAULT_TERMS;
   }
   const PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.';
+  const DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This deposit proforma invoice covers the initial 50% project retainer / deposit.\n• Project commencement begins upon receipt of deposit payment.\n• The remaining 50% milestone will be invoiced upon project completion and final deliverables sign-off.';
 
   function sanitizePoTemplateData(tpl) {
     if (!tpl || typeof tpl !== 'object') return tpl;
@@ -25577,6 +25651,33 @@ function initSortableWidgets() {
           studioDoc.studioData = val;
         }
       };
+    }
+    if (state.activeDepositProformaProjectId) {
+      const proj = (state.budget?.projects || []).find(p => p.id === state.activeDepositProformaProjectId);
+      if (proj) {
+        return {
+          id: proj.id,
+          _isDepositProforma: true,
+          _isProforma: false,
+          _projectRef: proj,
+          client: proj.client || 'Client',
+          title: proj.title || proj.description || 'Project Scope',
+          amount: (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5,
+          currency: proj.currency || state.displayCurrency || 'EUR',
+          dueDate: proj.dueDate || '',
+          notes: proj.notes || '',
+          get priceOffering() {
+            return proj.depositProforma;
+          },
+          set priceOffering(val) {
+            if (val && typeof val === 'object') {
+              val._isDepositProforma = true;
+              val._isProforma = false;
+            }
+            proj.depositProforma = val;
+          }
+        };
+      }
     }
     const projId = state.activeProformaProjectId || (!state.activePriceOfferingLeadId && leadId && state.budget?.projects?.some(p => p.id === leadId) ? leadId : null);
     if (projId) {
@@ -31172,6 +31273,53 @@ function initSortableWidgets() {
       return offeringData;
     }
 
+    if (lead._isDepositProforma && lead._projectRef) {
+      const proj = lead._projectRef;
+      const prevDraftFp = prevOfferingSnapshot ? getPoContentFingerprint(prevOfferingSnapshot) : '';
+      const prevUpdatedAt = prevOfferingSnapshot && prevOfferingSnapshot.updatedAt ? prevOfferingSnapshot.updatedAt : null;
+      offeringData._isDepositProforma = true;
+      offeringData._isProforma = false;
+      if (!showNotification && prevUpdatedAt && prevDraftFp && getPoContentFingerprint(offeringData) === prevDraftFp) {
+        offeringData.updatedAt = prevUpdatedAt;
+      }
+      proj.depositProforma = offeringData;
+      proj.hasDepositProformaDoc = true;
+
+      if (offeringData.client && offeringData.client.trim() && !isPlaceholderClientName(offeringData.client)) {
+        proj.client = offeringData.client.trim();
+      }
+      const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
+      if (bcClient) bcClient.textContent = proj.client || offeringData.client || 'Project';
+
+      if (!proj.title && offeringData.projectTitle && offeringData.projectTitle.trim()) {
+        proj.title = offeringData.projectTitle.trim();
+        proj.description = proj.title;
+      }
+      if (offeringData.validUntil) {
+        proj.paymentDueDate = offeringData.validUntil;
+      }
+
+      saveBudget();
+
+      if (!poEditingTemplateNameId && !poPreviewingTemplateId) {
+        renderPoSavedTemplatesGallery();
+      } else {
+        updatePoTemplateScopeBanner();
+      }
+
+      if (!poStatusBadgeFlashTimer) {
+        syncPoStatusBadgeRestingState();
+      }
+
+      renderPoVersionsDropdown();
+
+      if (showNotification) {
+        showToast('Deposit Proforma Saved ✓', `Deposit proforma for "${proj.client || 'Project'}" saved.`, 'success');
+      }
+
+      return offeringData;
+    }
+
     if (lead._isProforma && lead._projectRef) {
       const proj = lead._projectRef;
       const prevDraftFp = prevOfferingSnapshot ? getPoContentFingerprint(prevOfferingSnapshot) : '';
@@ -31183,7 +31331,7 @@ function initSortableWidgets() {
       proj.proformaInvoice = offeringData;
       proj.hasProformaDoc = true;
 
-      if (offeringData.client && offeringData.client.trim()) {
+      if (offeringData.client && offeringData.client.trim() && !isPlaceholderClientName(offeringData.client)) {
         proj.client = offeringData.client.trim();
       }
       const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
@@ -31242,13 +31390,13 @@ function initSortableWidgets() {
     lead._prevPriceOfferingUpdatedAt = offeringData.updatedAt;
 
     // Automatically keep ledger values in sync in background
-    if (offeringData.client && offeringData.client.trim()) {
+    if (offeringData.client && offeringData.client.trim() && !isPlaceholderClientName(offeringData.client)) {
       lead.client = offeringData.client.trim();
       if (lead._projectRef) lead._projectRef.client = offeringData.client.trim();
     }
     const bcClient = document.getElementById('priceOfferingDocClientBreadcrumb');
     if (bcClient) bcClient.textContent = lead.client || offeringData.client || 'Client';
-    if (!lead.title && offeringData.projectTitle && offeringData.projectTitle.trim()) {
+    if (!lead.title && offeringData.projectTitle && offeringData.projectTitle.trim() && !isPlaceholderClientName(offeringData.projectTitle)) {
       lead.title = offeringData.projectTitle.trim();
     }
     const isOngoingProjEntity = (state.budget?.projects || []).some(p => p.id === lead.id);
@@ -32061,6 +32209,27 @@ function initSortableWidgets() {
       return;
     }
 
+    if (state.activeDepositProformaProjectId) {
+      if (typeof goBackInFinland === 'function' && currentNavRoute && currentNavRoute.includes('/deposit_proforma')) {
+        if (goBackInFinland()) return;
+      }
+      const projId = state.activeDepositProformaProjectId;
+      state.activeDepositProformaProjectId = null;
+      state.activeProformaProjectId = null;
+      state.activePriceOfferingLeadId = null;
+      document.getElementById('projectDetailPage')?.classList.remove('hidden');
+      const proj = (state.budget?.projects || []).find(p => p.id === projId);
+      if (proj) renderProjectDetailPage(proj, state.displayCurrency);
+      try {
+        history.replaceState(null, '', '#project_followup/' + projId);
+        recordFinlandRoute('#project_followup/' + projId);
+      } catch (e) {}
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+      return;
+    }
+
     if (state.activeProformaProjectId) {
       if (typeof goBackInFinland === 'function' && currentNavRoute && currentNavRoute.includes('/proforma')) {
         if (goBackInFinland()) return;
@@ -32722,23 +32891,26 @@ function initSortableWidgets() {
   }
 
   function openFollowupExportSnapshotModal(targetType, targetId, snapshotId) {
+    const isDeposit = targetType === 'deposit_project';
     const isProforma = targetType === 'project';
-    const entity = isProforma
+    const entity = (isDeposit || isProforma)
       ? (state.budget?.projects || []).find(p => p.id === targetId)
       : ((state.budget?.leads || []).find(l => l.id === targetId) || (state.budget?.projects || []).find(p => p.id === targetId));
     if (!entity) return;
 
-    const exportsArr = isProforma ? (entity.proformaExports || []) : (entity.quoteExports || []);
+    const exportsArr = isDeposit
+      ? (entity.depositProformaExports || [])
+      : (isProforma ? (entity.proformaExports || []) : (entity.quoteExports || []));
     let snap = exportsArr.find(x => x.id === snapshotId);
     if (!snap && snapshotId === '__draft__') {
-      const draftObj = isProforma ? entity.proformaInvoice : entity.priceOffering;
+      const draftObj = isDeposit ? entity.depositProforma : (isProforma ? entity.proformaInvoice : entity.priceOffering);
       if (draftObj) {
         snap = {
           id: '__draft__',
           version: 0,
           label: 'Live Document',
           refNo: draftObj.refNo || '',
-          docTitle: draftObj.docTitle || (isProforma ? 'Proforma Invoice' : 'Price Quote / Proposal'),
+          docTitle: draftObj.docTitle || (isDeposit ? 'Deposit Proforma' : (isProforma ? 'Proforma Invoice' : 'Price Quote / Proposal')),
           total: parseFloat(draftObj.total) || 0,
           currency: draftObj.currency || entity.currency || state.displayCurrency || 'EUR',
           exportedAt: draftObj.updatedAt || entity.createdAt || new Date().toISOString(),
@@ -32782,7 +32954,7 @@ function initSortableWidgets() {
     }
 
     const clientName = entity.client || (snap.data && snap.data.client) || 'Client';
-    const docTitle = snap.docTitle || (isProforma ? 'Proforma Invoice' : 'Price Quote / Proposal');
+    const docTitle = snap.docTitle || (isDeposit ? 'Deposit Proforma' : (isProforma ? 'Proforma Invoice' : 'Price Quote / Proposal'));
     const refPart = snap.refNo ? ` (${snap.refNo})` : '';
     if (titleEl) titleEl.textContent = `${clientName} — ${docTitle}${refPart}`;
 
@@ -32848,13 +33020,16 @@ function initSortableWidgets() {
   }
 
   async function restoreFollowupExportSnapshot(targetType, targetId, snapshotId) {
+    const isDeposit = targetType === 'deposit_project';
     const isProforma = targetType === 'project';
-    const entity = isProforma
+    const entity = (isDeposit || isProforma)
       ? (state.budget?.projects || []).find(p => p.id === targetId)
       : ((state.budget?.leads || []).find(l => l.id === targetId) || (state.budget?.projects || []).find(p => p.id === targetId));
     if (!entity) return;
 
-    const exportsArr = isProforma ? (entity.proformaExports || []) : (entity.quoteExports || []);
+    const exportsArr = isDeposit
+      ? (entity.depositProformaExports || [])
+      : (isProforma ? (entity.proformaExports || []) : (entity.quoteExports || []));
     const snap = exportsArr.find(x => x.id === snapshotId);
     if (!snap || !snap.data) return;
 
@@ -32864,6 +33039,19 @@ function initSortableWidgets() {
 
     const restoredData = JSON.parse(JSON.stringify(snap.data));
     restoredData.updatedAt = new Date().toISOString();
+
+    if (isDeposit) {
+      restoredData._isDepositProforma = true;
+      restoredData._isProforma = false;
+      entity.depositProforma = restoredData;
+      entity.hasDepositProformaDoc = true;
+      saveBudget();
+      closeFollowupExportSnapshotModal();
+      document.getElementById('poVersionsDropdownMenu')?.classList.add('hidden');
+      openProjectDepositProformaDocPage(targetId);
+      showToast('Version Restored ✓', `${verLabel} loaded into the Deposit Proforma editor.`, 'success');
+      return;
+    }
 
     if (isProforma) {
       restoredData._isProforma = true;
@@ -32897,16 +33085,25 @@ function initSortableWidgets() {
   }
 
   async function deleteFollowupExportSnapshot(targetType, targetId, snapshotId) {
+    const isDeposit = targetType === 'deposit_project';
     const isProforma = targetType === 'project';
     const isProjEntity = (state.budget?.projects || []).some(p => p.id === targetId);
-    const entity = isProforma
+    const entity = (isDeposit || isProforma)
       ? (state.budget?.projects || []).find(p => p.id === targetId)
       : ((state.budget?.leads || []).find(l => l.id === targetId) || (state.budget?.projects || []).find(p => p.id === targetId));
     if (!entity) return;
 
     if (!await confirmAction('Delete this logged copy from history?')) return;
 
-    if (isProforma) {
+    if (isDeposit) {
+      entity.depositProformaExports = (entity.depositProformaExports || []).filter(x => x.id !== snapshotId);
+      entity.hasDepositProformaDoc = !!(entity.depositProforma || (entity.depositProformaExports && entity.depositProformaExports.length > 0) || (entity.depositProformaAttachments && entity.depositProformaAttachments.length > 0));
+      saveBudget();
+      renderPoVersionsDropdown();
+      if (state.activeFollowupProjectId === targetId && !state.activeDepositProformaProjectId) {
+        renderProjectDetailPage(entity, state.displayCurrency);
+      }
+    } else if (isProforma) {
       entity.proformaExports = (entity.proformaExports || []).filter(x => x.id !== snapshotId);
       const attList = getProjectProformaAttachmentsList(entity);
       entity.hasProformaDoc = !!(entity.proformaInvoice || attList.length > 0 || entity.proformaExports.length > 0);
@@ -33626,6 +33823,12 @@ ${sectionsText}
       }
     }
 
+    // Top Bar Deposit Proforma Button text
+    const depositTopBtnText = document.getElementById('projectDetailGenerateDepositBtnText');
+    if (depositTopBtnText) {
+      depositTopBtnText.textContent = proj.depositProforma ? 'Edit Deposit Proforma' : 'Generate Deposit Proforma';
+    }
+
     // Top Bar Proforma Button text
     const proformaTopBtnText = document.getElementById('projectDetailGenerateProformaBtnText');
     if (proformaTopBtnText) {
@@ -33768,6 +33971,147 @@ ${sectionsText}
         }).join('');
 
         projQuoteSavedList.innerHTML = draftRowHtml + exportRowsHtml + attRowsHtml;
+      }
+    }
+
+    // Deposit Proforma (50%)
+    const depositStatus = document.getElementById('detailDepositProformaStatusText');
+    const depositActions = document.getElementById('detailDepositProformaActions');
+    const depositSavedList = document.getElementById('detailDepositProformaSavedList');
+    if (depositStatus && depositActions) {
+      const depositAttachments = Array.isArray(proj.depositProformaAttachments) ? proj.depositProformaAttachments : [];
+      const depositExports = Array.isArray(proj.depositProformaExports) ? proj.depositProformaExports : [];
+      if (proj.depositProforma) {
+        const dpCur = proj.depositProforma.currency || projCur;
+        const dpTot = parseFloat(proj.depositProforma.total) || 0;
+        const dpRef = proj.depositProforma.refNo ? ` · ${proj.depositProforma.refNo}` : '';
+        if (depositExports.length > 0) {
+          const latestVer = depositExports[0].version || 1;
+          const matchesLatest = getPoContentFingerprint(proj.depositProforma) === getPoContentFingerprint(depositExports[0].data);
+          depositStatus.textContent = matchesLatest
+            ? `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef}) · Saved (v${latestVer})`
+            : `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef}) · Edited since v${latestVer}`;
+        } else {
+          depositStatus.textContent = `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef})`;
+        }
+        depositActions.innerHTML = `
+          <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
+            Edit Doc
+          </button>
+          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
+            + Attach
+          </button>
+        `;
+      } else {
+        if (depositAttachments.length > 0 || depositExports.length > 0) {
+          const totalSaved = depositAttachments.length + depositExports.length;
+          depositStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'} below`;
+        } else {
+          depositStatus.textContent = 'Not created';
+        }
+        depositActions.innerHTML = `
+          <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
+            + Generate Doc
+          </button>
+          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
+            + Attach
+          </button>
+        `;
+      }
+
+      if (depositSavedList) {
+        const rowsHtml = [];
+        if (proj.depositProforma) {
+          const dpCur = proj.depositProforma.currency || projCur;
+          const dpTot = parseFloat(proj.depositProforma.total) || 0;
+          const dpRef = proj.depositProforma.refNo || proj.depositProforma.docTitle || 'Deposit Proforma';
+          const dateStr = formatFollowupDocTimestamp(proj.depositProforma.updatedAt || proj.createdAt);
+          rowsHtml.push(`
+            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-indigo-200/90 shadow-2xs">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Generator Doc</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(dpRef)} <span class="font-bold text-slate-900">(${formatMoney(dpTot, dpCur)})</span></p>
+                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable document')}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
+                  View
+                </button>
+                <button type="button" class="open-project-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
+                  Edit
+                </button>
+                <button type="button" class="delete-project-deposit-proforma-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" title="Delete editable document">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `);
+        }
+        const depositDraftFp = proj.depositProforma ? getPoContentFingerprint(proj.depositProforma) : '';
+        const visibleDepositExports = depositExports.filter((exp, idx) => !(idx === 0 && depositDraftFp && getPoContentFingerprint(exp.data) === depositDraftFp));
+        visibleDepositExports.forEach(exp => {
+          const expCur = exp.currency || projCur;
+          const expTot = parseFloat(exp.total) || 0;
+          const vLabel = exp.label || `v${exp.version || exp.versionNumber || 1} · Exported`;
+          const dateStr = formatFollowupDocTimestamp(exp.exportedAt);
+          rowsHtml.push(`
+            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(exp.refNo || exp.docTitle || 'Deposit Proforma')} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
+                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
+                  View
+                </button>
+                <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the live editor">
+                  Restore
+                </button>
+                <button type="button" class="delete-followup-export-snapshot-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Delete logged copy">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `);
+        });
+
+        depositAttachments.forEach(att => {
+          const dateVal = att.attachedAt || att.uploadedAt;
+          const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
+          const attKeyVal = att.attKey || att.attachmentKey || `${proj.id}_deposit_proforma`;
+          rowsHtml.push(`
+            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(att.fileName || 'deposit_proforma.pdf')}</p>
+                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(att.fileName || 'deposit_proforma.pdf')}">
+                  View
+                </button>
+                <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="deposit_proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `);
+        });
+
+        if (rowsHtml.length > 0) {
+          depositSavedList.innerHTML = rowsHtml.join('');
+          depositSavedList.classList.remove('hidden');
+        } else {
+          depositSavedList.innerHTML = '';
+          depositSavedList.classList.add('hidden');
+        }
       }
     }
 
@@ -35817,6 +36161,17 @@ ${sectionsText}
     });
 
     // Direct File Inputs for Documents
+    const depositProformaFileInput = document.getElementById('directDepositProformaFileInput');
+    if (depositProformaFileInput) {
+      depositProformaFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file && state.activeFollowupProjectId) {
+          handleDirectDocUpload(file, 'deposit_proforma', state.activeFollowupProjectId);
+        }
+        depositProformaFileInput.value = '';
+      });
+    }
+
     const proformaFileInput = document.getElementById('directProformaFileInput');
     if (proformaFileInput) {
       proformaFileInput.addEventListener('change', (e) => {
@@ -35853,6 +36208,10 @@ ${sectionsText}
     // Direct Document Action Delegation
     document.addEventListener('click', async (e) => {
       // Direct Attach Buttons
+      if (e.target.closest('.direct-attach-deposit-proforma-btn')) {
+        document.getElementById('directDepositProformaFileInput')?.click();
+        return;
+      }
       if (e.target.closest('.direct-attach-proforma-btn')) {
         document.getElementById('directProformaFileInput')?.click();
         return;
@@ -35867,6 +36226,19 @@ ${sectionsText}
       }
 
       // View Document Buttons
+      const viewDepositProformaBtn = e.target.closest('.view-detail-deposit-proforma-btn');
+      if (viewDepositProformaBtn) {
+        const id = viewDepositProformaBtn.getAttribute('data-id');
+        const attKey = viewDepositProformaBtn.getAttribute('data-att-key');
+        const fileName = viewDepositProformaBtn.getAttribute('data-file-name');
+        if (id) {
+          const proj = (state.budget?.projects || []).find(p => p.id === id);
+          const titleLabel = proj ? `${proj.client || 'Project'} — Deposit Proforma Invoice (50%)` : 'Deposit Proforma Invoice (50%)';
+          await openFollowupAttachmentViewer(attKey, `${id}_deposit_proforma`, titleLabel, fileName || proj?.depositProformaDocName || 'deposit_proforma.pdf');
+        }
+        return;
+      }
+
       const viewProformaBtn = e.target.closest('.view-detail-proforma-btn');
       if (viewProformaBtn) {
         const id = viewProformaBtn.getAttribute('data-id');
@@ -37196,6 +37568,20 @@ ${sectionsText}
         return;
       }
 
+      // Deposit Proforma Invoice Delegation Handlers
+      const openDepositBtn = e.target.closest('.open-project-deposit-proforma-btn');
+      if (openDepositBtn) {
+        const id = openDepositBtn.getAttribute('data-id') || state.activeFollowupProjectId;
+        if (id) openProjectDepositProformaDocPage(id);
+        return;
+      }
+      const delDepositBtn = e.target.closest('.delete-project-deposit-proforma-btn');
+      if (delDepositBtn) {
+        const id = delDepositBtn.getAttribute('data-id') || state.activeFollowupProjectId;
+        if (id) await deleteProjectDepositProforma(id);
+        return;
+      }
+
       // Proforma Invoice Delegation Handlers
       const openProformaBtn = e.target.closest('.open-project-proforma-btn');
       if (openProformaBtn) {
@@ -37262,6 +37648,13 @@ ${sectionsText}
     if (generatePoTopBtn) {
       generatePoTopBtn.addEventListener('click', () => {
         if (state.activeFollowupLeadId) openPriceOfferingDocPage(state.activeFollowupLeadId);
+      });
+    }
+
+    const generateDepositTopBtn = document.getElementById('projectDetailGenerateDepositBtn');
+    if (generateDepositTopBtn) {
+      generateDepositTopBtn.addEventListener('click', () => {
+        if (state.activeFollowupProjectId) openProjectDepositProformaDocPage(state.activeFollowupProjectId);
       });
     }
 
