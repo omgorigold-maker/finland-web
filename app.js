@@ -25301,10 +25301,10 @@ function initSortableWidgets() {
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
-    '• Project commencement begins upon receipt of deposit payment.',
-    '• This deposit proforma invoice covers the initial 50% project retainer / deposit. The remaining 50% milestone will be invoiced upon project completion and final deliverables sign-off.',
+    '• Deposit payment is due upon signing the project proposal / quote.',
+    '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
+    '• This proforma invoice covers the initial 50% project retainer / deposit. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
     '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.',
-    '• All final high-resolution source and production files transfer to the Client upon completed settlement of final invoice.',
     '• Communication and inquiries: Mon-Sat via Email: omg.ori.gold@gmail.com / WhatsApp: +972 55 777 0026.'
   ].join('\n');
   const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
