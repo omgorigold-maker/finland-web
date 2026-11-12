@@ -33568,13 +33568,14 @@ ${sectionsText}
     if (totalFeeEquivEl) {
       if (projCur !== cur && totalFee > 0) {
         totalFeeEquivEl.textContent = `≈ ${formatMoney(convertCurrency(totalFee, projCur, cur), cur)}`;
+        totalFeeEquivEl.className = 'font-mono text-[10px] font-semibold text-slate-500 mt-0.5';
       } else {
         const feeSub = (paid > 0 && paid < totalFee)
           ? `${formatMoney(paid, projCur)} paid`
           : (paid >= totalFee && totalFee > 0 ? 'Paid in full' : 'Agreed fee');
         totalFeeEquivEl.textContent = feeSub;
+        totalFeeEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
       }
-      totalFeeEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
       totalFeeEquivEl.classList.remove('hidden');
     }
     const totalFeeDisplay = document.getElementById('detailTotalFeeDisplay');
@@ -33594,13 +33595,14 @@ ${sectionsText}
     if (remEquivEl) {
       if (projCur !== cur && remaining > 0) {
         remEquivEl.textContent = `≈ ${formatMoney(convertCurrency(remaining, projCur, cur), cur)}`;
+        remEquivEl.className = 'font-mono text-[10px] font-semibold text-slate-500 mt-0.5';
       } else {
         const remSub = (remaining <= 0 && totalFee > 0)
           ? 'Fully settled'
           : (paid > 0 ? 'Balance due' : 'Awaiting payment');
         remEquivEl.textContent = remSub;
+        remEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
       }
-      remEquivEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
       remEquivEl.classList.remove('hidden');
     }
     const remHeaderLabel = document.getElementById('detailRemainingHeaderLabel');
