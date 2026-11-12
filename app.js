@@ -31163,10 +31163,20 @@ function initSortableWidgets() {
       if (offeringData.validUntil) {
         proj.paymentDueDate = offeringData.validUntil;
       }
-      if (currentPoItems.length > 0 && !isNaN(totals.total) && totals.total >= 0) {
-        proj.amount = totals.total;
-        proj.fee = totals.total;
-        proj.currency = totals.currency;
+      const hasQuoteTotal = proj.priceOffering && !isNaN(parseFloat(proj.priceOffering.total)) && parseFloat(proj.priceOffering.total) > 0;
+      const isPlaceholderItem = currentPoItems.some(it =>
+        it && it.description && /\[PROJECT TITLE|COMPLETED CREATIVE SCOPE|DPI REFERENCE\]/i.test(it.description)
+      );
+      const prevProformaTotal = (prevOfferingSnapshot && !isNaN(parseFloat(prevOfferingSnapshot.total))) ? parseFloat(prevOfferingSnapshot.total) : null;
+      const proformaTotalChanged = prevProformaTotal !== null && Math.abs(totals.total - prevProformaTotal) > 0.005;
+      const hasEstablishedFee = (parseFloat(proj.fee !== undefined ? proj.fee : proj.amount) || 0) > 0;
+
+      if (!isPlaceholderItem && currentPoItems.length > 0 && !isNaN(totals.total) && totals.total >= 0) {
+        if ((!hasEstablishedFee && !hasQuoteTotal) || (proformaTotalChanged && !hasQuoteTotal)) {
+          proj.amount = totals.total;
+          proj.fee = totals.total;
+          proj.currency = totals.currency;
+        }
       }
 
       saveBudget();
@@ -32452,7 +32462,7 @@ function initSortableWidgets() {
         snap = {
           id: '__draft__',
           version: 0,
-          label: 'Working Draft',
+          label: 'Live Document',
           refNo: draftObj.refNo || '',
           docTitle: draftObj.docTitle || (isProforma ? 'Proforma Invoice' : 'Price Quote / Proposal'),
           total: parseFloat(draftObj.total) || 0,
@@ -32480,14 +32490,17 @@ function initSortableWidgets() {
     const verLabel = snap.label || (isDraft ? 'Live Document' : `v${snap.version || 1} · Exported`);
     if (badgeEl) {
       badgeEl.textContent = verLabel;
-      badgeEl.className = isProforma
-        ? 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 shrink-0'
-        : 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 shrink-0';
+      badgeEl.className = isDraft
+        ? 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 shrink-0'
+        : (isProforma
+          ? 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 shrink-0'
+          : 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 shrink-0');
     }
     if (restoreBtn) {
       if (isDraft) {
         restoreBtn.classList.add('hidden');
       } else {
+        restoreBtn.classList.remove('hidden');
         restoreBtn.className = isProforma
           ? 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/80 text-xs font-semibold transition-all'
           : 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-xs font-semibold transition-all';
@@ -43062,33 +43075,22 @@ ${sectionsText}
     const showMyPlanMini = myPlanCfg.showOnMiniCal !== false;
     const myPlanMiniScope = myPlanCfg.miniCalScope || 'week'; // 'week' (default: respective week) | 'all' (all month)
 
-    // Calculate the respective week boundary for 'week' scope (using sidebar mini-calendar's own weekStart)
+    // Calculate the respective week boundary for 'week' scope matching Calendar & Plan
     let weekStartYmd = '';
     let weekEndYmd = '';
     if (showMyPlanMini && myPlanMiniScope === 'week') {
-      const activePrefs = state.draftAppPrefs || state.appPrefs || DEFAULT_APP_PREFS;
-      const miniWeekStart = activePrefs.calendarWeekStart || 'sunday';
-      const getMiniStartOfWeek = (dObj) => {
-        const d = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
-        const day = d.getDay();
-        const diff = miniWeekStart === 'monday' ? (day === 0 ? -6 : 1 - day) : -day;
-        d.setDate(d.getDate() + diff);
-        return d;
-      };
       const now = new Date();
       let refDate = now;
       const anchor = (state.calendarPlan && state.calendarPlan.anchorDate) ? parseLocalYMD(state.calendarPlan.anchorDate) : null;
-      if (anchor && anchor.getFullYear() === year && anchor.getMonth() === month) {
-        refDate = anchor;
-      } else if (now.getFullYear() === year && now.getMonth() === month) {
-        refDate = now;
-      } else {
-        const anchorStart = anchor ? getMiniStartOfWeek(anchor) : null;
-        const anchorEnd = anchorStart ? new Date(anchorStart.getFullYear(), anchorStart.getMonth(), anchorStart.getDate() + 6) : null;
-        if (anchorStart && ((anchorStart.getFullYear() === year && anchorStart.getMonth() === month) || (anchorEnd && anchorEnd.getFullYear() === year && anchorEnd.getMonth() === month))) {
+      if (anchor) {
+        const anchorStart = getStartOfWeekDate(anchor);
+        const anchorEnd = new Date(anchorStart.getFullYear(), anchorStart.getMonth(), anchorStart.getDate() + 6);
+        if ((anchorStart.getFullYear() === year && anchorStart.getMonth() === month) || (anchorEnd.getFullYear() === year && anchorEnd.getMonth() === month)) {
           refDate = anchor;
+        } else if (now.getFullYear() === year && now.getMonth() === month) {
+          refDate = now;
         } else {
-          const nowStart = getMiniStartOfWeek(now);
+          const nowStart = getStartOfWeekDate(now);
           const nowEnd = new Date(nowStart.getFullYear(), nowStart.getMonth(), nowStart.getDate() + 6);
           if ((nowStart.getFullYear() === year && nowStart.getMonth() === month) || (nowEnd.getFullYear() === year && nowEnd.getMonth() === month)) {
             refDate = now;
@@ -43096,8 +43098,10 @@ ${sectionsText}
             refDate = new Date(year, month, 1);
           }
         }
+      } else if (now.getFullYear() === year && now.getMonth() === month) {
+        refDate = now;
       }
-      const startD = getMiniStartOfWeek(refDate);
+      const startD = getStartOfWeekDate(refDate);
       const endD = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate() + 6);
       weekStartYmd = formatLocalYMD(startD);
       weekEndYmd = formatLocalYMD(endD);
