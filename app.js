@@ -25234,16 +25234,17 @@ function initSortableWidgets() {
       sectionGap: 22,
       titleGap: 8,
       titleSize: 12,
-      sheetPadding: '36px 40px',
+      sheetPadding: '48px 52px',
       showPageNumbers: true
     },
     elementStyles: {
       doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
-      doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
+      doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em', fontSize: 14 },
       sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
       sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
       sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
       sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+      client_name: { offsetY: -0.5 },
       client_email: { offsetY: -2 },
       client_address: { offsetY: -3 },
       divider_overview: { offsetY: -1 },
@@ -25251,14 +25252,17 @@ function initSortableWidgets() {
       sec_sec_deliverables: { offsetY: 1 },
       totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
       th_desc: { lineHeight: '1.7' },
+      th_amount: { lineHeight: '2', offsetX: 7.5 },
       item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+      item_amount_0: { offsetX: 7 },
       item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
+      subtotal_val: { offsetX: -0.5 },
       cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
       issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
       valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' }
     },
     labels: {
-      client: 'Bill To / Client',
+      client: 'Client / Recipient',
       reference: 'Quote #',
       currency: 'Currency',
       issueDate: 'Invoice Date',
@@ -25276,16 +25280,16 @@ function initSortableWidgets() {
   };
 
   const PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT = [
-    '<div>1. Concept & First Drafts: Delivered within 5–7 business days from signature & project kickoff.</div>',
+    '<div>1. Concept & First Drafts: Delivered within ____________ business days from deposit payment.</div>',
     '<div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div>',
-    '<div>3. Final Print-Ready Delivery: _________________</div>'
+    '<div>3. Final Delivery: _________________</div>'
   ].join('');
 
   const PRICE_QUOTE_DEFAULT_TERMS_CONTENT = [
     '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div>',
     '<div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div>',
     '<div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div>',
-    '<div>• The remaining 50% project balance will be invoiced upon final review and prior to file delivery.</div>'
+    '<div>• The remaining 50% project balance will be invoiced upon final review and final project files handoff.</div>'
   ].join('');
 
   const PRICE_QUOTE_DEFAULT_BANK_CONTENT = [
@@ -25307,7 +25311,20 @@ function initSortableWidgets() {
       { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
       { id: 'sec_timeline_quote', type: 'terms', title: 'PROJECT TIMELINE & DELIVERY', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT },
       { id: 'sec_terms_quote', type: 'terms', title: 'TERMS & CONDITIONS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TERMS_CONTENT },
-      { id: 'sec_bank_quote', type: 'text', title: 'BANK TRANSFER DETAILS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_BANK_CONTENT }
+      { id: 'sec_bank_quote', type: 'text', title: 'BANK TRANSFER DETAILS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_BANK_CONTENT },
+      {
+        id: 'sec_acc_quote',
+        type: 'acceptance',
+        title: '',
+        clientTitle: 'Client Signature',
+        providerTitle: 'Service Provider Signature',
+        signSealText: 'Signature & Seal',
+        signDateText: 'Date: _________________',
+        signNameText: 'Name: _________________',
+        signSealProviderText: 'Signature & Seal',
+        signDateProviderText: 'Date: _________________',
+        signNameProviderText: 'Name: _________________'
+      }
     ];
   }
 
