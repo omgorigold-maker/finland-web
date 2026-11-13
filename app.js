@@ -33131,7 +33131,7 @@ function initSortableWidgets() {
     }).join('');
 
     return `
-      <div class="po-page-sheet po-document-sheet price-offering-sheet shadow-2xl" style="--po-font-family:${fontFamily}; --po-font-size:${fontSize}px; --po-line-height:${lineHeight}; --po-section-gap:${sectionGap}px; --po-title-gap:${titleGap}px; --po-title-size:${titleSize}px; --po-sheet-padding:${sheetPadding}; width:210mm; min-height:297mm; max-width:210mm; box-sizing:border-box; background:#ffffff; position:relative; margin:0 auto; padding:${sheetPadding};">
+      <div class="po-page-sheet po-document-sheet price-offering-sheet shadow-2xl" style="--po-font-family:${fontFamily}; --po-font-size:${fontSize}px; --po-line-height:${lineHeight}; --po-section-gap:${sectionGap}px; --po-title-gap:${titleGap}px; --po-title-size:${titleSize}px; --po-sheet-padding:${sheetPadding}; width:210mm; min-height:297mm; height:auto; max-width:210mm; box-sizing:border-box; background:#ffffff; position:relative; margin:0 auto; padding:${sheetPadding};">
         <!-- Header -->
         <div class="po-header-grid flex flex-col sm:flex-row sm:items-start justify-between gap-6" style="margin-bottom:${sectionGap}px;">
           <div class="space-y-1 flex-1 min-w-0">

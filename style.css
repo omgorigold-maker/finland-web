@@ -1070,6 +1070,16 @@ select:not(.hidden):focus {
   pointer-events: none;
 }
 
+/* Document Snapshot Viewer Modal Sheet Sizing */
+#followupSnapshotSheetContainer {
+  align-items: flex-start;
+}
+#followupSnapshotSheetContainer .price-offering-sheet {
+  align-self: flex-start;
+  height: auto !important;
+  min-height: 297mm;
+}
+
 /* Workbench Container: Subtract top header (56px / 3.5rem) so bottom of sidebar & canvas are never clipped */
 #priceOfferingDocPage:not(.hidden) {
   display: flex !important;
