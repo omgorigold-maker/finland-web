@@ -25222,10 +25222,10 @@ function initSortableWidgets() {
     docTitle: 'Price Quote / Proposal',
     docSubtitle: '[PROJECT NAME]',
     sender: {
-      name: 'Ori Gold',
-      title: 'Creative Studio · Art & Graphics',
-      contact: 'Email: omg.ori.gold@gmail.com',
-      location: 'WhatsApp: +972 55 777 0026'
+      name: 'Studio',
+      title: 'Creative Direction & Design',
+      contact: '',
+      location: ''
     },
     typography: {
       fontFamily: 'Inter, sans-serif',
