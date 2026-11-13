@@ -1413,6 +1413,17 @@ textarea.po-selectable,
   pointer-events: none;
 }
 
+/* Placeholder disappears immediately on click / focus */
+.po-field[contenteditable="true"]:focus::before,
+.po-section-content[contenteditable="true"]:focus::before {
+  content: none !important;
+}
+
+#priceOfferingPrintArea input:focus::placeholder,
+#priceOfferingPrintArea textarea:focus::placeholder {
+  color: transparent !important;
+}
+
 @page {
   size: A4 portrait;
   margin: 0;

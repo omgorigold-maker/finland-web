@@ -22242,9 +22242,11 @@ function initSortableWidgets() {
 
     // 1. Exact dedicated key lookup first
     let attachment = null;
+    let exactCandidate = null;
     if (attKey) {
       const exact = await getReceiptAttachment(attKey);
       if (exact && exact.data) {
+        exactCandidate = exact;
         if (!fallbackKey || attKey !== fallbackKey || matchesExpectedName(exact)) {
           attachment = exact;
         } else if (!expectedName) {
@@ -22253,14 +22255,15 @@ function initSortableWidgets() {
       }
     }
 
-    // 2. If exact key was overwritten or missing, search known non-colliding sibling keys for the exact filename
-    if ((!attachment || !attachment.data) && !isGenericExpected && entityId) {
+    // 2. If exact key was overwritten, missing, or didn't match filename, search known sibling keys
+    if ((!attachment || !attachment.data) && entityId) {
       const siblingKeys = [
-        `${entityId}_brief`,
         `${entityId}_quote`,
         `${entityId}_proforma`,
+        `${entityId}_deposit_proforma`,
         `${entityId}_invoice`,
-        `${entityId}_receipt`
+        `${entityId}_receipt`,
+        `${entityId}_brief`
       ];
       for (const sk of siblingKeys) {
         if (sk === attKey) continue;
@@ -22272,7 +22275,7 @@ function initSortableWidgets() {
       }
     }
 
-    // 3. Only use shared fallbackKey if it actually matches the expected filename (prevents showing a newer file on an older row)
+    // 3. Only use shared fallbackKey if it actually matches the expected filename
     if ((!attachment || !attachment.data) && fallbackKey && fallbackKey !== attKey) {
       const fb = await getReceiptAttachment(fallbackKey);
       if (matchesExpectedName(fb)) {
@@ -22286,6 +22289,11 @@ function initSortableWidgets() {
       if (matchesExpectedName(legacyProf)) {
         attachment = legacyProf;
       }
+    }
+
+    // 5. Direct fallback: If exactCandidate was retrieved for this exact key, display it rather than failing
+    if ((!attachment || !attachment.data) && exactCandidate && exactCandidate.data) {
+      attachment = exactCandidate;
     }
 
     if (!attachment || !attachment.data) {
@@ -22844,8 +22852,9 @@ function initSortableWidgets() {
           proj.hasProformaDoc = true;
           const pi = proj.proformaInvoice;
           pi._isProforma = true;
-          if ((pi.docSubtitle === 'Print & Merch Design Bundle' && projTitle !== 'Print & Merch Design Bundle') || pi.docSubtitle === 'Preliminary Invoice / Advance Payment Request' || pi.docSubtitle.trim() === 'Preliminary Invoice') {
-            pi.docSubtitle = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
+          const projTitle = (proj.title || proj.description || '').trim();
+          if (pi.docSubtitle === 'Print & Merch Design Bundle' && projTitle !== 'Print & Merch Design Bundle') {
+            pi.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
             if (pi.richText) delete pi.richText.doc_subtitle;
           }
           if (!pi.labels || pi.labels.reference === 'Reference #' || pi.labels.validUntil === 'Valid Until' || pi.labels.totalEstimate === 'Total Estimate' || !pi.labels.issueDate) {
@@ -23721,8 +23730,6 @@ function initSortableWidgets() {
     state.activeFollowupProjectId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
-    state.activeDepositProformaProjectId = null;
-    state.activeStudioDocId = null;
     try {
       localStorage.setItem('ft_active_followup_lead', leadId);
       localStorage.removeItem('ft_active_followup_project');
@@ -25220,46 +25227,33 @@ function initSortableWidgets() {
 
   const DEFAULT_PO_TEMPLATE = {
     docTitle: 'Price Quote / Proposal',
-    docSubtitle: '[PROJECT NAME]',
+    docSubtitle: '',
     sender: {
-      name: 'Ori Gold',
-      title: 'Creative Studio · Art & Graphics',
-      contact: 'Email: omg.ori.gold@gmail.com',
-      location: 'WhatsApp: +972 55 777 0026'
+      name: 'Studio',
+      title: 'Creative Direction & Design',
+      contact: '',
+      location: ''
     },
     typography: {
       fontFamily: 'Inter, sans-serif',
       fontSize: 13,
-      lineHeight: 1.55,
+      lineHeight: 1.6,
       sectionGap: 22,
       titleGap: 8,
       titleSize: 12,
-      sheetPadding: '48px 52px',
+      sheetPadding: '36px 40px',
       showPageNumbers: true
     },
     elementStyles: {
       doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
-      doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em', fontSize: 14 },
       sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
       sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
       sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
       sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
-      client_name: { offsetY: -0.5 },
       client_email: { offsetY: -2 },
       client_address: { offsetY: -3 },
-      divider_overview: { offsetY: -1 },
-      sec_sec_div_overview: { offsetY: -4.5 },
       sec_sec_deliverables: { offsetY: 1 },
-      totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
-      th_desc: { lineHeight: '1.7' },
-      th_amount: { lineHeight: '2', offsetX: 7.5 },
-      item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-      item_amount_0: { offsetX: 7 },
-      item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
-      subtotal_val: { offsetX: -0.5 },
-      cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-      issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-      valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' }
+      totals_sec_deliverables: { offsetY: -3 }
     },
     labels: {
       client: 'Client / Recipient',
@@ -25268,65 +25262,16 @@ function initSortableWidgets() {
       issueDate: 'Date Issued',
       validUntil: 'Valid Until',
       project: 'Project / Assignment',
-      thDesc: 'ITEM / DESCRIPTION',
-      thQty: 'QTY',
-      thRate: 'RATE',
-      thAmount: 'AMOUNT',
+      thDesc: 'Deliverable / Description',
+      thQty: 'Qty',
+      thRate: 'Rate',
+      thAmount: 'Amount',
       subtotal: 'Subtotal',
-      discount: 'Bundle Discount',
+      discount: 'Discount',
       tax: 'VAT / Tax',
-      totalInvestment: 'TOTAL'
+      totalInvestment: 'Total Investment'
     }
   };
-
-  const PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT = [
-    '<div>1. Concept & First Drafts: Delivered within ____________ business days from deposit payment.</div>',
-    '<div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div>',
-    '<div>3. Final Delivery: _________________</div>'
-  ].join('');
-
-  const PRICE_QUOTE_DEFAULT_TERMS_CONTENT = [
-    '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div>',
-    '<div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div>',
-    '<div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div>',
-    '<div>• The remaining 50% project balance will be invoiced upon final review and final project files handoff.</div>'
-  ].join('');
-
-  const PRICE_QUOTE_DEFAULT_BANK_CONTENT = [
-    '<div>Name: Ori Gold</div>',
-    '<div>IBAN: BE63 9051 4444 2808</div>',
-    '<div>Swift/BIC: TRWIBEB1XXX</div>',
-    '<div>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</div>'
-  ].join('');
-
-  function getPriceQuoteDefaultSections(lead) {
-    const scopeContent = (lead && lead.notes)
-      ? String(lead.notes).split('\n\n---\n\n')[0]
-      : '<div>[Project Scope]</div>';
-    return [
-      { id: 'sec_header', type: 'header', title: 'Document Header' },
-      { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
-      { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-      { id: 'sec_scope_quote', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: scopeContent },
-      { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
-      { id: 'sec_timeline_quote', type: 'terms', title: 'PROJECT TIMELINE & DELIVERY', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TIMELINE_CONTENT },
-      { id: 'sec_terms_quote', type: 'terms', title: 'TERMS & CONDITIONS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_TERMS_CONTENT },
-      { id: 'sec_bank_quote', type: 'text', title: 'BANK TRANSFER DETAILS', pageBreakBefore: false, content: PRICE_QUOTE_DEFAULT_BANK_CONTENT },
-      {
-        id: 'sec_acc_quote',
-        type: 'acceptance',
-        title: '',
-        clientTitle: 'Client Signature',
-        providerTitle: 'Service Provider Signature',
-        signSealText: 'Signature & Seal',
-        signDateText: 'Date: _________________',
-        signNameText: 'Name: _________________',
-        signSealProviderText: 'Signature & Seal',
-        signDateProviderText: 'Date: _________________',
-        signNameProviderText: 'Name: _________________'
-      }
-    ];
-  }
 
   const PROFORMA_DEFAULT_LABELS = {
     client: 'Bill To / Client',
@@ -25346,82 +25291,31 @@ function initSortableWidgets() {
   };
 
   const DEPOSIT_PROFORMA_DEFAULT_LABELS = {
-    client: 'Client / Recipient',
-    reference: 'Reference',
+    client: 'Bill To / Client',
+    reference: 'Deposit Invoice #',
     currency: 'Currency',
-    issueDate: 'Date Issued',
-    validUntil: 'Valid Until',
-    project: 'Project / Assignment',
-    thDesc: 'Deliverable / Description',
+    issueDate: 'Invoice Date',
+    validUntil: 'Payment Due',
+    project: 'Project / Milestone',
+    thDesc: 'Milestone / Deliverable',
     thQty: 'Qty',
-    thRate: 'Total',
-    thAmount: 'Deposit (50%)',
-    subtotal: 'Subtotal',
+    thRate: 'Deposit Amount',
+    thAmount: 'Amount Due',
+    subtotal: 'Deposit Subtotal (50%)',
     discount: 'Discount',
     tax: 'VAT / Tax',
-    totalInvestment: 'Total Investment'
+    totalInvestment: 'Deposit Due'
   };
 
-  const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
-    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif", color: '#0f172a' },
-    doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
-    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
-    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
-    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
-    client_email: { offsetY: -2 },
-    client_address: { offsetY: -3 },
-    divider_overview: { offsetY: -1 },
-    sec_sec_div_overview: { offsetY: -2.5 },
-    cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-    issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-    valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-    sec_sec_deliverables: { offsetY: 1 },
-    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
-    th_desc: { lineHeight: '1.7' },
-    th_amount: { offsetX: 10.5 },
-    item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-    item_amount_0: { offsetY: 0, offsetX: 10 },
-    item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
-    title_sec_terms_dep: { lineHeight: '1.3' },
-    content_sec_terms_dep: { lineHeight: '1.5' },
-    title_sec_bank_dep: { lineHeight: '1.3' },
-    content_sec_bank_dep: { marginBottom: 14.67, lineHeight: '1.5' },
-    title_sec_comm_dep: { lineHeight: '1.4', letterSpacing: '0.04em', color: '#475569' },
-    content_sec_comm_dep: { lineHeight: '1.5' },
-    title_sec_text_1794509158124: { lineHeight: '1.3' },
-    content_sec_text_1794509158124: { marginBottom: 14.67, lineHeight: '1.5' },
-    title_sec_text_1794514102748: { lineHeight: '1.4', letterSpacing: '0.04em', color: '#475569' },
-    content_sec_text_1794514102748: { lineHeight: '1.5' }
-  };
-
-  const DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT = {
-    doc_heading: '<span style="color: rgb(15, 23, 42);" class="">DEPOSIT PROFORMA INVOICE</span>',
-    title_sec_terms_dep: '<span style="display: inline-block; line-height: 1.3;" class="">PAYMENT TERMS</span>',
-    title_sec_comm_dep: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>',
-    title_sec_text_1794514102748: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>'
-  };
-
-  const DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY = {
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 13,
-    lineHeight: 1.6,
-    sectionGap: 22,
-    titleGap: 8,
-    titleSize: 12,
-    sheetPadding: '36px 40px',
-    showPageNumbers: true
-  };
-
-  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment terms: Due upon receipt / within 7 days of invoice date.</div><div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div><div>• Full commercial usage rights and release of all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.</div><div>• All project work remains the property of the provider until payment is completed.<br><br></div><div><i>Bank account details:</i></div><div><i>Name: Ori Gold</i></div><div><i>IBAN: BE63 9051 4444 2808</i></div><div><i>Swift/BIC: TRWIBEB1XXX</i></div><div><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></div>';
+  const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
-    '<div>• Deposit payment is due upon signing the project proposal / quote.</div>',
-    '<div>• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.</div>',
-    '<div>• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.</div>',
-    '<div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div>'
-  ].join('');
-  const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = '<div>Name: Ori Gold</div><div>IBAN: BE63 9051 4444 2808</div><div>Swift/BIC: TRWIBEB1XXX</div><div>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</div>';
-  const DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT = '<div>MON-SAT VIA EMAIL: OMG.ORI.GOLD@GMAIL.COM / WHATSAPP: +972 55 777 0026</div>';
+    '• Deposit payment is due upon signing the project proposal / quote.',
+    '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
+    '• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
+    '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.'
+  ].join('\n');
+  const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
+  const DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT = 'MON-SAT VIA EMAIL: OMG.ORI.GOLD@GMAIL.COM / WHATSAPP: +972 55 777 0026';
   function getDepositProformaDefaultTerms() {
     if (isDemoMode()) {
       return [
@@ -25446,7 +25340,7 @@ function initSortableWidgets() {
     return DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT;
   }
   function getProformaDefaultTerms() {
-    if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim() && state.appPrefs.proformaDefaultTerms.includes('remains the property of the provider')) {
+    if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
       return state.appPrefs.proformaDefaultTerms;
     }
     return GENERIC_PROFORMA_DEFAULT_TERMS;
@@ -25468,9 +25362,6 @@ function initSortableWidgets() {
     }
     if (!tpl.elementStyles || typeof tpl.elementStyles !== 'object') {
       tpl.elementStyles = {};
-    }
-    if (tpl.elementStyles.doc_subtitle && (!tpl.elementStyles.doc_subtitle.color || tpl.elementStyles.doc_subtitle.color === '#db2777')) {
-      tpl.elementStyles.doc_subtitle.color = '#64748b';
     }
     if (tpl.richText && typeof tpl.richText === 'object') {
       Object.keys(tpl.richText).forEach(rk => {
@@ -25637,8 +25528,22 @@ function initSortableWidgets() {
       // Remove any separate conditions block in deposit proforma (notes are already inside payment terms)
       out = out.filter(s => !(s && s.type === 'conditions'));
     } else {
-      // Proforma invoices consolidate all notices and notes into Payment Terms & Bank Details; remove separate conditions section
-      out = out.filter(s => !(s && (s.type === 'conditions' || s.title === 'Notice & Invoicing Notes')));
+      // Ensure Notice & Invoicing Notes section exists for normal proforma
+      const defaultConditions = PROFORMA_DEFAULT_CONDITIONS_CONTENT;
+      const condTitle = 'Notice & Invoicing Notes';
+      let tplCond = out.find(s => s && s.type === 'conditions');
+      if (tplCond) {
+        tplCond.title = condTitle;
+        tplCond.content = existingCond?.content || defaultConditions;
+      } else {
+        out.push({
+          id: existingCond?.id || ('sec_conditions_' + Date.now()),
+          type: 'conditions',
+          title: condTitle,
+          pageBreakBefore: false,
+          content: existingCond?.content || defaultConditions
+        });
+      }
     }
 
     return out;
@@ -25649,32 +25554,31 @@ function initSortableWidgets() {
     try {
       localTpl = JSON.parse(localStorage.getItem('ft_po_default_template') || 'null');
     } catch (e) {}
-    let vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
-    if (vaultTpl && (vaultTpl.docType === 'deposit_proforma' || vaultTpl.docType === 'proforma' || String(vaultTpl.id || '').includes('proforma') || String(vaultTpl.docTitle || '').toUpperCase().includes('PROFORMA'))) {
-      vaultTpl = null;
-    }
-    if (localTpl && (localTpl.docType === 'deposit_proforma' || localTpl.docType === 'proforma' || String(localTpl.id || '').includes('proforma') || String(localTpl.docTitle || '').toUpperCase().includes('PROFORMA'))) {
-      localTpl = null;
-    }
+    const vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
     const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
     return {
       id: customTpl.id || 'tpl_price_quote_master',
       docType: 'price_quote',
       name: customTpl.name || 'Price Quote / Proposal Template',
       docTitle: 'Price Quote / Proposal',
-      docSubtitle: customTpl.docSubtitle !== undefined && customTpl.docSubtitle !== '' ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
+      docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
       sender: Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {}),
       typography: Object.assign({}, DEFAULT_PO_TEMPLATE.typography, customTpl.typography || {}),
       elementStyles: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_PO_TEMPLATE.elementStyles)), JSON.parse(JSON.stringify(customTpl.elementStyles || {}))),
       labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {}),
-      sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : getPriceQuoteDefaultSections(),
+      sections: Array.isArray(customTpl.sections) ? JSON.parse(JSON.stringify(customTpl.sections)) : null,
       richText: customTpl.richText ? JSON.parse(JSON.stringify(customTpl.richText)) : {}
     };
   }
 
   function getMasterDepositProformaTemplate() {
     const master = getMasterPoTemplate();
-    const elemStyles = Object.assign({}, JSON.parse(JSON.stringify(master.elementStyles || {})), DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES);
+    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
+    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
+      color: '#64748b',
+      fontWeight: '700',
+      letterSpacing: '0.05em'
+    });
     return {
       id: 'tpl_master_deposit_proforma',
       docType: 'deposit_proforma',
@@ -25684,20 +25588,20 @@ function initSortableWidgets() {
       docTitle: 'DEPOSIT PROFORMA INVOICE',
       docSubtitle: 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
       sender: Object.assign({}, master.sender),
-      typography: Object.assign({}, master.typography, DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY),
+      typography: Object.assign({}, master.typography),
       elementStyles: elemStyles,
       labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
       sections: [
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '<div>As agreed upon signing quote / proposal</div>' },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
-        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: getDepositProformaDefaultTerms() },
-        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: getDepositProformaDefaultBank() },
-        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: getDepositProformaDefaultCommunication() }
+        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: 'As agreed upon signing quote / proposal' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
+        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
+        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT },
+        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT }
       ],
-      richText: Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT)
+      richText: {}
     };
   }
 
@@ -25727,7 +25631,8 @@ function initSortableWidgets() {
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
         { id: 'sec_scope_prof', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
-        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() }
+        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
+        { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
       richText: {}
     };
@@ -25780,37 +25685,9 @@ function initSortableWidgets() {
       existingDep.docTitle = masterDep.docTitle;
       existingDep.docSubtitle = masterDep.docSubtitle;
       existingDep.sections = JSON.parse(JSON.stringify(masterDep.sections));
-      existingDep.typography = Object.assign({}, existingDep.typography || {}, masterDep.typography);
-      existingDep.elementStyles = Object.assign({}, existingDep.elementStyles || {}, masterDep.elementStyles);
-      existingDep.elementStyles.th_amount = Object.assign({}, masterDep.elementStyles.th_amount);
-      existingDep.elementStyles.item_amount_0 = Object.assign({}, masterDep.elementStyles.item_amount_0);
-      existingDep.elementStyles.doc_heading = Object.assign({}, masterDep.elementStyles.doc_heading);
-      existingDep.labels = Object.assign({}, existingDep.labels || {}, masterDep.labels);
-      existingDep.richText = Object.assign({}, existingDep.richText || {}, masterDep.richText);
     }
-    const masterProf = getMasterProformaTemplate();
-    const existingProf = list.find(t => t.docType === 'proforma');
-    if (!existingProf) {
-      list.push(masterProf);
-    } else {
-      existingProf.name = 'Proforma Invoice Template';
-      existingProf.isDefault = true;
-      existingProf.docTitle = masterProf.docTitle;
-      existingProf.docSubtitle = masterProf.docSubtitle;
-      if (Array.isArray(existingProf.sections)) {
-        existingProf.sections = existingProf.sections.filter(s => !(s && (s.type === 'conditions' || s.title === 'Notice & Invoicing Notes')));
-        const termsSec = existingProf.sections.find(s => s && s.type === 'terms');
-        if (termsSec && (!termsSec.content || !termsSec.content.includes('remains the property of the provider'))) {
-          termsSec.content = getProformaDefaultTerms();
-        }
-      }
-      if (!existingProf.elementStyles) existingProf.elementStyles = {};
-      if (!existingProf.elementStyles.doc_subtitle) existingProf.elementStyles.doc_subtitle = {};
-      if (!existingProf.elementStyles.doc_subtitle.color || existingProf.elementStyles.doc_subtitle.color === '#db2777') {
-        existingProf.elementStyles.doc_subtitle.color = '#64748b';
-      }
-      existingProf.elementStyles.doc_subtitle.fontWeight = '700';
-      existingProf.elementStyles.doc_subtitle.letterSpacing = '0.05em';
+    if (!list.some(t => t.docType === 'proforma')) {
+      list.push(getMasterProformaTemplate());
     }
     if (!list.some(t => t.docType === 'price_quote')) {
       const mq = getMasterPoTemplate();
@@ -25860,14 +25737,11 @@ function initSortableWidgets() {
     });
     container.querySelectorAll('#poItemsTableBody tr').forEach((row, idx) => {
       if (!currentPoItems[idx]) return;
-      const isDep = getActiveDocType() === 'deposit_proforma';
       const qtyInput = row.querySelector('.po-item-qty');
       const rateInput = row.querySelector('.po-item-rate');
       if (qtyInput) currentPoItems[idx].qty = parseFloat(qtyInput.value) || 0;
       if (rateInput) currentPoItems[idx].rate = parseFloat(rateInput.value) || 0;
-      const qVal = currentPoItems[idx].qty || 0;
-      const rVal = currentPoItems[idx].rate || 0;
-      currentPoItems[idx].amount = isDep ? Math.round((qVal * rVal * 0.5) * 100) / 100 : Math.round((qVal * rVal) * 100) / 100;
+      currentPoItems[idx].amount = (currentPoItems[idx].qty || 0) * (currentPoItems[idx].rate || 0);
     });
     container.querySelectorAll('.po-section-title-input').forEach(inp => {
       const secId = inp.getAttribute('data-sec-id');
@@ -26039,7 +25913,7 @@ function initSortableWidgets() {
     const curDocType = getActiveDocType();
 
     // 1. DEPOSIT PROFORMA (50% Milestone) Target
-    if (curDocType === 'deposit_proforma') {
+    if (curDocType === 'deposit_proforma' || state.activeDepositProformaProjectId) {
       const depProjId = state.activeDepositProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
       const proj = (state.budget?.projects || []).find(p => p.id === depProjId);
       if (proj) {
@@ -26069,7 +25943,7 @@ function initSortableWidgets() {
     }
 
     // 2. PROFORMA INVOICE Target
-    if (curDocType === 'proforma') {
+    if (curDocType === 'proforma' || state.activeProformaProjectId) {
       const profProjId = state.activeProformaProjectId || (leadId && (state.budget?.projects || []).some(p => p.id === leadId) ? leadId : state.activeFollowupProjectId);
       const proj = (state.budget?.projects || []).find(p => p.id === profProjId);
       if (proj) {
@@ -27100,7 +26974,7 @@ function initSortableWidgets() {
     const undoBtn = document.getElementById('poUndoBtn');
     const redoBtn = document.getElementById('poRedoBtn');
     if (undoBtn) {
-      const canUndo = poUndoStack.length > 1 || !!poInputSnapshotTimer;
+      const canUndo = poUndoStack.length > 1;
       undoBtn.disabled = !canUndo;
       undoBtn.classList.toggle('opacity-40', !canUndo);
       undoBtn.classList.toggle('pointer-events-none', !canUndo);
@@ -27116,14 +26990,9 @@ function initSortableWidgets() {
   function schedulePoInputSnapshot() {
     if (poIsApplyingUndoRedo) return;
     if (poInputSnapshotTimer) clearTimeout(poInputSnapshotTimer);
-    const undoBtn = document.getElementById('poUndoBtn');
-    if (undoBtn && poUndoStack.length > 0) {
-      undoBtn.disabled = false;
-      undoBtn.classList.remove('opacity-40', 'pointer-events-none');
-    }
     poInputSnapshotTimer = setTimeout(() => {
       pushPoUndoSnapshot();
-    }, 500);
+    }, 600);
   }
 
   function applyPoDocumentSnapshot(snap) {
@@ -27203,11 +27072,6 @@ function initSortableWidgets() {
     if (poInputSnapshotTimer) {
       clearTimeout(poInputSnapshotTimer);
       poInputSnapshotTimer = null;
-      const current = getPoDocumentSnapshot();
-      const top = poUndoStack[poUndoStack.length - 1];
-      if (top && JSON.stringify(top) !== JSON.stringify(current)) {
-        poUndoStack.push(current);
-      }
     }
     const current = getPoDocumentSnapshot();
     const top = poUndoStack[poUndoStack.length - 1];
@@ -27216,7 +27080,6 @@ function initSortableWidgets() {
     }
     if (poUndoStack.length <= 1) {
       showToast('Nothing to Undo', 'At oldest document state.', 'info');
-      updatePoUndoRedoUI();
       return;
     }
     const currentState = poUndoStack.pop();
@@ -27228,15 +27091,7 @@ function initSortableWidgets() {
   }
 
   function triggerPoRedo() {
-    if (poInputSnapshotTimer) {
-      clearTimeout(poInputSnapshotTimer);
-      poInputSnapshotTimer = null;
-    }
-    if (poRedoStack.length === 0) {
-      showToast('Nothing to Redo', 'At newest document state.', 'info');
-      updatePoUndoRedoUI();
-      return;
-    }
+    if (poRedoStack.length === 0) return;
     const target = poRedoStack.pop();
     poUndoStack.push(target);
     applyPoDocumentSnapshot(target);
@@ -27928,9 +27783,6 @@ function initSortableWidgets() {
       if (st.deleted && /^(content|title)_/.test(elemId)) {
         delete st.deleted;
       }
-      if (elemId === 'doc_subtitle' && st.color === '#db2777') {
-        st.color = '#64748b';
-      }
       const el = document.querySelector(`#priceOfferingPrintArea [data-elem-id="${elemId}"], #priceOfferingPrintArea [data-po-unit-id="${elemId}"]`);
       if (!el) return;
       if (st.deleted) {
@@ -27943,57 +27795,6 @@ function initSortableWidgets() {
         poApplyStyleProp(el, prop, st[prop]);
       });
     });
-
-    // Semantic section title/content fallback for deposit proforma
-    document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="title_sec_"]').forEach(el => {
-      const eid = el.getAttribute('data-elem-id');
-      if (poElementStyles[eid]) return;
-      const titleVal = (el.value || el.textContent || '').trim().toUpperCase();
-      let fallbackKey = null;
-      if (titleVal === 'PAYMENT TERMS') fallbackKey = 'title_sec_terms_dep';
-      else if (titleVal === 'BANK DETAILS') fallbackKey = 'title_sec_bank_dep';
-      else if (titleVal.startsWith('COMMUNICATION')) fallbackKey = 'title_sec_comm_dep';
-      if (fallbackKey && poElementStyles[fallbackKey]) {
-        const st = poElementStyles[fallbackKey];
-        Object.keys(st).forEach(prop => {
-          if (prop === 'deleted' || prop === 'domOrder') return;
-          poApplyStyleProp(el, prop, st[prop]);
-        });
-      }
-    });
-
-    document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="content_sec_"]').forEach(el => {
-      const eid = el.getAttribute('data-elem-id');
-      if (poElementStyles[eid]) return;
-      const secEl = el.closest('[data-sec-type]');
-      const secType = secEl ? secEl.getAttribute('data-sec-type') : null;
-      const titleEl = secEl ? secEl.querySelector('[data-elem-id^="title_sec_"]') : null;
-      const titleVal = titleEl ? (titleEl.value || titleEl.textContent || '').trim().toUpperCase() : '';
-      let fallbackKey = null;
-      if (secType === 'terms' || titleVal === 'PAYMENT TERMS') fallbackKey = 'content_sec_terms_dep';
-      else if (titleVal === 'BANK DETAILS') fallbackKey = 'content_sec_bank_dep';
-      else if (titleVal.startsWith('COMMUNICATION')) fallbackKey = 'content_sec_comm_dep';
-      if (fallbackKey && poElementStyles[fallbackKey]) {
-        const st = poElementStyles[fallbackKey];
-        Object.keys(st).forEach(prop => {
-          if (prop === 'deleted' || prop === 'domOrder') return;
-          poApplyStyleProp(el, prop, st[prop]);
-        });
-      }
-    });
-
-    // Also propagate row 0 amount alignment to all amount cells if not explicitly set
-    if (poElementStyles['item_amount_0']) {
-      const amt0 = poElementStyles['item_amount_0'];
-      document.querySelectorAll('#priceOfferingPrintArea [data-elem-id^="item_amount_"]').forEach(el => {
-        const eid = el.getAttribute('data-elem-id');
-        if (eid !== 'item_amount_0' && (!poElementStyles[eid] || (poElementStyles[eid].offsetX === undefined && poElementStyles[eid].offsetY === undefined))) {
-          if (amt0.offsetX !== undefined || amt0.offsetY !== undefined) {
-            el.style.transform = poBuildTransform(amt0);
-          }
-        }
-      });
-    }
 
     // Hide any metadata cell or total row whose inner [data-elem-id] children are all deleted
     document.querySelectorAll('#priceOfferingPrintArea .po-meta-cell, #priceOfferingPrintArea .po-total-row').forEach(cell => {
@@ -29017,9 +28818,9 @@ function initSortableWidgets() {
       newSec = {
         id: 'sec_acc_' + stamp,
         type: 'acceptance',
-        title: '',
-        clientTitle: 'CLIENT SIGNATURE',
-        providerTitle: 'SERVICE PROVIDER SIGNATURE'
+        title: 'Authorization & Acceptance',
+        clientTitle: 'Authorized Client Signature',
+        providerTitle: 'Service Provider Signature'
       };
     } else {
       newSec = {
@@ -29164,7 +28965,65 @@ function initSortableWidgets() {
       return clonedSecs;
     }
 
-    return getPriceQuoteDefaultSections(lead);
+    return [
+      {
+        id: 'sec_header',
+        type: 'header',
+        title: 'Document Header'
+      },
+      {
+        id: 'sec_overview',
+        type: 'overview',
+        title: 'Client & Project Details'
+      },
+      {
+        id: 'sec_div_overview',
+        type: 'divider',
+        title: 'Divider Line',
+        content: ''
+      },
+      {
+        id: 'sec_custom_summary',
+        type: 'custom',
+        title: 'summary',
+        pageBreakBefore: false,
+        content: po?.scope !== undefined ? po.scope : (lead?.notes ? String(lead.notes).split('\n\n---\n\n')[0] : '')
+      },
+      {
+        id: 'sec_deliverables',
+        type: 'deliverables',
+        title: 'Deliverables & Investment',
+        pageBreakBefore: false
+      },
+      {
+        id: 'sec_timeline',
+        type: 'timeline',
+        title: 'Project Timeline & Delivery',
+        pageBreakBefore: false,
+        content: po?.timeline || ''
+      },
+      {
+        id: 'sec_conditions',
+        type: 'conditions',
+        title: 'Terms & Conditions',
+        pageBreakBefore: false,
+        content: po?.conditions || ''
+      },
+      {
+        id: 'sec_acceptance',
+        type: 'acceptance',
+        title: '',
+        clientTitle: 'Authorized Client Signature',
+        providerTitle: 'Service Provider Signature',
+        pageBreakBefore: false,
+        signSealText: 'Signature & Seal',
+        signDateText: 'Date: _________________',
+        signNameText: 'Name: _________________',
+        signSealProviderText: 'Signature & Seal',
+        signDateProviderText: 'Date: _________________',
+        signNameProviderText: 'Name: _________________'
+      }
+    ];
   }
 
   // ==========================================
@@ -30173,12 +30032,12 @@ function initSortableWidgets() {
         </div>
       `;
     } else if (sec.type === 'acceptance') {
-      const clientTitle = sec.clientTitle || 'CLIENT SIGNATURE';
-      const providerTitle = sec.providerTitle || 'SERVICE PROVIDER SIGNATURE';
+      const clientTitle = sec.clientTitle || 'Authorized Client Signature';
+      const providerTitle = sec.providerTitle || 'Service Provider Signature';
       bodyHtml = `
         <div class="po-selectable po-signatures-grid grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4" data-elem-id="signatures_${sid}" data-elem-name="Signatures Block" data-elem-type="signatures" data-po-container="signatures_grid">
           <div class="space-y-3" data-po-unit-id="sig_col_client" data-po-container="sig_client">
-            <input type="text" class="po-client-sign-title font-bold text-xs uppercase tracking-wider text-slate-800 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full" data-sec-id="${sid}" value="${escapeHtml(clientTitle)}" placeholder="CLIENT SIGNATURE">
+            <input type="text" class="po-client-sign-title font-bold text-xs uppercase tracking-wider text-slate-800 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full" data-sec-id="${sid}" value="${escapeHtml(clientTitle)}" placeholder="AUTHORIZED CLIENT SIGNATURE">
             <div class="h-16 border-b border-slate-300 flex items-end pb-1">
               <input type="text" class="po-sign-seal-label text-[11px] text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full print-keep" data-sec-id="${sid}" value="${escapeHtml(sec.signSealText || 'Signature & Seal')}" placeholder="Signature & Seal">
             </div>
@@ -30215,20 +30074,13 @@ function initSortableWidgets() {
       `;
     }
 
-    const isAcceptance = sec.type === 'acceptance';
-    const titleHtml = isAcceptance ? '' : `
+    return `
+      ${insertZoneBeforeHtml}
+      <div class="po-section po-selectable ${selCls}" data-sec-id="${sid}" data-sec-index="${idx}" data-elem-id="sec_${sid}" data-elem-name="${escapeHtml(sec.title || 'Section')}" data-elem-type="section">
+        ${poBlockChromeHtml(idx, true, sec.title || 'Section')}
         <div class="po-title-wrap mb-1">
           <input type="text" class="po-selectable po-section-title-input text-xs font-bold uppercase tracking-wider text-slate-900 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-sec-id="${sid}" data-elem-id="title_${sid}" data-elem-name="Title: ${escapeHtml(sec.title || 'Untitled')}" data-elem-type="text" value="${escapeHtml(sec.title || '')}" placeholder="SECTION TITLE">
         </div>
-    `;
-    const secDisplayName = isAcceptance ? (sec.title || 'Sign Block') : (sec.title || 'Section');
-    const secElemType = isAcceptance ? 'acceptance' : 'section';
-
-    return `
-      ${insertZoneBeforeHtml}
-      <div class="po-section po-selectable ${selCls}" data-sec-id="${sid}" data-sec-index="${idx}" data-elem-id="sec_${sid}" data-elem-name="${escapeHtml(secDisplayName)}" data-elem-type="${secElemType}">
-        ${poBlockChromeHtml(idx, true, secDisplayName)}
-        ${titleHtml}
         ${bodyHtml}
       </div>
     `;
@@ -30552,7 +30404,7 @@ function initSortableWidgets() {
 
   function updateSavedPoSignatureBannerUI() {
     const banner = document.getElementById('poSavedSignatureBanner');
-    const previewBox = document.getElementById('poSavedSignatureThumb') || document.getElementById('poSavedSignaturePreviewBox');
+    const previewBox = document.getElementById('poSavedSignaturePreviewBox');
     if (!banner || !previewBox) return;
     const saved = getSavedPoSignaturePreset();
     if (!saved) {
@@ -30639,9 +30491,7 @@ function initSortableWidgets() {
     if (!modal || modal._poSigInitialized) return;
     modal._poSigInitialized = true;
 
-    document.getElementById('poCloseSigModalBtn')?.addEventListener('click', closePoSignatureModal);
     document.getElementById('poCloseSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
-    document.getElementById('poCancelSigModalBtn')?.addEventListener('click', closePoSignatureModal);
     document.getElementById('poCancelSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closePoSignatureModal();
@@ -30650,12 +30500,10 @@ function initSortableWidgets() {
     document.getElementById('poSigTabDrawBtn')?.addEventListener('click', () => switchPoSigModalTab('draw'));
     document.getElementById('poSigTabUploadBtn')?.addEventListener('click', () => switchPoSigModalTab('upload'));
 
-    const insertSavedAction = () => {
+    document.getElementById('poInsertSavedSignatureBtn')?.addEventListener('click', () => {
       const saved = getSavedPoSignaturePreset();
       if (saved) placePoSignatureDataOnDocument(saved);
-    };
-    document.getElementById('poInsertSavedSigQuickBtn')?.addEventListener('click', insertSavedAction);
-    document.getElementById('poInsertSavedSignatureBtn')?.addEventListener('click', insertSavedAction);
+    });
 
     // Pen Pad SVG Pointer Events
     const svgPad = document.getElementById('poSigPadSvg');
@@ -30705,20 +30553,16 @@ function initSortableWidgets() {
       svgPad.addEventListener('pointercancel', finishStroke);
     }
 
-    const undoSigStroke = () => {
+    document.getElementById('poSigUndoStrokeBtn')?.addEventListener('click', () => {
       poSigPadStrokes.pop();
       renderPoSigPadStrokes();
-    };
-    document.getElementById('poSigPadUndoBtn')?.addEventListener('click', undoSigStroke);
-    document.getElementById('poSigUndoStrokeBtn')?.addEventListener('click', undoSigStroke);
+    });
 
-    const clearSigPad = () => {
+    document.getElementById('poSigClearPadBtn')?.addEventListener('click', () => {
       poSigPadStrokes = [];
       poSigCurrentStroke = null;
       renderPoSigPadStrokes();
-    };
-    document.getElementById('poSigPadClearBtn')?.addEventListener('click', clearSigPad);
-    document.getElementById('poSigClearPadBtn')?.addEventListener('click', clearSigPad);
+    });
 
     document.querySelectorAll('.po-sig-pad-color').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -30726,22 +30570,6 @@ function initSortableWidgets() {
         document.querySelectorAll('.po-sig-pad-color').forEach(b => {
           b.classList.toggle('ring-2', b === btn);
           b.classList.toggle('ring-slate-300', b === btn);
-        });
-        renderPoSigPadStrokes();
-      });
-    });
-
-    document.querySelectorAll('.po-sig-pad-width').forEach(btn => {
-      btn.addEventListener('click', () => {
-        poSigStrokeWidth = parseFloat(btn.getAttribute('data-width')) || 2.25;
-        document.querySelectorAll('.po-sig-pad-width').forEach(b => {
-          const isAct = b === btn;
-          b.classList.toggle('bg-white', isAct);
-          b.classList.toggle('text-slate-900', isAct);
-          b.classList.toggle('shadow-2xs', isAct);
-          b.classList.toggle('font-bold', isAct);
-          b.classList.toggle('text-slate-600', !isAct);
-          b.classList.toggle('font-semibold', !isAct);
         });
         renderPoSigPadStrokes();
       });
@@ -30814,7 +30642,7 @@ function initSortableWidgets() {
     });
 
     // Place Signature onto Document Button
-    const placeSigAction = () => {
+    document.getElementById('poPlaceSignatureBtn')?.addEventListener('click', () => {
       if (poSigModalActiveTab === 'draw') {
         const vecData = computeCroppedPoVectorSignature();
         if (!vecData) {
@@ -30840,9 +30668,7 @@ function initSortableWidgets() {
           heightMm
         });
       }
-    };
-    document.getElementById('poInsertSignatureBtn')?.addEventListener('click', placeSigAction);
-    document.getElementById('poPlaceSignatureBtn')?.addEventListener('click', placeSigAction);
+    });
   }
 
   // Make sure legacy documents without structural blocks get them once, while allowing deliberate deletion
@@ -30895,10 +30721,9 @@ function initSortableWidgets() {
       return (el && container.contains(el)) ? el.value : fallback;
     };
 
-    const curType = getActiveDocType();
-    const isStudioDoc = curType === 'studio' || !!(lead._isStudioDoc || po._studioDoc);
-    const isDepositProforma = curType === 'deposit_proforma' || (!isStudioDoc && !!(lead._isDepositProforma || po._isDepositProforma));
-    const isProforma = !isDepositProforma && !isStudioDoc && (curType === 'proforma' || !!(lead._isProforma || po._isProforma));
+    const isStudioDoc = !!(lead._isStudioDoc || po._studioDoc);
+    const isDepositProforma = !!(lead._isDepositProforma || po._isDepositProforma || state.activeDepositProformaProjectId);
+    const isProforma = !isDepositProforma && !!(lead._isProforma || po._isProforma || state.activeProformaProjectId);
 
     const masterTpl = isDepositProforma
       ? getMasterDepositProformaTemplate()
@@ -30923,7 +30748,7 @@ function initSortableWidgets() {
     };
 
     let defaultHeading = 'Price Quote / Proposal';
-    let defaultSub = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '';
+    let defaultSub = '';
     if (isDepositProforma) {
       defaultHeading = 'DEPOSIT PROFORMA INVOICE';
       defaultSub = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
@@ -30960,15 +30785,7 @@ function initSortableWidgets() {
       }
     }
 
-    let resolvedSub = po.docSubtitle;
-    if (!isDepositProforma && !isProforma && !isStudioDoc) {
-      if (!resolvedSub || resolvedSub === '[PROJECT NAME]') {
-        resolvedSub = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : (defaultSub || '[PROJECT NAME]');
-      }
-    } else if (resolvedSub === undefined) {
-      resolvedSub = defaultSub;
-    }
-    const docSubtitle = live('poDocSubtitle', resolvedSub);
+    const docSubtitle = live('poDocSubtitle', po.docSubtitle !== undefined ? po.docSubtitle : defaultSub);
 
     const curYear = new Date().getFullYear();
     const refPrefix = isDepositProforma ? 'DPI' : (isProforma ? 'PI' : 'PO');
@@ -30982,10 +30799,7 @@ function initSortableWidgets() {
     const client = live('poClientName', po.client !== undefined ? po.client : (lead.client || ''));
     const clientEmail = live('poClientEmail', po.clientEmail || '');
     const clientAddress = live('poClientAddress', po.clientAddress || '');
-    const resolvedProjTitle = (po.projectTitle !== undefined && po.projectTitle !== '' && po.projectTitle !== '[PROJECT NAME]')
-      ? po.projectTitle
-      : ((lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '');
-    const projectTitle = live('poProjectTitle', resolvedProjTitle);
+    const projectTitle = live('poProjectTitle', po.projectTitle !== undefined ? po.projectTitle : (lead.title || lead.description || ''));
 
     const labels = readPoLabels(po.labels);
     if ((isProforma || isDepositProforma) && (!po.labels || Object.keys(po.labels).length === 0)) {
@@ -31365,11 +31179,10 @@ function initSortableWidgets() {
       return;
     }
 
-    const isDeposit = getActiveDocType() === 'deposit_proforma';
     tbody.innerHTML = currentPoItems.map((item, idx) => {
       const q = parseFloat(item.qty) || 1;
       const r = parseFloat(item.rate) || 0;
-      const amt = isDeposit ? Math.round((q * r * 0.5) * 100) / 100 : Math.round((q * r) * 100) / 100;
+      const amt = q * r;
       item.amount = amt;
 
       return `
@@ -31443,7 +31256,6 @@ function initSortableWidgets() {
     document.querySelectorAll('.poTableCurrencyLabel').forEach(el => el.textContent = cur);
 
     let subtotal = 0;
-    const isDeposit = getActiveDocType() === 'deposit_proforma';
     const rows = document.querySelectorAll('#poItemsTableBody tr');
     rows.forEach((row, idx) => {
       const qtyInput = row.querySelector('.po-item-qty');
@@ -31452,7 +31264,7 @@ function initSortableWidgets() {
 
       const q = parseFloat(qtyInput?.value) || 0;
       const r = parseFloat(rateInput?.value) || 0;
-      const amt = isDeposit ? Math.round((q * r * 0.5) * 100) / 100 : Math.round((q * r) * 100) / 100;
+      const amt = q * r;
       subtotal += amt;
 
       if (amtDisplay) amtDisplay.textContent = formatMoney(amt, cur);
@@ -32022,14 +31834,12 @@ function initSortableWidgets() {
 
   function getActiveDocType() {
     if (typeof poEditingMasterTemplateType !== 'undefined' && poEditingMasterTemplateType) return poEditingMasterTemplateType;
-    if (state.activeStudioDocId) return 'studio';
-    if (state.activePriceOfferingLeadId) return 'price_quote';
     if (state.activeDepositProformaProjectId) return 'deposit_proforma';
     if (state.activeProformaProjectId) return 'proforma';
     const target = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
-    if (target?._isStudioDoc || target?.priceOffering?._studioDoc) return 'studio';
     if (target?._isDepositProforma || target?.priceOffering?._isDepositProforma) return 'deposit_proforma';
     if (target?._isProforma || target?.priceOffering?._isProforma) return 'proforma';
+    if (target?._isStudioDoc || target?.priceOffering?._studioDoc) return 'studio';
     return 'price_quote';
   }
 
@@ -32052,13 +31862,8 @@ function initSortableWidgets() {
     clearTimeout(poAutoSaveTimeout);
     poAutoSaveTimeout = null;
     state.activeStudioDocId = null;
-    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = null;
     state.activePriceOfferingLeadId = leadId;
-    if (lead.priceOffering) {
-      lead.priceOffering._isDepositProforma = false;
-      lead.priceOffering._isProforma = false;
-    }
     if (isProj) {
       state.activeFollowupProjectId = leadId;
       state.activeFollowupLeadId = null;
@@ -32138,9 +31943,8 @@ function initSortableWidgets() {
       po.docSubtitle = '';
       if (po.richText) delete po.richText.doc_subtitle;
     }
-    const projName = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '';
-    if (po.docSubtitle === undefined || po.docSubtitle === '[PROJECT NAME]' || (!po.docSubtitle && projName)) {
-      po.docSubtitle = projName || (masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle);
+    if (po.docSubtitle === undefined) {
+      po.docSubtitle = masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle;
     }
     if (!po.sender || po.sender.name === 'Your Name / Studio') {
       po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
@@ -32213,7 +32017,6 @@ function initSortableWidgets() {
     state.activeStudioDocId = null;
     state.activePriceOfferingLeadId = null;
     state.activeFollowupLeadId = null;
-    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = projectId;
     state.activeFollowupProjectId = projectId;
     poEditingTemplateDesignId = null;
@@ -32272,9 +32075,7 @@ function initSortableWidgets() {
       let initTaxPct = 0;
       let initSubtotal = projAmount;
       let initTotal = projAmount;
-      const initElementStyles = {
-        doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' }
-      };
+      const initElementStyles = {};
       const initRichText = {};
 
       if (srcQuote && Array.isArray(srcQuote.items) && srcQuote.items.length > 0) {
@@ -32314,7 +32115,7 @@ function initSortableWidgets() {
         _isProforma: true,
         templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_studio_master',
         docTitle: 'PROFORMA INVOICE',
-        docSubtitle: 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
+        docSubtitle: 'Preliminary Invoice / Advance Payment Request',
         refNo: `PI-${curYear}-${curProjNum}`,
         issueDate: todayStr,
         validUntil: dueStr,
@@ -32360,6 +32161,13 @@ function initSortableWidgets() {
             title: 'Payment Terms & Bank Details',
             pageBreakBefore: false,
             content: getProformaDefaultTerms()
+          },
+          {
+            id: 'sec_conditions_' + Date.now(),
+            type: 'conditions',
+            title: 'Notice & Invoicing Notes',
+            pageBreakBefore: false,
+            content: '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.'
           }
         ],
         subtotal: initSubtotal,
@@ -32374,11 +32182,11 @@ function initSortableWidgets() {
     const po = proj.proformaInvoice;
     po._isProforma = true;
 
-    // Ensure Proforma sections have Payment Terms & Bank Details and no quote-only blocks
+    // Ensure Proforma sections have Payment Terms & Bank Details, Notice & Invoicing Notes, and no quote-only blocks
     if (Array.isArray(po.sections) && po.sections.length > 0) {
       po.sections = buildProformaSectionsFromTemplate(po.sections, po.sections, proj);
       const termsSec = po.sections.find(s => s && s.type === 'terms');
-      if (termsSec && (termsSec.content.includes('[Your Bank Name]') || termsSec.content.includes('within 14 days') || termsSec.content.includes('Address: Wise') || termsSec.content.includes('Studio Creative') || termsSec.content.includes('European Commercial Bank') || !termsSec.content.includes('remains the property of the provider'))) {
+      if (termsSec && (termsSec.content.includes('[Your Bank Name]') || termsSec.content.includes('within 14 days') || termsSec.content.includes('Address: Wise'))) {
         termsSec.content = getProformaDefaultTerms();
       }
     }
@@ -32391,15 +32199,6 @@ function initSortableWidgets() {
     allElemKeys.forEach(k => {
       poElementStyles[k] = Object.assign({}, baseElementStyles[k] || {}, projElementStyles[k] || {});
     });
-    if (!poElementStyles.doc_subtitle) poElementStyles.doc_subtitle = {};
-    if (!poElementStyles.doc_subtitle.color || poElementStyles.doc_subtitle.color === '#db2777') {
-      poElementStyles.doc_subtitle.color = '#64748b';
-    }
-    poElementStyles.doc_subtitle.fontWeight = '700';
-    poElementStyles.doc_subtitle.letterSpacing = '0.05em';
-    if (po.elementStyles && po.elementStyles.doc_subtitle && po.elementStyles.doc_subtitle.color === '#db2777') {
-      po.elementStyles.doc_subtitle.color = '#64748b';
-    }
     poRichText = Object.assign(
       {},
       JSON.parse(JSON.stringify(masterTpl.richText || {})),
@@ -32415,8 +32214,8 @@ function initSortableWidgets() {
     if (!po.docTitle || po.docTitle === 'Price Quote / Proposal') {
       po.docTitle = 'PROFORMA INVOICE';
     }
-    if (!po.docSubtitle || po.docSubtitle === 'Preliminary Invoice / Advance Payment Request' || po.docSubtitle.trim() === 'Preliminary Invoice' || (po.docSubtitle === 'Print & Merch Design Bundle' && proj.title !== 'Print & Merch Design Bundle')) {
-      po.docSubtitle = 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST';
+    if (!po.docSubtitle || (po.docSubtitle === 'Print & Merch Design Bundle' && proj.title !== 'Print & Merch Design Bundle')) {
+      po.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
     }
     if (!po.sender || po.sender.name === 'Your Name / Studio') {
       po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
@@ -32555,7 +32354,7 @@ function initSortableWidgets() {
       const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
       const quoteTotal = parseFloat(srcQuote && srcQuote.total) || 0;
       const fullProjAmount = quoteTotal > 0 ? quoteTotal : (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0);
-      const depositDue = Math.round((fullProjAmount * 0.5) * 100) / 100;
+      const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
       const projCur = proj.currency || (srcQuote && srcQuote.currency) || state.displayCurrency || 'EUR';
       const todayStr = new Date().toISOString().split('T')[0];
       const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
@@ -32566,21 +32365,24 @@ function initSortableWidgets() {
           id: 'po_item_' + Date.now(),
           description: `50% Project Commencement Deposit — \n${projItemName}`,
           qty: 1,
-          rate: fullProjAmount,
-          amount: depositDue
+          rate: depositRate,
+          amount: depositRate
         }
       ];
       let initDiscPct = 0;
       let initTaxPct = 0;
-      let initSubtotal = depositDue;
-      const initElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || {}));
-      const initRichText = JSON.parse(JSON.stringify(masterTpl.richText || {}));
-      const initTypography = JSON.parse(JSON.stringify(masterTpl.typography || {}));
+      let initSubtotal = depositRate;
+      let initTotal = depositRate;
+      const initElementStyles = {
+        doc_heading: { fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' },
+        doc_subtitle: { fontSize: 11, fontWeight: '700', letterSpacing: '0.05em', color: '#64748b' }
+      };
+      const initRichText = {};
 
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : '<div>As agreed upon signing quote / proposal</div>'));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : 'As agreed upon signing quote / proposal'));
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
@@ -32608,7 +32410,6 @@ function initSortableWidgets() {
         sender: baseSender,
         elementStyles: initElementStyles,
         richText: initRichText,
-        typography: initTypography,
         labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
         items: initialItems,
         sections: [
@@ -32616,33 +32417,33 @@ function initSortableWidgets() {
           { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
           { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
           {
-            id: 'sec_scope_dep',
+            id: 'sec_scope_' + Date.now(),
             type: 'scope',
             title: 'SUMMARY',
             pageBreakBefore: false,
             content: initScopeContent
           },
-          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
           {
-            id: 'sec_terms_dep',
+            id: 'sec_terms_' + Date.now(),
             type: 'terms',
             title: 'PAYMENT TERMS',
             pageBreakBefore: false,
-            content: getDepositProformaDefaultTerms()
+            content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT
           },
           {
-            id: 'sec_bank_dep',
+            id: 'sec_bank_' + Date.now(),
             type: 'text',
             title: 'BANK DETAILS',
             pageBreakBefore: false,
-            content: getDepositProformaDefaultBank()
+            content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
           },
           {
-            id: 'sec_comm_dep',
+            id: 'sec_comm_' + Date.now(),
             type: 'text',
             title: 'COMMUNICATION AND INQUIRIES:',
             pageBreakBefore: false,
-            content: getDepositProformaDefaultCommunication()
+            content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT
           }
         ],
         subtotal: initSubtotal,
@@ -32672,14 +32473,6 @@ function initSortableWidgets() {
     }
     poElementStyles.doc_subtitle.fontWeight = '700';
     poElementStyles.doc_subtitle.letterSpacing = '0.05em';
-    if (!poElementStyles.doc_heading) poElementStyles.doc_heading = {};
-    if (!poElementStyles.doc_heading.color) poElementStyles.doc_heading.color = '#0f172a';
-    if (!poElementStyles.th_amount || poElementStyles.th_amount.offsetX === 5.75) {
-      poElementStyles.th_amount = Object.assign({}, poElementStyles.th_amount || {}, { offsetX: 10.5 });
-    }
-    if (!poElementStyles.item_amount_0 || poElementStyles.item_amount_0.offsetX === 5.5) {
-      poElementStyles.item_amount_0 = Object.assign({}, poElementStyles.item_amount_0 || {}, { offsetY: 0, offsetX: 10 });
-    }
     if (po.elementStyles && po.elementStyles.doc_subtitle && po.elementStyles.doc_subtitle.color === '#db2777') {
       po.elementStyles.doc_subtitle.color = '#64748b';
     }
@@ -32696,8 +32489,6 @@ function initSortableWidgets() {
     const initialTypography = po.typography ? Object.assign({}, defaultTypography, po.typography) : defaultTypography;
 
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
-    po.labels.thRate = 'Total';
-    po.labels.thAmount = 'Deposit (50%)';
     po.docTitle = 'DEPOSIT PROFORMA INVOICE';
     po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
     if (!po.sender || !po.sender.name || po.sender.name === 'Your Name / Studio') {
@@ -32718,22 +32509,14 @@ function initSortableWidgets() {
     po.sections = JSON.parse(JSON.stringify(currentPoSections));
 
     // Items
-    const srcQuote = proj.priceOffering || (Array.isArray(proj.quoteExports) && proj.quoteExports[0] && proj.quoteExports[0].data ? proj.quoteExports[0].data : null);
-    const quoteTotal = parseFloat(srcQuote && srcQuote.total) || 0;
-    const fullProjAmount = quoteTotal > 0 ? quoteTotal : (parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0);
-    const initDepositAmount = Math.round((fullProjAmount * 0.5) * 100) / 100;
-    const fallbackProjName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Printable Design Bundle';
+    const initDepositAmount = Math.round(((parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0) * 0.5) * 100) / 100;
+    const fallbackProjName = proj.title || proj.description || 'Printable Design Bundle';
     if (Array.isArray(po.items) && po.items.length > 0) {
       currentPoItems = JSON.parse(JSON.stringify(po.items));
-      currentPoItems.forEach(it => {
-        const q = parseFloat(it.qty) || 1;
-        if (fullProjAmount > 0 && Math.abs((parseFloat(it.rate) || 0) - initDepositAmount) < 0.01 && Math.abs(fullProjAmount - initDepositAmount) > 0.01) {
-          it.rate = fullProjAmount;
-        } else if ((parseFloat(it.rate) || 0) === 0 && fullProjAmount > 0) {
-          it.rate = fullProjAmount;
-        }
-        it.amount = Math.round((q * (parseFloat(it.rate) || fullProjAmount) * 0.5) * 100) / 100;
-      });
+      if (currentPoItems.length === 1 && (parseFloat(currentPoItems[0].amount) || 0) === 0 && initDepositAmount > 0) {
+        currentPoItems[0].rate = initDepositAmount;
+        currentPoItems[0].amount = (parseFloat(currentPoItems[0].qty) || 1) * initDepositAmount;
+      }
       if (currentPoItems.length === 1 && currentPoItems[0].description && (currentPoItems[0].description.includes('(50% Initial Deposit Milestone)') || currentPoItems[0].description === 'Project Scope & Deliverables')) {
         currentPoItems[0].description = `50% Project Commencement Deposit — \n${fallbackProjName}`;
       }
@@ -32743,7 +32526,7 @@ function initSortableWidgets() {
           id: 'po_item_' + Date.now(),
           description: `50% Project Commencement Deposit — \n${fallbackProjName}`,
           qty: 1,
-          rate: fullProjAmount,
+          rate: initDepositAmount,
           amount: initDepositAmount
         }
       ];
@@ -32868,9 +32651,7 @@ function initSortableWidgets() {
         if (goBackInFinland()) return;
       }
       state.activePriceOfferingLeadId = null;
-      state.activeDepositProformaProjectId = null;
       state.activeProformaProjectId = null;
-      state.activeStudioDocId = null;
       state.activeFollowupProjectId = targetId;
       state.activeFollowupLeadId = null;
       document.getElementById('projectDetailPage')?.classList.remove('hidden');
@@ -32893,9 +32674,7 @@ function initSortableWidgets() {
       if (goBackInFinland()) return;
     }
     state.activePriceOfferingLeadId = null;
-    state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = null;
-    state.activeStudioDocId = null;
     if (leadId) {
       const lead = (state.budget?.leads || []).find(l => l.id === leadId);
       if (lead) renderLeadDetailPage(lead, state.displayCurrency);
@@ -33107,11 +32886,58 @@ function initSortableWidgets() {
           textAlign: 'left'
         }, elStyles['content_' + sec.id] || {});
         const secTitleInner = rich['title_' + sec.id] || escapeHtml(sec.title || '');
-        const rawContent = rich['content_' + sec.id] || sec.content || '';
-        const bodyHtml = (typeof formatInitialContent === 'function') ? formatInitialContent(rawContent) : (rawContent ? escapeHtml(rawContent).replace(/\n/g, '<br>') : '');
-        const titleHtml = (sec.title || rich['title_' + sec.id])
+        const hasTitle = (sec.title && sec.title.trim().length > 0) || (rich['title_' + sec.id] && rich['title_' + sec.id].trim().length > 0);
+        const titleHtml = hasTitle
           ? `<div style="font-size:${titleSt.fontSize}px; font-weight:${titleSt.fontWeight}; letter-spacing:${titleSt.letterSpacing}; color:${titleSt.color}; text-transform:uppercase; margin-bottom:${titleGap}px; text-align:${titleSt.textAlign};">${secTitleInner}</div>`
           : '';
+
+        if (sec.type === 'acceptance') {
+          const clientTitleInner = rich['po-client-sign-title_' + sec.id] || escapeHtml(sec.clientTitle || 'Authorized Client Signature');
+          const providerTitleInner = rich['po-provider-sign-title_' + sec.id] || escapeHtml(sec.providerTitle || 'Service Provider Signature');
+          const clientTitleSt = elStyles['po-client-sign-title_' + sec.id] || {};
+          const providerTitleSt = elStyles['po-provider-sign-title_' + sec.id] || {};
+          const signNameSt = elStyles['po-sign-name-label_' + sec.id] || {};
+          const signNameProviderSt = elStyles['po-sign-name-provider-label_' + sec.id] || {};
+
+          const signSealText = sec.signSealText || 'Signature & Seal';
+          const signDateText = sec.signDateText || 'Date: _________________';
+          const signNameText = rich['po-sign-name-label_' + sec.id] || escapeHtml(sec.signNameText || 'Name: _________________');
+
+          const signSealProviderText = sec.signSealProviderText || 'Signature & Seal';
+          const signDateProviderText = sec.signDateProviderText || 'Date: _________________';
+          const signNameProviderText = rich['po-sign-name-provider-label_' + sec.id] || escapeHtml(sec.signNameProviderText || 'Name: _________________');
+
+          return `
+            <div class="po-section" style="margin-bottom:${sectionGap}px;">
+              ${titleHtml}
+              <div class="po-signatures-grid grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
+                <div class="space-y-3">
+                  <div class="font-bold text-xs uppercase tracking-wider text-slate-800" style="${clientTitleSt.color ? 'color:' + clientTitleSt.color + ';' : ''}">${clientTitleInner}</div>
+                  <div class="h-16 border-b border-slate-300 flex items-end pb-1 text-[11px] text-slate-400">
+                    ${escapeHtml(signSealText)}
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
+                    <span class="w-1/2">${escapeHtml(signDateText)}</span>
+                    <span class="w-1/2 text-right" style="${signNameSt.fontSize ? 'font-size:' + signNameSt.fontSize + 'px;' : ''}${signNameSt.fontWeight ? 'font-weight:' + signNameSt.fontWeight + ';' : ''}">${signNameText}</span>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <div class="font-bold text-xs uppercase tracking-wider text-slate-800" style="${providerTitleSt.color ? 'color:' + providerTitleSt.color + ';' : ''}">${providerTitleInner}</div>
+                  <div class="h-16 border-b border-slate-300 flex items-end pb-1 text-[11px] text-slate-400">
+                    ${escapeHtml(signSealProviderText)}
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
+                    <span class="w-1/2">${escapeHtml(signDateProviderText)}</span>
+                    <span class="w-1/2 text-right" style="${signNameProviderSt.fontSize ? 'font-size:' + signNameProviderSt.fontSize + 'px;' : ''}${signNameProviderSt.fontWeight ? 'font-weight:' + signNameProviderSt.fontWeight + ';' : ''}">${signNameProviderText}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        const rawContent = rich['content_' + sec.id] || sec.content || '';
+        const bodyHtml = (typeof formatInitialContent === 'function') ? formatInitialContent(rawContent) : (rawContent ? escapeHtml(rawContent).replace(/\n/g, '<br>') : '');
         return `
           <div class="po-section" style="margin-bottom:${sectionGap}px;">
             ${titleHtml}
@@ -33682,7 +33508,6 @@ function initSortableWidgets() {
       openProjectProformaDocPage(targetId);
       showToast('Version Restored ✓', `${verLabel} loaded into the Proforma Invoice editor.`, 'success');
     } else {
-      restoredData._isDepositProforma = false;
       restoredData._isProforma = false;
       entity.priceOffering = restoredData;
       const isOngoingProjEntity = (state.budget?.projects || []).some(p => p.id === entity.id);
@@ -33865,7 +33690,7 @@ function initSortableWidgets() {
         let itemsText = currentPoItems.map(it => `  • ${it.description || 'Item'}: ${formatMoney(it.amount || 0, totals.currency)}`).join('\n');
         sectionsText += `\n${sec.title.toUpperCase()}:\n${itemsText}\nTOTAL: ${formatMoney(totals.total, totals.currency)}\n`;
       } else if (sec.type === 'acceptance') {
-        sectionsText += `\n${(sec.title || 'SIGNATURES').toUpperCase()}:\n[Signatures & Date]\n`;
+        sectionsText += `\n${sec.title.toUpperCase()}:\n[Signatures & Date]\n`;
       } else if (sec.content) {
         const tmp = document.createElement('div');
         tmp.innerHTML = formatInitialContent(sec.content).replace(/<\/div>/gi, '</div>\n').replace(/<br\s*\/?>/gi, '\n');
@@ -33894,7 +33719,7 @@ ${sectionsText}
   }
 
   async function deleteLeadPriceOffering(leadId) {
-    if (!leadId) leadId = state.activePriceOfferingLeadId || state.activeFollowupLeadId || state.activeFollowupProjectId;
+    if (!leadId) leadId = state.activeFollowupLeadId || state.activeFollowupProjectId;
     const isProj = (state.budget?.projects || []).some(p => p.id === leadId);
     const lead = (state.budget?.leads || []).find(l => l.id === leadId)
       || (state.budget?.projects || []).find(p => p.id === leadId);
@@ -33903,7 +33728,6 @@ ${sectionsText}
     if (await confirmAction(`Delete the editable Price Quote document for "${lead.client}"? (Your exported copies & attached files stay safe)`)) {
       const prevFp = getPoContentFingerprint(lead.priceOffering);
       delete lead.priceOffering;
-      if (lead._projectRef) delete lead._projectRef.priceOffering;
       if (prevFp && Array.isArray(lead.quoteExports) && lead.quoteExports.length > 0 && getPoContentFingerprint(lead.quoteExports[0].data) === prevFp) {
         lead.quoteExports.shift();
       }
@@ -33955,8 +33779,6 @@ ${sectionsText}
     state.activeFollowupLeadId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
-    state.activeDepositProformaProjectId = null;
-    state.activeStudioDocId = null;
     try {
       localStorage.setItem('ft_active_followup_project', projectId);
       localStorage.removeItem('ft_active_followup_lead');
@@ -38880,7 +38702,6 @@ ${sectionsText}
           const inSidebarOrTopInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT') && active.closest('#priceOfferingTopBar, #poRightSidebar');
           if (!inSidebarOrTopInput) {
             e.preventDefault();
-            e.stopImmediatePropagation();
             if (e.shiftKey) triggerPoRedo();
             else triggerPoUndo();
             return;
@@ -38889,7 +38710,6 @@ ${sectionsText}
           const inSidebarOrTopInput = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT') && active.closest('#priceOfferingTopBar, #poRightSidebar');
           if (!inSidebarOrTopInput) {
             e.preventDefault();
-            e.stopImmediatePropagation();
             triggerPoRedo();
             return;
           }
@@ -39521,13 +39341,13 @@ ${sectionsText}
           ? getMasterDepositProformaTemplate()
           : (curDocType === 'proforma' ? getMasterProformaTemplate() : getMasterPoTemplate());
         poElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || DEFAULT_PO_TEMPLATE.elementStyles));
-        poRichText = JSON.parse(JSON.stringify(masterTpl.richText || {}));
+        poRichText = {};
         applyPriceOfferingTypography(Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {}), true);
         const leadId = state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId;
         const lead = getPoEditorTarget(leadId);
         if (lead && lead.priceOffering) {
           lead.priceOffering.elementStyles = JSON.parse(JSON.stringify(poElementStyles));
-          lead.priceOffering.richText = JSON.parse(JSON.stringify(poRichText));
+          lead.priceOffering.richText = {};
         }
         renderPriceOfferingDocument(lead, lead?.priceOffering);
         showToast('Reset to Studio Template', 'Restored studio template typography and element positions.', 'info');
@@ -40242,6 +40062,22 @@ ${sectionsText}
       const isPoOpen = poPage && !poPage.classList.contains('hidden');
 
       if (isPoOpen) {
+        // Global Undo & Redo shortcuts
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            triggerPoRedo();
+          } else {
+            triggerPoUndo();
+          }
+          return;
+        }
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
+          e.preventDefault();
+          triggerPoRedo();
+          return;
+        }
+
         if (e.key === 'Escape') {
           const sigModal = document.getElementById('poSignaturePadModal');
           if (sigModal && !sigModal.classList.contains('hidden')) {
