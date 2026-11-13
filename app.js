@@ -25263,10 +25263,10 @@ function initSortableWidgets() {
     },
     labels: {
       client: 'Client / Recipient',
-      reference: 'Quote #',
+      reference: 'Reference',
       currency: 'Currency',
-      issueDate: 'Invoice Date',
-      validUntil: 'Payment Due',
+      issueDate: 'Date Issued',
+      validUntil: 'Valid Until',
       project: 'Project / Assignment',
       thDesc: 'ITEM / DESCRIPTION',
       thQty: 'QTY',
@@ -30923,7 +30923,7 @@ function initSortableWidgets() {
     };
 
     let defaultHeading = 'Price Quote / Proposal';
-    let defaultSub = '';
+    let defaultSub = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '';
     if (isDepositProforma) {
       defaultHeading = 'DEPOSIT PROFORMA INVOICE';
       defaultSub = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
@@ -30960,7 +30960,15 @@ function initSortableWidgets() {
       }
     }
 
-    const docSubtitle = live('poDocSubtitle', po.docSubtitle !== undefined ? po.docSubtitle : defaultSub);
+    let resolvedSub = po.docSubtitle;
+    if (!isDepositProforma && !isProforma && !isStudioDoc) {
+      if (!resolvedSub || resolvedSub === '[PROJECT NAME]') {
+        resolvedSub = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : (defaultSub || '[PROJECT NAME]');
+      }
+    } else if (resolvedSub === undefined) {
+      resolvedSub = defaultSub;
+    }
+    const docSubtitle = live('poDocSubtitle', resolvedSub);
 
     const curYear = new Date().getFullYear();
     const refPrefix = isDepositProforma ? 'DPI' : (isProforma ? 'PI' : 'PO');
@@ -30974,7 +30982,10 @@ function initSortableWidgets() {
     const client = live('poClientName', po.client !== undefined ? po.client : (lead.client || ''));
     const clientEmail = live('poClientEmail', po.clientEmail || '');
     const clientAddress = live('poClientAddress', po.clientAddress || '');
-    const projectTitle = live('poProjectTitle', po.projectTitle !== undefined ? po.projectTitle : (lead.title || lead.description || ''));
+    const resolvedProjTitle = (po.projectTitle !== undefined && po.projectTitle !== '' && po.projectTitle !== '[PROJECT NAME]')
+      ? po.projectTitle
+      : ((lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '');
+    const projectTitle = live('poProjectTitle', resolvedProjTitle);
 
     const labels = readPoLabels(po.labels);
     if ((isProforma || isDepositProforma) && (!po.labels || Object.keys(po.labels).length === 0)) {
@@ -32127,8 +32138,9 @@ function initSortableWidgets() {
       po.docSubtitle = '';
       if (po.richText) delete po.richText.doc_subtitle;
     }
-    if (po.docSubtitle === undefined) {
-      po.docSubtitle = masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle;
+    const projName = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '';
+    if (po.docSubtitle === undefined || po.docSubtitle === '[PROJECT NAME]' || (!po.docSubtitle && projName)) {
+      po.docSubtitle = projName || (masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle);
     }
     if (!po.sender || po.sender.name === 'Your Name / Studio') {
       po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
