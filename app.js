@@ -25222,10 +25222,10 @@ function initSortableWidgets() {
     docTitle: 'Price Quote / Proposal',
     docSubtitle: '[PROJECT NAME]',
     sender: {
-      name: 'Studio',
-      title: 'Creative Direction & Design',
-      contact: '',
-      location: ''
+      name: 'Ori Gold',
+      title: 'Creative Studio · Art & Graphics',
+      contact: 'Email: omg.ori.gold@gmail.com',
+      location: 'WhatsApp: +972 55 777 0026'
     },
     typography: {
       fontFamily: 'Inter, sans-serif',
@@ -29000,9 +29000,9 @@ function initSortableWidgets() {
       newSec = {
         id: 'sec_acc_' + stamp,
         type: 'acceptance',
-        title: 'Authorization & Acceptance',
-        clientTitle: 'Authorized Client Signature',
-        providerTitle: 'Service Provider Signature'
+        title: '',
+        clientTitle: 'CLIENT SIGNATURE',
+        providerTitle: 'SERVICE PROVIDER SIGNATURE'
       };
     } else {
       newSec = {
@@ -30156,12 +30156,12 @@ function initSortableWidgets() {
         </div>
       `;
     } else if (sec.type === 'acceptance') {
-      const clientTitle = sec.clientTitle || 'Authorized Client Signature';
-      const providerTitle = sec.providerTitle || 'Service Provider Signature';
+      const clientTitle = sec.clientTitle || 'CLIENT SIGNATURE';
+      const providerTitle = sec.providerTitle || 'SERVICE PROVIDER SIGNATURE';
       bodyHtml = `
         <div class="po-selectable po-signatures-grid grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4" data-elem-id="signatures_${sid}" data-elem-name="Signatures Block" data-elem-type="signatures" data-po-container="signatures_grid">
           <div class="space-y-3" data-po-unit-id="sig_col_client" data-po-container="sig_client">
-            <input type="text" class="po-client-sign-title font-bold text-xs uppercase tracking-wider text-slate-800 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full" data-sec-id="${sid}" value="${escapeHtml(clientTitle)}" placeholder="AUTHORIZED CLIENT SIGNATURE">
+            <input type="text" class="po-client-sign-title font-bold text-xs uppercase tracking-wider text-slate-800 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full" data-sec-id="${sid}" value="${escapeHtml(clientTitle)}" placeholder="CLIENT SIGNATURE">
             <div class="h-16 border-b border-slate-300 flex items-end pb-1">
               <input type="text" class="po-sign-seal-label text-[11px] text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full print-keep" data-sec-id="${sid}" value="${escapeHtml(sec.signSealText || 'Signature & Seal')}" placeholder="Signature & Seal">
             </div>
@@ -30198,13 +30198,20 @@ function initSortableWidgets() {
       `;
     }
 
-    return `
-      ${insertZoneBeforeHtml}
-      <div class="po-section po-selectable ${selCls}" data-sec-id="${sid}" data-sec-index="${idx}" data-elem-id="sec_${sid}" data-elem-name="${escapeHtml(sec.title || 'Section')}" data-elem-type="section">
-        ${poBlockChromeHtml(idx, true, sec.title || 'Section')}
+    const isAcceptance = sec.type === 'acceptance';
+    const titleHtml = isAcceptance ? '' : `
         <div class="po-title-wrap mb-1">
           <input type="text" class="po-selectable po-section-title-input text-xs font-bold uppercase tracking-wider text-slate-900 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-sec-id="${sid}" data-elem-id="title_${sid}" data-elem-name="Title: ${escapeHtml(sec.title || 'Untitled')}" data-elem-type="text" value="${escapeHtml(sec.title || '')}" placeholder="SECTION TITLE">
         </div>
+    `;
+    const secDisplayName = isAcceptance ? (sec.title || 'Sign Block') : (sec.title || 'Section');
+    const secElemType = isAcceptance ? 'acceptance' : 'section';
+
+    return `
+      ${insertZoneBeforeHtml}
+      <div class="po-section po-selectable ${selCls}" data-sec-id="${sid}" data-sec-index="${idx}" data-elem-id="sec_${sid}" data-elem-name="${escapeHtml(secDisplayName)}" data-elem-type="${secElemType}">
+        ${poBlockChromeHtml(idx, true, secDisplayName)}
+        ${titleHtml}
         ${bodyHtml}
       </div>
     `;
@@ -33829,7 +33836,7 @@ function initSortableWidgets() {
         let itemsText = currentPoItems.map(it => `  • ${it.description || 'Item'}: ${formatMoney(it.amount || 0, totals.currency)}`).join('\n');
         sectionsText += `\n${sec.title.toUpperCase()}:\n${itemsText}\nTOTAL: ${formatMoney(totals.total, totals.currency)}\n`;
       } else if (sec.type === 'acceptance') {
-        sectionsText += `\n${sec.title.toUpperCase()}:\n[Signatures & Date]\n`;
+        sectionsText += `\n${(sec.title || 'SIGNATURES').toUpperCase()}:\n[Signatures & Date]\n`;
       } else if (sec.content) {
         const tmp = document.createElement('div');
         tmp.innerHTML = formatInitialContent(sec.content).replace(/<\/div>/gi, '</div>\n').replace(/<br\s*\/?>/gi, '\n');
