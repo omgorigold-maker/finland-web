@@ -25321,15 +25321,93 @@ function initSortableWidgets() {
     currency: 'Currency',
     issueDate: 'Invoice Date',
     validUntil: 'Payment Due',
-    project: 'Project / Milestone',
+    project: 'Project / Assignment',
     thDesc: 'Milestone / Deliverable',
     thQty: 'Qty',
-    thRate: 'Deposit Amount',
-    thAmount: 'Amount Due',
+    thRate: 'Total',
+    thAmount: 'Deposit (50%)',
     subtotal: 'Deposit Subtotal (50%)',
     discount: 'Discount',
     tax: 'VAT / Tax',
     totalInvestment: 'Deposit Due'
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 13,
+    lineHeight: 1.55,
+    sectionGap: 22,
+    titleGap: 8,
+    titleSize: 12,
+    sheetPadding: '36px 40px',
+    showPageNumbers: true
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
+    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+    doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
+    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    client_email: { offsetY: -2 },
+    client_address: { offsetY: -3 },
+    sec_sec_deliverables: { offsetY: 1 },
+    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+    divider_overview: { offsetY: -1 },
+    sec_sec_div_overview: { offsetY: -2.5 },
+    cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    th_desc: { lineHeight: '1.7' },
+    th_amount: { offsetX: 5.75 },
+    item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+    item_amount_0: { offsetY: 0, offsetX: 5.5 },
+    item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
+    title_sec_terms_dep: { lineHeight: '1.3' },
+    content_sec_terms_dep: { lineHeight: '1.5' },
+    title_sec_bank_dep: { lineHeight: '1.3' },
+    content_sec_bank_dep: { marginBottom: 14.67, lineHeight: '1.5' },
+    title_sec_comm_dep: { lineHeight: '1.4', letterSpacing: '0.04em', color: '#475569' },
+    content_sec_comm_dep: { lineHeight: '1.5' }
+  };
+
+  const DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT = {
+    title_sec_terms_dep: '<span style="display: inline-block; line-height: 1.3;" class="">PAYMENT TERMS</span>',
+    title_sec_comm_dep: '<span style="letter-spacing: 0.04em; color: rgb(71, 85, 105);"><span style="display: inline-block; line-height: 1.3;" class="">COMMUNICATION</span> AND INQUIRIES:</span>'
+  };
+
+  const PROFORMA_DEFAULT_TYPOGRAPHY = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 13,
+    lineHeight: 1.55,
+    sectionGap: 22,
+    titleGap: 8,
+    titleSize: 12,
+    sheetPadding: '36px 40px',
+    showPageNumbers: true
+  };
+
+  const PROFORMA_DEFAULT_ELEMENT_STYLES = {
+    doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+    doc_subtitle: { color: '#94a3b8', fontWeight: '700', letterSpacing: '0.05em' },
+    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    client_email: { offsetY: -2 },
+    client_address: { offsetY: -3 },
+    sec_sec_deliverables: { offsetY: 1 },
+    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+    divider_overview: { offsetY: -1 },
+    sec_sec_div_overview: { offsetY: -4.5 },
+    cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    th_desc: { lineHeight: '1.7' },
+    item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+    item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' },
+    label_ref: { color: '#94a3b8' }
   };
 
   const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
@@ -25651,69 +25729,81 @@ function initSortableWidgets() {
   }
 
   function getMasterDepositProformaTemplate() {
-    const master = getMasterPoTemplate();
-    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
-    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
-      color: '#64748b',
-      fontWeight: '700',
-      letterSpacing: '0.05em'
-    });
+    let localTpl = null;
+    try {
+      localTpl = JSON.parse(localStorage.getItem('ft_po_default_deposit_proforma_template') || 'null');
+    } catch (e) {}
+    const vaultTpl = (state.budget && state.budget.poDefaultDepositProformaTemplate) ? state.budget.poDefaultDepositProformaTemplate : null;
+    const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
+
+    const sender = Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {});
+    const typography = Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY, customTpl.typography || {});
+    const elementStyles = Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES, customTpl.elementStyles || {});
+    const labels = Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_LABELS, customTpl.labels || {});
+    const richText = Object.assign({}, DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT, customTpl.richText || {});
+
     return {
-      id: 'tpl_master_deposit_proforma',
+      id: customTpl.id || 'tpl_master_deposit_proforma',
       docType: 'deposit_proforma',
-      name: 'Deposit Proforma Template',
+      name: customTpl.name || 'Deposit Proforma Template',
       isDefault: true,
       createdAt: new Date().toISOString(),
       docTitle: 'DEPOSIT PROFORMA INVOICE',
-      docSubtitle: 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
-      sender: Object.assign({}, master.sender),
-      typography: Object.assign({}, master.typography),
-      elementStyles: elemStyles,
-      labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
-      sections: [
+      docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST',
+      sender,
+      typography,
+      elementStyles,
+      labels,
+      sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : [
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: 'As agreed upon signing quote / proposal' },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
-        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT },
-        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT },
-        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT }
+        { id: 'sec_scope_dep', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '<div>As agreed upon signing quote / proposal</div>' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
+        { id: 'sec_terms_dep', type: 'terms', title: 'PAYMENT TERMS', pageBreakBefore: false, content: getDepositProformaDefaultTerms() },
+        { id: 'sec_bank_dep', type: 'text', title: 'BANK DETAILS', pageBreakBefore: false, content: getDepositProformaDefaultBank() },
+        { id: 'sec_comm_dep', type: 'text', title: 'COMMUNICATION AND INQUIRIES:', pageBreakBefore: false, content: getDepositProformaDefaultCommunication() }
       ],
-      richText: {}
+      richText
     };
   }
 
   function getMasterProformaTemplate() {
-    const master = getMasterPoTemplate();
-    const elemStyles = JSON.parse(JSON.stringify(master.elementStyles || {}));
-    elemStyles.doc_subtitle = Object.assign({}, elemStyles.doc_subtitle || {}, {
-      color: '#64748b',
-      fontWeight: '700',
-      letterSpacing: '0.05em'
-    });
+    let localTpl = null;
+    try {
+      localTpl = JSON.parse(localStorage.getItem('ft_po_default_proforma_template') || 'null');
+    } catch (e) {}
+    const vaultTpl = (state.budget && state.budget.poDefaultProformaTemplate) ? state.budget.poDefaultProformaTemplate : null;
+    const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
+
+    const sender = Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {});
+    const typography = Object.assign({}, PROFORMA_DEFAULT_TYPOGRAPHY, customTpl.typography || {});
+    const elementStyles = Object.assign({}, PROFORMA_DEFAULT_ELEMENT_STYLES, customTpl.elementStyles || {});
+    const labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, PROFORMA_DEFAULT_LABELS, customTpl.labels || {});
+    const richText = Object.assign({}, customTpl.richText || {});
+
     return {
-      id: 'tpl_master_proforma',
+      id: customTpl.id || 'tpl_master_proforma',
       docType: 'proforma',
-      name: 'Proforma Invoice Template',
+      name: customTpl.name || 'Proforma Invoice Template',
       isDefault: true,
       createdAt: new Date().toISOString(),
       docTitle: 'PROFORMA INVOICE',
-      docSubtitle: 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
-      sender: Object.assign({}, master.sender),
-      typography: Object.assign({}, master.typography),
-      elementStyles: elemStyles,
-      labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, PROFORMA_DEFAULT_LABELS),
-      sections: [
+      docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
+      sender,
+      typography,
+      elementStyles,
+      labels,
+      sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : [
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_prof', type: 'scope', title: 'Project Scope & Objective', pageBreakBefore: false, content: '[PROJECT SCOPE & OBJECTIVE]' },
+        { id: 'sec_scope_prof', type: 'scope', title: 'COMPLETED DELIVERABLES & ASSET HANDOVER', pageBreakBefore: false, content: '<div>Final Print &amp; Production Delivery - Includes all approved design assets.</div>' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
         { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
         { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
-      richText: {}
+      richText
     };
   }
 
@@ -31243,10 +31333,12 @@ function initSortableWidgets() {
       return;
     }
 
+    const isDep = getActiveDocType() === 'deposit_proforma';
+
     tbody.innerHTML = currentPoItems.map((item, idx) => {
       const q = parseFloat(item.qty) || 1;
       const r = parseFloat(item.rate) || 0;
-      const amt = q * r;
+      const amt = isDep ? (Math.round((q * r * 0.5) * 100) / 100) : (q * r);
       item.amount = amt;
 
       return `
@@ -31319,6 +31411,8 @@ function initSortableWidgets() {
 
     document.querySelectorAll('.poTableCurrencyLabel').forEach(el => el.textContent = cur);
 
+    const isDep = getActiveDocType() === 'deposit_proforma';
+
     let subtotal = 0;
     const rows = document.querySelectorAll('#poItemsTableBody tr');
     rows.forEach((row, idx) => {
@@ -31328,7 +31422,7 @@ function initSortableWidgets() {
 
       const q = parseFloat(qtyInput?.value) || 0;
       const r = parseFloat(rateInput?.value) || 0;
-      const amt = q * r;
+      const amt = isDep ? (Math.round((q * r * 0.5) * 100) / 100) : (q * r);
       subtotal += amt;
 
       if (amtDisplay) amtDisplay.textContent = formatMoney(amt, cur);
@@ -32139,8 +32233,8 @@ function initSortableWidgets() {
       let initTaxPct = 0;
       let initSubtotal = projAmount;
       let initTotal = projAmount;
-      const initElementStyles = {};
-      const initRichText = {};
+      const initElementStyles = Object.assign({}, JSON.parse(JSON.stringify(masterTpl.elementStyles || PROFORMA_DEFAULT_ELEMENT_STYLES)));
+      const initRichText = Object.assign({}, JSON.parse(JSON.stringify(masterTpl.richText || {})));
 
       if (srcQuote && Array.isArray(srcQuote.items) && srcQuote.items.length > 0) {
         initialItems = JSON.parse(JSON.stringify(srcQuote.items));
@@ -32177,9 +32271,9 @@ function initSortableWidgets() {
 
       proj.proformaInvoice = {
         _isProforma: true,
-        templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_studio_master',
+        templateId: (srcQuote && srcQuote.templateId) || masterTpl.id || 'tpl_master_proforma',
         docTitle: 'PROFORMA INVOICE',
-        docSubtitle: 'Preliminary Invoice / Advance Payment Request',
+        docSubtitle: 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST',
         refNo: `PI-${curYear}-${curProjNum}`,
         issueDate: todayStr,
         validUntil: dueStr,
@@ -32188,6 +32282,8 @@ function initSortableWidgets() {
         clientEmail: (srcQuote && srcQuote.clientEmail) || '',
         clientAddress: (srcQuote && srcQuote.clientAddress) || '',
         projectTitle: proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || '',
+        sender: Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender),
+        typography: JSON.parse(JSON.stringify(masterTpl.typography || PROFORMA_DEFAULT_TYPOGRAPHY)),
         elementStyles: initElementStyles,
         richText: initRichText,
         labels: {
@@ -32423,13 +32519,13 @@ function initSortableWidgets() {
       const todayStr = new Date().toISOString().split('T')[0];
       const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
 
-      const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Printable Design Bundle';
+      const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables';
       let initialItems = [
         {
-          id: 'po_item_' + Date.now(),
+          id: 'po_item_dep_' + Date.now(),
           description: `50% Project Commencement Deposit — \n${projItemName}`,
           qty: 1,
-          rate: depositRate,
+          rate: fullProjAmount,
           amount: depositRate
         }
       ];
@@ -32437,11 +32533,8 @@ function initSortableWidgets() {
       let initTaxPct = 0;
       let initSubtotal = depositRate;
       let initTotal = depositRate;
-      const initElementStyles = {
-        doc_heading: { fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' },
-        doc_subtitle: { fontSize: 11, fontWeight: '700', letterSpacing: '0.05em', color: '#64748b' }
-      };
-      const initRichText = {};
+      const initElementStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES));
+      const initRichText = JSON.parse(JSON.stringify(masterTpl.richText || DEPOSIT_PROFORMA_DEFAULT_RICH_TEXT));
 
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
@@ -32450,12 +32543,7 @@ function initSortableWidgets() {
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
-        : {
-            name: 'Ori Gold',
-            title: 'Creative Studio · Art & Graphics',
-            contact: 'Email: omg.ori.gold@gmail.com',
-            location: 'WhatsApp: +972 55 777 0026'
-          };
+        : Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
 
       proj.depositProforma = {
         _isDepositProforma: true,
@@ -32472,42 +32560,43 @@ function initSortableWidgets() {
         clientAddress: (srcQuote && srcQuote.clientAddress) || proj.clientAddress || 'Billing Address / City / Tax ID',
         projectTitle: proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || '',
         sender: baseSender,
+        typography: JSON.parse(JSON.stringify(masterTpl.typography || DEPOSIT_PROFORMA_DEFAULT_TYPOGRAPHY)),
         elementStyles: initElementStyles,
         richText: initRichText,
-        labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, DEPOSIT_PROFORMA_DEFAULT_LABELS),
+        labels: Object.assign({}, masterTpl.labels || DEPOSIT_PROFORMA_DEFAULT_LABELS),
         items: initialItems,
         sections: [
           { id: 'sec_header', type: 'header', title: 'Document Header' },
           { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
           { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
           {
-            id: 'sec_scope_' + Date.now(),
+            id: 'sec_scope_dep',
             type: 'scope',
             title: 'SUMMARY',
             pageBreakBefore: false,
             content: initScopeContent
           },
-          { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & DEPOSIT FEES', pageBreakBefore: false },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Deposit Fees', pageBreakBefore: false },
           {
-            id: 'sec_terms_' + Date.now(),
+            id: 'sec_terms_dep',
             type: 'terms',
             title: 'PAYMENT TERMS',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT
+            content: getDepositProformaDefaultTerms()
           },
           {
-            id: 'sec_bank_' + Date.now(),
+            id: 'sec_bank_dep',
             type: 'text',
             title: 'BANK DETAILS',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT
+            content: getDepositProformaDefaultBank()
           },
           {
-            id: 'sec_comm_' + Date.now(),
+            id: 'sec_comm_dep',
             type: 'text',
             title: 'COMMUNICATION AND INQUIRIES:',
             pageBreakBefore: false,
-            content: DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT
+            content: getDepositProformaDefaultCommunication()
           }
         ],
         subtotal: initSubtotal,
@@ -41662,18 +41751,22 @@ ${sectionsText}
         docSubtitle: subFinal ? subFinal.toUpperCase() : '',
         sender: baseSender,
         typography: {
-          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
-          fontSize: 12.5,
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 13,
           lineHeight: 1.55,
-          sectionGap: 18,
-          titleGap: 6,
-          titleSize: 11,
+          sectionGap: 20,
+          titleGap: 8,
+          titleSize: 12,
           sheetPadding: '36px 40px',
           showPageNumbers: true
         },
         elementStyles: {
-          doc_heading: { fontSize: 22, fontWeight: '800', letterSpacing: '-0.02em' },
-          doc_subtitle: { fontSize: 10.5, fontWeight: '700', letterSpacing: '0.09em', color: '#475569' }
+          doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
+          doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
+          sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+          sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+          sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+          sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' }
         },
         richText: {},
         items: [],
