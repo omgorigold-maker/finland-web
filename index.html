@@ -1444,7 +1444,7 @@
             <!-- Mark as Done / Reopen Button (Primary CTA) -->
             <button id="detailToggleDoneBtn" type="button" class="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white">
               <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-              <span id="detailToggleDoneText">Mark as Done</span>
+              <span id="detailToggleDoneText">Mark work as done</span>
             </button>
 
             <!-- Delete Project Button -->
@@ -1471,32 +1471,6 @@
                   <input type="text" id="detailClientNameInput" class="text-xs font-bold uppercase tracking-wider text-slate-900 bg-white border border-sky-400 rounded-lg px-2 py-0 leading-tight focus:outline-none focus:ring-2 focus:ring-sky-500/20">
                   <button type="button" id="saveClientNameBtn" class="text-emerald-600 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Save"><i data-lucide="check" class="w-3.5 h-3.5"></i></button>
                   <button type="button" id="cancelClientNameBtn" class="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer" title="Cancel"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                </div>
-
-                <!-- Status Badge with Dropdown (Rounded Pill Highlight) -->
-                <div class="relative inline-block" id="detailStatusBadgeContainer">
-                  <button type="button" id="detailStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-300 cursor-pointer hover:ring-2 hover:ring-sky-300 transition-all flex items-center gap-1 leading-normal" title="Click to change project status">
-                    <span id="detailStatusBadgeText">In Progress</span>
-                    <i data-lucide="chevron-down" class="w-2.5 h-2.5 opacity-60"></i>
-                  </button>
-                  <div id="detailStatusDropdown" class="hidden absolute left-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-lg p-1 space-y-0.5 min-w-[155px] animate-scale-in text-xs whitespace-nowrap">
-                    <button type="button" class="set-project-status-btn w-full text-left px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-50 text-slate-700 flex items-center justify-between cursor-pointer" data-status="draft">
-                      <span>Draft</span>
-                      <span class="w-2 h-2 rounded-full bg-slate-300 shrink-0 ml-3"></span>
-                    </button>
-                    <button type="button" class="set-project-status-btn w-full text-left px-2.5 py-1.5 rounded-lg font-semibold hover:bg-sky-50 text-sky-700 flex items-center justify-between cursor-pointer" data-status="invoiced">
-                      <span>In Progress</span>
-                      <span class="w-2 h-2 rounded-full bg-sky-500 shrink-0 ml-3"></span>
-                    </button>
-                    <button type="button" class="set-project-status-btn w-full text-left px-2.5 py-1.5 rounded-lg font-semibold hover:bg-amber-50 text-amber-700 flex items-center justify-between cursor-pointer" data-status="hold">
-                      <span>On Hold</span>
-                      <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0 ml-3"></span>
-                    </button>
-                    <button type="button" class="set-project-status-btn w-full text-left px-2.5 py-1.5 rounded-lg font-semibold hover:bg-emerald-50 text-emerald-700 flex items-center justify-between cursor-pointer" data-status="completed">
-                      <span>Done</span>
-                      <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ml-3"></span>
-                    </button>
-                  </div>
                 </div>
               </div>
 

@@ -34419,6 +34419,7 @@ ${sectionsText}
     const remaining = Math.max(0, Math.round((totalFee - paid) * 100) / 100);
     const isDone = isProjectDone(proj);
     const isPaid = (paid >= totalFee - 0.005 && totalFee > 0);
+    const workIsDone = isProjectWorkDone(proj);
 
     const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
@@ -34466,9 +34467,15 @@ ${sectionsText}
       if (isDone) {
         toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 border border-slate-200/80';
         toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Reopen Project</span>`;
-      } else {
+      } else if (workIsDone && !isPaid) {
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 border border-slate-200/80';
+        toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Reopen Work</span>`;
+      } else if (isPaid) {
         toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white';
         toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark as Done</span>`;
+      } else {
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white';
+        toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark work as done</span>`;
       }
     }
 
@@ -34571,6 +34578,9 @@ ${sectionsText}
           if (isDone) {
             deadlineCountdownEl.textContent = 'Completed';
             deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
+          } else if (workIsDone) {
+            deadlineCountdownEl.textContent = isPaid ? 'Work done · Paid' : 'Work done, awaiting payment';
+            deadlineCountdownEl.className = 'text-[10px] font-semibold text-emerald-600 mt-0.5';
           } else if (diffDays < 0) {
             deadlineCountdownEl.textContent = `Overdue by ${Math.abs(diffDays)}d`;
             deadlineCountdownEl.className = 'text-[10px] font-semibold text-rose-600 mt-0.5';
@@ -34584,11 +34594,15 @@ ${sectionsText}
         }
       }
     } else {
-      if (deadlineTextEl) deadlineTextEl.textContent = isDone ? 'Completed' : 'Not set';
+      if (deadlineTextEl) deadlineTextEl.textContent = isDone ? 'Completed' : (workIsDone ? 'Work done' : 'Not set');
       if (deadlineCountdownEl) {
         deadlineCountdownEl.removeAttribute('title');
-        deadlineCountdownEl.textContent = isDone ? 'Finished' : 'Click to set date';
-        deadlineCountdownEl.className = 'text-[10px] font-semibold text-slate-400 mt-0.5';
+        deadlineCountdownEl.textContent = isDone
+          ? 'Finished'
+          : (workIsDone ? (isPaid ? 'Paid' : 'Work done, awaiting payment') : 'Click to set date');
+        deadlineCountdownEl.className = (workIsDone && !isDone)
+          ? 'text-[10px] font-semibold text-emerald-600 mt-0.5'
+          : 'text-[10px] font-semibold text-slate-400 mt-0.5';
       }
     }
 
@@ -36370,21 +36384,36 @@ ${sectionsText}
     const detailCardPayBtn = document.getElementById('detailCardLogPaymentBtn');
     if (detailCardPayBtn) detailCardPayBtn.addEventListener('click', handleLogPaymentClick);
 
-    // Mark as Done / Reopen Toggle
+    // Mark work as done / Mark as Done / Reopen Toggle
     function toggleProjectDone() {
       const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
       if (!p) return;
       const currentlyDone = isProjectDone(p);
-      if (!currentlyDone) {
-        p.isDone = true;
-        p.status = 'completed';
-        p.completedDate = new Date().toISOString().split('T')[0];
-        showToast('Project Completed! 🎉', `"${p.client}" marked as done.`, 'success');
-      } else {
+      const totalFee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
+      const paid = parseFloat(p.paidAmount) || 0;
+      const isPaid = (paid >= totalFee - 0.005 && totalFee > 0);
+      const workIsDone = isProjectWorkDone(p);
+
+      if (currentlyDone) {
         p.isDone = false;
+        p.isWorkDone = false;
         p.status = 'invoiced';
         delete p.completedDate;
         showToast('Project Reopened 🚀', `"${p.client}" is now active in ongoing projects.`, 'info');
+      } else if (!isPaid && totalFee > 0) {
+        if (!workIsDone) {
+          p.isWorkDone = true;
+          showToast('Work Done ✓', `"${p.client}" marked as work done, awaiting payment.`, 'success');
+        } else {
+          p.isWorkDone = false;
+          showToast('Work Reopened', `"${p.client}" work status reopened.`, 'info');
+        }
+      } else {
+        p.isDone = true;
+        p.isWorkDone = true;
+        p.status = 'completed';
+        p.completedDate = new Date().toISOString().split('T')[0];
+        showToast('Project Completed! 🎉', `"${p.client}" marked as done.`, 'success');
       }
       saveBudget();
       renderProjectDetailPage(p, state.displayCurrency);
