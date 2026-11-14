@@ -72,6 +72,12 @@
       calendar: 'calendar',
       notes: 'file',
       money: 'dollar'
+    },
+    tabColors: {
+      followups: '#0f172a',
+      calendar: '#0f172a',
+      notes: '#0f172a',
+      money: '#0f172a'
     }
   };
 
@@ -111,11 +117,13 @@
       const raw = localStorage.getItem(MOBILE_PREFS_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
       state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, parsed, {
-        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons, (parsed && parsed.tabIcons) || {})
+        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons, (parsed && parsed.tabIcons) || {}),
+        tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors, (parsed && parsed.tabColors) || {})
       });
     } catch {
       state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, {
-        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons)
+        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons),
+        tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors)
       });
     }
   }
@@ -141,6 +149,8 @@
         const iconKey = (mp.tabIcons && mp.tabIcons[tab]) || DEFAULT_MOBILE_PREFS.tabIcons[tab];
         const markup = MOBILE_TAB_ICONS[tab] && MOBILE_TAB_ICONS[tab][iconKey];
         if (svg && markup) svg.innerHTML = markup;
+        const tabColor = (mp.tabColors && mp.tabColors[tab]) || mp.navColor || '#0f172a';
+        btn.style.setProperty('--tab-accent', tabColor);
       });
     }
     if (document.body) {
@@ -1901,21 +1911,6 @@
       ));
     };
 
-    const swatches = el('div', { className: 'custom-swatches' }, MOBILE_NAV_COLORS.map(hex =>
-      el('button', {
-        type: 'button',
-        className: `swatch-btn${(mp.navColor || '').toLowerCase() === hex ? ' active' : ''}`,
-        style: `background:${hex}`,
-        'aria-label': `Set dock color ${hex}`,
-        onClick: () => {
-          mp.navColor = hex;
-          saveMobilePrefs();
-          applyMobilePrefs();
-          renderMobileCustomSheet();
-        }
-      })
-    ));
-
     const tabNames = [
       { key: 'followups', label: 'Follow-Ups' },
       { key: 'calendar', label: 'Calendar' },
@@ -1926,24 +1921,48 @@
     const iconRows = el('div', { className: 'icon-picker-rows' }, tabNames.map(t => {
       const icons = MOBILE_TAB_ICONS[t.key] || {};
       const currentIcon = (mp.tabIcons && mp.tabIcons[t.key]) || DEFAULT_MOBILE_PREFS.tabIcons[t.key];
+      const currentColor = (mp.tabColors && mp.tabColors[t.key]) || '#0f172a';
+
+      const iconBtns = Object.keys(icons).map(iconKey => {
+        const btn = el('button', {
+          type: 'button',
+          className: `icon-opt-btn${currentIcon === iconKey ? ' active' : ''}`,
+          style: currentIcon === iconKey ? `border-color:${currentColor};color:${currentColor};background:${currentColor}14` : '',
+          'aria-label': `${t.label} ${iconKey} icon`,
+          onClick: () => {
+            if (!mp.tabIcons) mp.tabIcons = {};
+            mp.tabIcons[t.key] = iconKey;
+            saveMobilePrefs();
+            applyMobilePrefs();
+            renderMobileCustomSheet();
+          }
+        });
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[iconKey]}</svg>`;
+        return btn;
+      });
+
+      const colorDots = MOBILE_NAV_COLORS.map(hex =>
+        el('button', {
+          type: 'button',
+          className: `tab-color-dot${currentColor.toLowerCase() === hex ? ' active' : ''}`,
+          style: `background:${hex}`,
+          'aria-label': `Set ${t.label} icon color ${hex}`,
+          onClick: () => {
+            if (!mp.tabColors) mp.tabColors = {};
+            mp.tabColors[t.key] = hex;
+            saveMobilePrefs();
+            applyMobilePrefs();
+            renderMobileCustomSheet();
+          }
+        })
+      );
+
       return el('div', { className: 'icon-picker-row' }, [
-        el('span', { className: 'icon-picker-name', textContent: t.label }),
-        el('div', { className: 'icon-picker-opts' }, Object.keys(icons).map(iconKey => {
-          const btn = el('button', {
-            type: 'button',
-            className: `icon-opt-btn${currentIcon === iconKey ? ' active' : ''}`,
-            'aria-label': `${t.label} ${iconKey} icon`,
-            onClick: () => {
-              if (!mp.tabIcons) mp.tabIcons = {};
-              mp.tabIcons[t.key] = iconKey;
-              saveMobilePrefs();
-              applyMobilePrefs();
-              renderMobileCustomSheet();
-            }
-          });
-          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[iconKey]}</svg>`;
-          return btn;
-        }))
+        el('div', { className: 'icon-picker-top' }, [
+          el('span', { className: 'icon-picker-name', textContent: t.label }),
+          el('div', { className: 'icon-picker-opts' }, iconBtns)
+        ]),
+        el('div', { className: 'icon-picker-colors' }, colorDots)
       ]);
     }));
 
@@ -1953,7 +1972,8 @@
       textContent: 'Reset to Default',
       onClick: () => {
         state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, {
-          tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons)
+          tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons),
+          tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors)
         });
         saveMobilePrefs();
         applyMobilePrefs();
@@ -1965,8 +1985,8 @@
 
     body.replaceChildren(
       el('div', { className: 'custom-group' }, [
-        el('span', { className: 'custom-label', textContent: 'Bottom Bar Color' }),
-        swatches
+        el('span', { className: 'custom-label', textContent: 'Tab Icons & Colors' }),
+        iconRows
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Bottom Bar Labels' }),
@@ -1981,10 +2001,6 @@
           { val: 'frosted', label: 'Frosted' },
           { val: 'solid', label: 'Solid' }
         ], mp.dockStyle || 'frosted', (v) => { mp.dockStyle = v; })
-      ]),
-      el('div', { className: 'custom-group' }, [
-        el('span', { className: 'custom-label', textContent: 'Tab Icons' }),
-        iconRows
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Calendar Week Start' }),

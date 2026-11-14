@@ -1182,13 +1182,13 @@ button {
 }
 
 .nav-btn.active {
-  background: color-mix(in srgb, var(--nav-accent, #0f172a) 9%, transparent);
-  color: var(--nav-accent, var(--ink));
+  background: color-mix(in srgb, var(--tab-accent, var(--nav-accent, #0f172a)) 9%, transparent);
+  color: var(--tab-accent, var(--nav-accent, var(--ink)));
   font-weight: 700;
 }
 
 .nav-btn.active svg {
-  stroke: var(--nav-accent, var(--ink));
+  stroke: var(--tab-accent, var(--nav-accent, var(--ink)));
   stroke-width: 2.15;
 }
 
@@ -1764,13 +1764,41 @@ body.density-compact .tx-row {
 
 .icon-picker-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.icon-picker-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.icon-picker-colors {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.tab-color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.14);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.tab-color-dot.active {
+  box-shadow: 0 0 0 2px var(--ink);
+  transform: scale(1.1);
 }
 
 .icon-picker-name {
