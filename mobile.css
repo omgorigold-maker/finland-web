@@ -1238,13 +1238,20 @@ dialog::backdrop {
 .close-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
   border-radius: 999px;
   background: var(--pill-active);
-  font-size: 18px;
-  line-height: 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.close-btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 
 /* Quick Add Sheet */

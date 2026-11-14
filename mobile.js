@@ -146,7 +146,11 @@
 
   function openDialog(id) {
     const dlg = document.getElementById(id);
-    if (dlg && !dlg.open) dlg.showModal();
+    if (dlg) {
+      dlg.style.transform = '';
+      dlg.style.transition = '';
+      if (!dlg.open) dlg.showModal();
+    }
   }
 
   function closeDialog(id) {
@@ -2113,6 +2117,69 @@
       });
       mainEl.addEventListener('touchcancel', resetPtr);
     }
+
+    // Swipe down to dismiss any bottom sheet dialog (except non-dismissable pinDialog)
+    document.querySelectorAll('dialog.sheet-dialog').forEach(dlg => {
+      if (dlg.id === 'pinDialog') return;
+      let sX = 0;
+      let sY = 0;
+      let dragging = false;
+      let dragDy = 0;
+      let startAt = 0;
+      dlg.addEventListener('touchstart', (e) => {
+        if (!dlg.open || e.touches.length !== 1) return;
+        const target = e.target;
+        // Allow scrolling inside category menu or textarea unless starting at top
+        if (target && target.closest && target.closest('.cat-select-menu')) return;
+        if (target && target.tagName === 'TEXTAREA' && target.scrollTop > 0) return;
+        const onHeader = !!(target && target.closest && target.closest('.sheet-handle, .sheet-header'));
+        if (!onHeader && dlg.scrollTop > 0) return;
+        sX = e.touches[0].clientX;
+        sY = e.touches[0].clientY;
+        dragDy = 0;
+        startAt = Date.now();
+        dragging = true;
+      }, { passive: true });
+      dlg.addEventListener('touchmove', (e) => {
+        if (!dragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - sX;
+        const dy = e.touches[0].clientY - sY;
+        if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
+          if (dragDy === 0) dragging = false;
+          return;
+        }
+        if (dlg.scrollTop > 0 && !(e.target && e.target.closest && e.target.closest('.sheet-handle, .sheet-header'))) {
+          dragging = false;
+          dlg.style.transform = '';
+          return;
+        }
+        if (e.cancelable) e.preventDefault();
+        dragDy = dy;
+        dlg.style.transition = 'none';
+        dlg.style.transform = `translateY(${dy}px)`;
+      }, { passive: false });
+      const finishDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        const elapsed = Math.max(1, Date.now() - startAt);
+        const fastFlick = dragDy > 48 && elapsed < 260;
+        if (dragDy > 90 || fastFlick) {
+          dlg.style.transition = 'transform 0.18s ease-out';
+          dlg.style.transform = 'translateY(100%)';
+          setTimeout(() => {
+            if (dlg.open) dlg.close();
+            dlg.style.transform = '';
+            dlg.style.transition = '';
+          }, 170);
+        } else if (dragDy > 0) {
+          dlg.style.transition = 'transform 0.18s ease-out';
+          dlg.style.transform = '';
+        }
+        dragDy = 0;
+      };
+      dlg.addEventListener('touchend', finishDrag);
+      dlg.addEventListener('touchcancel', finishDrag);
+    });
 
     // Gentle background sync on focus / visibility / interval
     window.addEventListener('focus', () => pullVault(true));
