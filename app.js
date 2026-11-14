@@ -25701,7 +25701,7 @@ function initSortableWidgets() {
     label_client: '<span class="" style="color: rgb(148, 163, 184);">BILL TO / CLIENT</span>'
   };
 
-  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment due upon receipt / within 7 days.</div><div>• Bank transfer details:</div><div><i>Name: Ori Gold</i></div><div><i>IBAN: BE63 9051 4444 2808</i></div><div><i>Swift/BIC: TRWIBEB1XXX</i></div><div><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></div>';
+  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment due upon receipt / within 7 days.</div><div>• Bank transfer details:</div><div>Name: Ori Gold</div><div>IBAN: BE63 9051 4444 2808</div><div>Swift/BIC: TRWIBEB1XXX</div><div>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</div>';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
     '• Deposit payment is due upon signing the project proposal / quote.',
     '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
@@ -25734,12 +25734,15 @@ function initSortableWidgets() {
     return DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT;
   }
   function getProformaDefaultTerms() {
+    if (isDemoMode()) {
+      return '<div>• Payment due upon receipt / within 7 days.</div><div>• Bank transfer details:</div><div>Name: Studio Creative</div><div>IBAN: DE89 3704 0044 0532 0130 00</div><div>Swift/BIC: COBADEFFXXX</div><div>Bank address: European Commercial Bank</div>';
+    }
     if (!isDemoMode() && state.appPrefs && typeof state.appPrefs.proformaDefaultTerms === 'string' && state.appPrefs.proformaDefaultTerms.trim()) {
       return state.appPrefs.proformaDefaultTerms;
     }
     return GENERIC_PROFORMA_DEFAULT_TERMS;
   }
-  const PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This proforma invoice is issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until final payment is completed.';
+  const PROFORMA_DEFAULT_CONDITIONS_CONTENT = '<div>• This proforma invoice is issued prior to delivery or receipt of payment.</div><div>• An official VAT tax invoice / receipt will be issued upon receipt of payment.</div><div>• All project work remains the property of the provider until final settlement of balance is completed.</div>';
   const DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This deposit proforma invoice covers the initial 50% project retainer / deposit.\n• Project commencement begins upon receipt of deposit payment.\n• The remaining 50% milestone will be invoiced upon project completion and final deliverables sign-off.';
 
   function sanitizePoTemplateData(tpl) {
@@ -25931,11 +25934,15 @@ function initSortableWidgets() {
     } else {
       // Ensure Notice & Invoicing Notes section exists for normal proforma
       const defaultConditions = PROFORMA_DEFAULT_CONDITIONS_CONTENT;
-      const condTitle = 'INVOICING NOTES';
+      const condTitle = 'NOTICE & INVOICING NOTES';
       let tplCond = out.find(s => s && s.type === 'conditions');
       if (tplCond) {
         tplCond.title = condTitle;
-        tplCond.content = existingCond?.content || defaultConditions;
+        if (!tplCond.content || tplCond.content.includes('advance estimation') || tplCond.content.includes('until final payment is completed')) {
+          tplCond.content = defaultConditions;
+        } else {
+          tplCond.content = existingCond?.content || defaultConditions;
+        }
       } else {
         out.push({
           id: existingCond?.id || ('sec_conditions_' + Date.now()),
@@ -26127,7 +26134,7 @@ function initSortableWidgets() {
         { id: 'sec_scope_prof', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & FEES', pageBreakBefore: false },
         { id: 'sec_terms_prof', type: 'terms', title: 'PAYMENT TERMS & BANK DETAILS', pageBreakBefore: false, content: getProformaDefaultTerms() },
-        { id: 'sec_conditions_prof', type: 'conditions', title: 'INVOICING NOTES', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+        { id: 'sec_conditions_prof', type: 'conditions', title: 'NOTICE & INVOICING NOTES', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
       richText
     };
@@ -32751,7 +32758,7 @@ function initSortableWidgets() {
           {
             id: 'sec_conditions_' + Date.now(),
             type: 'conditions',
-            title: 'INVOICING NOTES',
+            title: 'NOTICE & INVOICING NOTES',
             pageBreakBefore: false,
             content: PROFORMA_DEFAULT_CONDITIONS_CONTENT
           }
