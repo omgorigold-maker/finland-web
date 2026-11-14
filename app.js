@@ -25599,12 +25599,12 @@ function initSortableWidgets() {
     label_client: '<span class="" style="color: rgb(148, 163, 184);">BILL TO / CLIENT</span>'
   };
 
-  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment terms: Due upon receipt / within 7 days of invoice date.</div><div>• An official VAT tax invoice / receipt will be issued upon payment confirmation.</div><div>• All project work remains the property of the provider until payment is completed. Full commercial usage rights and all final high-resolution source &amp; production files transfer to the client upon full settlement of this invoice.<br><br></div><div><span class="" style="font-family: Inter, sans-serif;"><i>Bank account details:</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Name: Ori Gold</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>IBAN: BE63 9051 4444 2808</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Swift/BIC: TRWIBEB1XXX</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></span></div>';
+  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment due upon receipt / within 7 days.</div><div>• Bank transfer details:</div><div><i>Name: Ori Gold</i></div><div><i>IBAN: BE63 9051 4444 2808</i></div><div><i>Swift/BIC: TRWIBEB1XXX</i></div><div><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></div>';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
     '• Deposit payment is due upon signing the project proposal / quote.',
     '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
     '• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
-    '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.'
+    '• An official VAT tax invoice / receipt will be issued upon payment confirmation.'
   ].join('\n');
   const DEPOSIT_PROFORMA_DEFAULT_BANK_CONTENT = 'Name: Ori Gold\nIBAN: BE63 9051 4444 2808\nSwift/BIC: TRWIBEB1XXX\nBank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium';
   const DEPOSIT_PROFORMA_DEFAULT_COMMUNICATION_CONTENT = 'MON-SAT VIA EMAIL: OMG.ORI.GOLD@GMAIL.COM / WHATSAPP: +972 55 777 0026';
@@ -25614,7 +25614,7 @@ function initSortableWidgets() {
         '• Deposit payment is due upon signing the project proposal / quote.',
         '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
         '• This proforma invoice covers the initial 50% project scope. The remaining 50% will be invoiced upon project completion and final deliverables handover. All final high-resolution source and production files to be transferred to the Client upon completed settlement of final invoice.',
-        '• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.'
+        '• An official VAT tax invoice / receipt will be issued upon payment confirmation.'
       ].join('\n');
     }
     return DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT;
@@ -25637,7 +25637,7 @@ function initSortableWidgets() {
     }
     return GENERIC_PROFORMA_DEFAULT_TERMS;
   }
-  const PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.';
+  const PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This proforma invoice is issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until final payment is completed.';
   const DEPOSIT_PROFORMA_DEFAULT_CONDITIONS_CONTENT = '• This deposit proforma invoice covers the initial 50% project retainer / deposit.\n• Project commencement begins upon receipt of deposit payment.\n• The remaining 50% milestone will be invoiced upon project completion and final deliverables sign-off.';
 
   function sanitizePoTemplateData(tpl) {
@@ -25754,7 +25754,7 @@ function initSortableWidgets() {
     // Ensure Payment Terms section exists
     let tplTerms = out.find(s => s && s.type === 'terms');
     const defaultTerms = isDeposit ? getDepositProformaDefaultTerms() : getProformaDefaultTerms();
-    const termsTitle = isDeposit ? 'PAYMENT TERMS' : 'Payment Terms & Bank Details';
+    const termsTitle = isDeposit ? 'PAYMENT TERMS' : 'PAYMENT TERMS & BANK DETAILS';
     if (tplTerms) {
       tplTerms.title = termsTitle;
       if (!tplTerms.content || tplTerms.content.includes('European Commercial Bank') || tplTerms.content.includes('Studio Creative') || isDeposit) {
@@ -25829,7 +25829,7 @@ function initSortableWidgets() {
     } else {
       // Ensure Notice & Invoicing Notes section exists for normal proforma
       const defaultConditions = PROFORMA_DEFAULT_CONDITIONS_CONTENT;
-      const condTitle = 'Notice & Invoicing Notes';
+      const condTitle = 'INVOICING NOTES';
       let tplCond = out.find(s => s && s.type === 'conditions');
       if (tplCond) {
         tplCond.title = condTitle;
@@ -26022,10 +26022,10 @@ function initSortableWidgets() {
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_prof', type: 'scope', title: 'COMPLETED DELIVERABLES & ASSET HANDOVER', pageBreakBefore: false, content: '<div>Final Print &amp; Production Delivery - Includes all approved production-ready graphic, print pre-press setup, and digital screen assets.</div>' },
-        { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
-        { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
-        { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
+        { id: 'sec_scope_prof', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '' },
+        { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & FEES', pageBreakBefore: false },
+        { id: 'sec_terms_prof', type: 'terms', title: 'PAYMENT TERMS & BANK DETAILS', pageBreakBefore: false, content: getProformaDefaultTerms() },
+        { id: 'sec_conditions_prof', type: 'conditions', title: 'INVOICING NOTES', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
       ],
       richText
     };
@@ -32630,24 +32630,24 @@ function initSortableWidgets() {
           {
             id: 'sec_scope_' + Date.now(),
             type: 'scope',
-            title: (srcScopeSec && srcScopeSec.title) || 'Project Scope & Objectives',
+            title: 'SUMMARY',
             pageBreakBefore: false,
             content: initScopeContent
           },
-          { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
+          { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & FEES', pageBreakBefore: false },
           {
             id: 'sec_terms_' + Date.now(),
             type: 'terms',
-            title: 'Payment Terms & Bank Details',
+            title: 'PAYMENT TERMS & BANK DETAILS',
             pageBreakBefore: false,
             content: getProformaDefaultTerms()
           },
           {
             id: 'sec_conditions_' + Date.now(),
             type: 'conditions',
-            title: 'Notice & Invoicing Notes',
+            title: 'INVOICING NOTES',
             pageBreakBefore: false,
-            content: '• This proforma invoice is an advance estimation issued prior to delivery or receipt of payment.\n• An official VAT tax invoice / receipt will be issued upon receipt of payment.\n• All project work remains the property of the provider until payment is completed.'
+            content: PROFORMA_DEFAULT_CONDITIONS_CONTENT
           }
         ],
         subtotal: initSubtotal,
