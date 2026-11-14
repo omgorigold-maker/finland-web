@@ -23088,26 +23088,6 @@ function initSortableWidgets() {
           });
         }
 
-        // Restore Buzzer subtitle if accidentally cleared on open while matching latest export
-        if (proj.priceOffering && !proj.priceOffering.docSubtitle && /buzzer/i.test(String(proj.client || '')) && Array.isArray(proj.quoteExports) && proj.quoteExports.length > 0 && proj.quoteExports[0].data && proj.quoteExports[0].data.docSubtitle) {
-          const testDraft = JSON.parse(JSON.stringify(proj.priceOffering));
-          testDraft.docSubtitle = proj.quoteExports[0].data.docSubtitle;
-          if (proj.quoteExports[0].data.richText && proj.quoteExports[0].data.richText.doc_subtitle) {
-            if (!testDraft.richText) testDraft.richText = {};
-            testDraft.richText.doc_subtitle = proj.quoteExports[0].data.richText.doc_subtitle;
-          }
-          if (JSON.stringify(testDraft.items || []) === JSON.stringify(proj.quoteExports[0].data.items || [])) {
-            proj.priceOffering.docSubtitle = proj.quoteExports[0].data.docSubtitle;
-            if (proj.quoteExports[0].data.richText && proj.quoteExports[0].data.richText.doc_subtitle) {
-              if (!proj.priceOffering.richText) proj.priceOffering.richText = {};
-              proj.priceOffering.richText.doc_subtitle = proj.quoteExports[0].data.richText.doc_subtitle;
-            }
-            if (proj.quoteExports[0].data.signatures && (!Array.isArray(proj.priceOffering.signatures) || proj.priceOffering.signatures.length === 0)) {
-              proj.priceOffering.signatures = JSON.parse(JSON.stringify(proj.quoteExports[0].data.signatures));
-            }
-          }
-        }
-
         const projFee = parseFloat(proj.amount !== undefined ? proj.amount : proj.fee) || 0;
         const projPaid = parseFloat(proj.paidAmount) || 0;
 
@@ -24650,134 +24630,13 @@ function initSortableWidgets() {
     }
 
     // Documents (Quote/Proposal & Client Brief)
-    const quoteStatus = document.getElementById('leadDetailQuoteStatusText');
-    const quoteActions = document.getElementById('leadDetailQuoteActions');
-    const quoteSavedList = document.getElementById('leadDetailQuoteSavedList');
-    const quoteExports = Array.isArray(lead.quoteExports) ? lead.quoteExports : [];
-    const quoteAttachments = getLeadQuoteAttachmentsList(lead);
-
-    if (quoteStatus && quoteActions) {
-      if (lead.priceOffering) {
-        if (quoteExports.length > 0) {
-          const matchesLatest = getPoContentFingerprint(lead.priceOffering) === getPoContentFingerprint(quoteExports[0].data);
-          quoteStatus.textContent = matchesLatest
-            ? 'Draft matches last export'
-            : 'Edited since last export';
-        } else {
-          quoteStatus.textContent = '';
-        }
-        quoteActions.innerHTML = `
-          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" title="Attach external quote file">
-            + Attach
-          </button>
-        `;
-      } else {
-        const savedCount = quoteExports.length + quoteAttachments.length;
-        quoteStatus.textContent = savedCount > 0 ? '' : 'Not created';
-        quoteActions.innerHTML = `
-          <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(lead.id)}">
-            + Generate Doc
-          </button>
-          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" title="Attach file">
-            + Attach
-          </button>
-        `;
-      }
-    }
-
-    if (quoteSavedList) {
-      if (!lead.priceOffering && quoteExports.length === 0 && quoteAttachments.length === 0) {
-        quoteSavedList.classList.add('hidden');
-        quoteSavedList.innerHTML = '';
-      } else {
-        quoteSavedList.classList.remove('hidden');
-        let draftRowHtml = '';
-        if (lead.priceOffering) {
-          const poCur = lead.priceOffering.currency || leadCur;
-          const poTot = parseFloat(lead.priceOffering.total) || 0;
-          const poRef = lead.priceOffering.refNo || lead.priceOffering.docTitle || 'Price Quote';
-          const dateLabel = formatFollowupDocTimestamp(lead.priceOffering.updatedAt || lead.createdAt);
-          draftRowHtml = `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
-                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(lead.id)}" data-snapshot-id="__draft__" title="Preview live document">
-                  View
-                </button>
-                <button type="button" class="open-lead-price-offering-btn px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" title="Open in A4 Editor">
-                  Edit
-                </button>
-                <button type="button" class="delete-lead-price-offering-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(lead.id)}" title="Delete editable document">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }
-        const visibleExports = quoteExports.slice(0, 1);
-        const exportRowsHtml = visibleExports.map(exp => {
-          const expCur = exp.currency || leadCur;
-          const expTot = parseFloat(exp.total) || 0;
-          const verLabel = 'Last Exported';
-          const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
-          const refText = exp.refNo || exp.docTitle || 'Price Quote';
-          return `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
-                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(lead.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
-                  View
-                </button>
-                <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(lead.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the editor">
-                  Restore
-                </button>
-                <button type="button" class="delete-followup-export-snapshot-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-target-type="lead" data-target-id="${escapeHtml(lead.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Delete version snapshot">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        const attRowsHtml = quoteAttachments.map(att => {
-          const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
-          const fileLabel = att.fileName || 'proposal.pdf';
-          return `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                  ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" data-att-key="${escapeHtml(att.attKey || `${lead.id}_quote`)}" data-file-name="${escapeHtml(fileLabel)}">
-                  View
-                </button>
-                <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(lead.id)}" data-type="quote" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached document">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        quoteSavedList.innerHTML = draftRowHtml + exportRowsHtml + attRowsHtml;
-      }
-    }
+    renderFollowupQuoteCard(
+      lead,
+      leadCur,
+      document.getElementById('leadDetailQuoteStatusText'),
+      document.getElementById('leadDetailQuoteActions'),
+      document.getElementById('leadDetailQuoteSavedList')
+    );
 
     const briefStatus = document.getElementById('leadDetailBriefStatusText');
     const briefActions = document.getElementById('leadDetailBriefActions');
@@ -31330,17 +31189,10 @@ function initSortableWidgets() {
       ? getMasterDepositProformaTemplate()
       : (isProforma ? getMasterProformaTemplate() : getMasterPoTemplate());
 
-    let savedSender = null;
-    if (!isStudioDoc) {
-      try {
-        savedSender = JSON.parse(localStorage.getItem('ft_po_sender_info') || 'null');
-      } catch (e) {}
-    }
-
     const hasSavedSenderObj = po.sender && typeof po.sender === 'object' && po.sender.name !== 'Your Name / Studio';
     const baseSender = isStudioDoc
       ? (po.sender || masterTpl.sender)
-      : (hasSavedSenderObj ? po.sender : (savedSender && savedSender.name !== 'Your Name / Studio' ? savedSender : masterTpl.sender));
+      : (hasSavedSenderObj ? po.sender : masterTpl.sender);
     const sender = {
       name: live('poSenderName', baseSender.name !== undefined ? baseSender.name : masterTpl.sender.name),
       title: live('poSenderTitle', baseSender.title !== undefined ? baseSender.title : masterTpl.sender.title),
@@ -32179,12 +32031,6 @@ function initSortableWidgets() {
       location: document.getElementById('poSenderLocation')?.value || ''
     };
 
-    if (!lead._isStudioDoc) {
-      try {
-        localStorage.setItem('ft_po_sender_info', JSON.stringify(senderObj));
-      } catch (e) {}
-    }
-
     let finalDocTitle = document.getElementById('poDocHeading')?.value ?? '';
     if (!finalDocTitle.trim() && !lead._isStudioDoc) {
       if (lead._isDepositProforma || state.activeDepositProformaProjectId) {
@@ -32620,11 +32466,6 @@ function initSortableWidgets() {
     if (!po.docTitle) {
       po.docTitle = masterTpl.docTitle || DEFAULT_PO_TEMPLATE.docTitle;
     }
-    const isBuzzerClient = /buzzer/i.test(String(lead.client || po.client || ''));
-    if (po.docSubtitle === 'Print & Merch Design Bundle' && lead.title !== 'Print & Merch Design Bundle' && !isBuzzerClient) {
-      po.docSubtitle = '';
-      if (po.richText) delete po.richText.doc_subtitle;
-    }
     if (po.docSubtitle === 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST' || po.docSubtitle === 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST' || po.docSubtitle === 'Preliminary Invoice / Advance Payment Request') {
       po.docSubtitle = lead.title || lead.description || '';
       if (po.richText) delete po.richText.doc_subtitle;
@@ -32683,7 +32524,6 @@ function initSortableWidgets() {
     if (!lead.priceOffering) {
       savePriceOfferingDoc(false);
     }
-    renderPoSavedTemplatesGallery();
     renderPoVersionsDropdown();
     if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -32972,7 +32812,6 @@ function initSortableWidgets() {
     if (!hadExistingProforma) {
       savePriceOfferingDoc(false);
     }
-    renderPoSavedTemplatesGallery();
     renderPoVersionsDropdown();
     if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -33246,7 +33085,6 @@ function initSortableWidgets() {
     if (!hadExistingDepositProforma) {
       savePriceOfferingDoc(false);
     }
-    renderPoSavedTemplatesGallery();
     renderPoVersionsDropdown();
     if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -34718,6 +34556,135 @@ ${sectionsText}
     renderProjectFollowupView();
   }
 
+  function renderFollowupQuoteCard(entity, fallbackCur, quoteStatus, quoteActions, quoteSavedList) {
+    if (!entity) return;
+    const quoteExports = Array.isArray(entity.quoteExports) ? entity.quoteExports : [];
+    const quoteAttachments = getLeadQuoteAttachmentsList(entity);
+
+    if (quoteStatus && quoteActions) {
+      if (entity.priceOffering) {
+        if (quoteExports.length > 0) {
+          const matchesLatest = getPoContentFingerprint(entity.priceOffering) === getPoContentFingerprint(quoteExports[0].data);
+          quoteStatus.textContent = matchesLatest
+            ? 'Draft matches last export'
+            : 'Edited since last export';
+        } else {
+          quoteStatus.textContent = '';
+        }
+        quoteActions.innerHTML = `
+          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(entity.id)}" title="Attach external quote file">
+            + Attach
+          </button>
+        `;
+      } else {
+        const savedCount = quoteExports.length + quoteAttachments.length;
+        quoteStatus.textContent = savedCount > 0 ? '' : 'Not created';
+        quoteActions.innerHTML = `
+          <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(entity.id)}">
+            + Generate Doc
+          </button>
+          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(entity.id)}" title="Attach file">
+            + Attach
+          </button>
+        `;
+      }
+    }
+
+    if (quoteSavedList) {
+      if (!entity.priceOffering && quoteExports.length === 0 && quoteAttachments.length === 0) {
+        quoteSavedList.classList.add('hidden');
+        quoteSavedList.innerHTML = '';
+      } else {
+        quoteSavedList.classList.remove('hidden');
+        let draftRowHtml = '';
+        if (entity.priceOffering) {
+          const poCur = entity.priceOffering.currency || fallbackCur;
+          const poTot = parseFloat(entity.priceOffering.total) || 0;
+          const poRef = entity.priceOffering.refNo || entity.priceOffering.docTitle || 'Price Quote';
+          const dateLabel = formatFollowupDocTimestamp(entity.priceOffering.updatedAt || entity.createdAt);
+          draftRowHtml = `
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(entity.id)}" data-snapshot-id="__draft__" title="Preview live document">
+                  View
+                </button>
+                <button type="button" class="open-lead-price-offering-btn px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(entity.id)}" title="Open in A4 Editor">
+                  Edit
+                </button>
+                <button type="button" class="delete-lead-price-offering-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(entity.id)}" title="Delete editable document">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        const visibleExports = quoteExports.slice(0, 1);
+        const exportRowsHtml = visibleExports.map(exp => {
+          const expCur = exp.currency || fallbackCur;
+          const expTot = parseFloat(exp.total) || 0;
+          const verLabel = 'Last Exported';
+          const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
+          const refText = exp.refNo || exp.docTitle || 'Price Quote';
+          return `
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(entity.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
+                  View
+                </button>
+                <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(entity.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the editor">
+                  Restore
+                </button>
+                <button type="button" class="delete-followup-export-snapshot-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-target-type="lead" data-target-id="${escapeHtml(entity.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Delete version snapshot">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const attRowsHtml = quoteAttachments.map(att => {
+          const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
+          const fileLabel = att.fileName || 'proposal.pdf';
+          return `
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
+                  ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(entity.id)}" data-att-key="${escapeHtml(att.attKey || `${entity.id}_quote`)}" data-file-name="${escapeHtml(fileLabel)}">
+                  View
+                </button>
+                <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(entity.id)}" data-type="quote" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached document">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        quoteSavedList.innerHTML = draftRowHtml + exportRowsHtml + attRowsHtml;
+      }
+    }
+  }
+
   function renderProjectDetailPage(proj, cur) {
     if (!proj) return;
     const projCur = proj.currency || cur;
@@ -35075,134 +35042,14 @@ ${sectionsText}
       proformaTopBtnText.textContent = proj.proformaInvoice ? 'Edit Proforma Invoice' : 'Generate Proforma Invoice';
     }
 
-    // Price Quote / Proposal (Preserved from Lead or Created on Project)
-    const projQuoteStatus = document.getElementById('detailQuoteStatusText');
-    const projQuoteActions = document.getElementById('detailQuoteActions');
-    const projQuoteSavedList = document.getElementById('detailQuoteSavedList');
-    const projQuoteExports = Array.isArray(proj.quoteExports) ? proj.quoteExports : [];
-    const projQuoteAttachments = getLeadQuoteAttachmentsList(proj);
-
-    if (projQuoteStatus && projQuoteActions) {
-      if (proj.priceOffering) {
-        if (projQuoteExports.length > 0) {
-          const matchesLatest = getPoContentFingerprint(proj.priceOffering) === getPoContentFingerprint(projQuoteExports[0].data);
-          projQuoteStatus.textContent = matchesLatest
-            ? 'Draft matches last export'
-            : 'Edited since last export';
-        } else {
-          projQuoteStatus.textContent = '';
-        }
-        projQuoteActions.innerHTML = `
-          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach external quote file">
-            + Attach
-          </button>
-        `;
-      } else {
-        const savedCount = projQuoteExports.length + projQuoteAttachments.length;
-        projQuoteStatus.textContent = savedCount > 0 ? '' : 'Not created';
-        projQuoteActions.innerHTML = `
-          <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
-            + Generate Doc
-          </button>
-          <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach file">
-            + Attach
-          </button>
-        `;
-      }
-    }
-
-    if (projQuoteSavedList) {
-      if (!proj.priceOffering && projQuoteExports.length === 0 && projQuoteAttachments.length === 0) {
-        projQuoteSavedList.classList.add('hidden');
-        projQuoteSavedList.innerHTML = '';
-      } else {
-        projQuoteSavedList.classList.remove('hidden');
-        let draftRowHtml = '';
-        if (proj.priceOffering) {
-          const poCur = proj.priceOffering.currency || projCur;
-          const poTot = parseFloat(proj.priceOffering.total) || 0;
-          const poRef = proj.priceOffering.refNo || proj.priceOffering.docTitle || 'Price Quote';
-          const dateLabel = formatFollowupDocTimestamp(proj.priceOffering.updatedAt || proj.createdAt);
-          draftRowHtml = `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
-                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
-                  View
-                </button>
-                <button type="button" class="open-lead-price-offering-btn px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
-                  Edit
-                </button>
-                <button type="button" class="delete-lead-price-offering-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" title="Delete editable document">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }
-        const exportRowsHtml = projQuoteExports.slice(0, 1).map(exp => {
-          const expCur = exp.currency || projCur;
-          const expTot = parseFloat(exp.total) || 0;
-          const verLabel = 'Last Exported';
-          const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
-          const refText = exp.refNo || exp.docTitle || 'Price Quote';
-          return `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
-                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
-                  View
-                </button>
-                <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="lead" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the editor">
-                  Restore
-                </button>
-                <button type="button" class="delete-followup-export-snapshot-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-target-type="lead" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Delete version snapshot">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        const attRowsHtml = projQuoteAttachments.map(att => {
-          const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
-          const fileLabel = att.fileName || 'proposal.pdf';
-          return `
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
-                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                  ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(att.attKey || `${proj.id}_quote`)}" data-file-name="${escapeHtml(fileLabel)}">
-                  View
-                </button>
-                <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="quote" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached document">
-                  <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        projQuoteSavedList.innerHTML = draftRowHtml + exportRowsHtml + attRowsHtml;
-      }
-    }
+    // Price Quote / Proposal (Shared helper for both Lead & Project pages)
+    renderFollowupQuoteCard(
+      proj,
+      projCur,
+      document.getElementById('detailQuoteStatusText'),
+      document.getElementById('detailQuoteActions'),
+      document.getElementById('detailQuoteSavedList')
+    );
 
     // Deposit Proforma (50%)
     const depositStatus = document.getElementById('detailDepositProformaStatusText');
