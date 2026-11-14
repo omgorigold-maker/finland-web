@@ -666,8 +666,8 @@ button:active:not(:disabled) {
 .cal-day-cell.is-today.today-ring,
 .cal-day-cell.is-today.today-ring.has-bill,
 .cal-day-cell.is-today.today-ring.has-bill.is-paid {
-  border: 1px solid var(--cal-today-color, #f97315) !important;
-  box-shadow: inset 0 0 0 1.5px var(--cal-today-color, #f97315) !important;
+  border: 2px solid var(--cal-today-color, #f97315) !important;
+  box-shadow: none !important;
 }
 
 .cal-day-cell.today-solid,
@@ -691,9 +691,9 @@ button:active:not(:disabled) {
   box-shadow: none !important;
 }
 
-.cal-day-cell.is-selected {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
+.cal-day-cell.is-selected:not(.is-today) {
+  border-color: var(--ink) !important;
+  background-color: rgba(15, 23, 42, 0.05);
 }
 
 .cal-day-cell.other-month {
