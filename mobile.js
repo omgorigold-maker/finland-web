@@ -1907,51 +1907,65 @@
       });
     }
 
-    // Pull-to-refresh on mainContent
+    // Pull-to-refresh on mainContent (with deadzone + horizontal-swipe guard)
     const mainEl = document.getElementById('mainContent');
     const ptrEl = document.getElementById('ptrIndicator');
     const ptrText = document.getElementById('ptrText');
     if (mainEl && ptrEl && ptrText) {
+      let startX = 0;
       let startY = 0;
       let pulling = false;
       let pullDist = 0;
+      const resetPtr = () => {
+        pulling = false;
+        pullDist = 0;
+        ptrEl.classList.remove('is-visible');
+      };
       mainEl.addEventListener('touchstart', (e) => {
-        if (mainEl.scrollTop <= 0 && e.touches.length === 1) {
-          startY = e.touches[0].clientY;
-          pulling = true;
-          pullDist = 0;
-        }
-      }, { passive: true });
-      mainEl.addEventListener('touchmove', (e) => {
-        if (!pulling || mainEl.scrollTop > 0) {
-          pulling = false;
-          ptrEl.hidden = true;
+        if (e.touches.length !== 1 || mainEl.scrollTop > 0) {
+          resetPtr();
           return;
         }
+        if (e.target && e.target.closest && (e.target.closest('dialog') || e.target.closest('.chip-scroll'))) {
+          resetPtr();
+          return;
+        }
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        pulling = true;
+        pullDist = 0;
+      }, { passive: true });
+      mainEl.addEventListener('touchmove', (e) => {
+        if (!pulling || mainEl.scrollTop > 0 || e.touches.length !== 1) {
+          resetPtr();
+          return;
+        }
+        const dx = e.touches[0].clientX - startX;
         const dy = e.touches[0].clientY - startY;
-        if (dy <= 0) {
-          pulling = false;
-          ptrEl.hidden = true;
+        if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
+          resetPtr();
           return;
         }
         if (e.cancelable) e.preventDefault();
-        if (dy > 14) {
+        if (dy > 30) {
           pullDist = dy;
-          ptrEl.hidden = false;
-          ptrText.textContent = dy >= 68 ? 'Release to refresh' : 'Pull to refresh';
+          ptrEl.classList.add('is-visible');
+          ptrText.textContent = dy >= 86 ? 'Release to refresh' : 'Pull to refresh';
         }
       }, { passive: false });
       mainEl.addEventListener('touchend', async () => {
         if (!pulling) return;
+        const dist = pullDist;
         pulling = false;
-        if (pullDist >= 68) {
+        if (dist >= 86) {
+          ptrEl.classList.add('is-visible');
           ptrText.textContent = 'Syncing...';
           await pullVault(false);
           showToast('Synced');
         }
-        ptrEl.hidden = true;
-        pullDist = 0;
+        resetPtr();
       });
+      mainEl.addEventListener('touchcancel', resetPtr);
     }
 
     // Gentle background sync on focus / visibility / interval
