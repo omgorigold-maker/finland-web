@@ -21876,6 +21876,7 @@ function initSortableWidgets() {
     const display = document.getElementById('detailRemainingFeeDisplay');
     const form = document.getElementById('detailRemainingFeeEditForm');
     const input = document.getElementById('detailRemainingFeeInput');
+    const dateInput = document.getElementById('detailRemainingDateInput');
     const label = document.getElementById('detailRemainingHeaderLabel');
     const prefix = document.getElementById('detailRemainingFeeCurPrefix');
     if (!display || !form || !input) return;
@@ -21893,6 +21894,7 @@ function initSortableWidgets() {
     if (prefix) prefix.textContent = `+${curSym}`;
     input.value = '';
     input.placeholder = rem > 0 ? String(Math.round(rem * 100) / 100) : '0.00';
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
     display.classList.add('hidden');
     form.classList.remove('hidden');
@@ -21904,8 +21906,10 @@ function initSortableWidgets() {
     const display = document.getElementById('detailRemainingFeeDisplay');
     const form = document.getElementById('detailRemainingFeeEditForm');
     const input = document.getElementById('detailRemainingFeeInput');
+    const dateInput = document.getElementById('detailRemainingDateInput');
     const label = document.getElementById('detailRemainingHeaderLabel');
     if (input) input.value = '';
+    if (dateInput) dateInput.value = '';
     if (label) {
       label.textContent = 'Remaining';
       label.classList.remove('text-emerald-600');
@@ -21923,6 +21927,7 @@ function initSortableWidgets() {
     const form = document.getElementById('detailRemainingFeeEditForm');
     if (!form || form.classList.contains('hidden')) return;
     const input = document.getElementById('detailRemainingFeeInput');
+    const dateInput = document.getElementById('detailRemainingDateInput');
     if (!input) return;
 
     const rawVal = input.value.trim();
@@ -21932,11 +21937,12 @@ function initSortableWidgets() {
       return;
     }
 
+    const payDate = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+
     // Clear input & close form first so blur doesn't double-fire after Enter
     closeRemainingPaymentEdit();
 
     const projCur = p.currency || state.displayCurrency || 'EUR';
-    const payDate = new Date().toISOString().split('T')[0];
     const totalFee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
     const prevPaid = parseFloat(p.paidAmount) || 0;
     const nextPaid = Math.round((prevPaid + payAmt) * 100) / 100;
@@ -34778,7 +34784,14 @@ ${sectionsText}
             <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/60 text-xs group/pay">
               <div>
                 <div class="font-semibold text-slate-800 font-mono">+${formatMoney(payAmt, payCur)}${payEquiv}</div>
-                <div class="text-[10px] text-slate-400">${pay.date ? pay.date : 'Recent'} • ${escapeHtml(pay.notes || pay.method || 'Payment')}</div>
+                <div class="text-[10px] text-slate-400 flex items-center gap-1 flex-wrap mt-0.5">
+                  <button type="button" class="edit-detail-payment-date-btn inline-flex items-center gap-1 text-slate-500 hover:text-emerald-700 hover:underline cursor-pointer transition-colors" data-payment-id="${escapeHtml(pay.id)}" title="Click to change payment date">
+                    <span>${escapeHtml(pay.date || 'Set date')}</span>
+                    <i data-lucide="pencil" class="w-2.5 h-2.5 opacity-0 group-hover/pay:opacity-100 transition-opacity"></i>
+                  </button>
+                  <input type="date" class="detail-payment-date-input hidden text-[10px] font-semibold text-slate-800 bg-white border border-emerald-400 rounded px-1 py-0.2 focus:outline-none" data-payment-id="${escapeHtml(pay.id)}" value="${escapeHtml(pay.date || '')}">
+                  <span>• ${escapeHtml(pay.notes || pay.method || 'Payment')}</span>
+                </div>
               </div>
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">Deposited</span>
@@ -36657,13 +36670,29 @@ ${sectionsText}
     if (saveRemPayBtn) saveRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveRemainingPaymentEdit(); });
     const cancelRemPayBtn = document.getElementById('cancelRemainingPaymentBtn');
     if (cancelRemPayBtn) cancelRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeRemainingPaymentEdit(); });
+    const remFeeEditForm = document.getElementById('detailRemainingFeeEditForm');
     const remFeeInput = document.getElementById('detailRemainingFeeInput');
+    const remDateInput = document.getElementById('detailRemainingDateInput');
+    const handleRemBlur = () => {
+      setTimeout(() => {
+        if (remFeeEditForm && !remFeeEditForm.contains(document.activeElement)) {
+          saveRemainingPaymentEdit();
+        }
+      }, 120);
+    };
     if (remFeeInput) {
       remFeeInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); saveRemainingPaymentEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeRemainingPaymentEdit(); }
       });
-      remFeeInput.addEventListener('blur', () => saveRemainingPaymentEdit());
+      remFeeInput.addEventListener('blur', handleRemBlur);
+    }
+    if (remDateInput) {
+      remDateInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveRemainingPaymentEdit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); closeRemainingPaymentEdit(); }
+      });
+      remDateInput.addEventListener('blur', handleRemBlur);
     }
 
     // Deadline In-Box Edit events
@@ -36952,10 +36981,43 @@ ${sectionsText}
       });
     }
 
-    // Payments List Inline Delete Interaction
+    // Payments List Inline Date Edit & Delete Interaction
     const paymentsList = document.getElementById('detailPaymentsList');
     if (paymentsList) {
+      const saveInlinePaymentDate = (payId, newDate) => {
+        const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
+        if (!p || !payId || !newDate) return;
+        const targetPay = (p.payments || []).find(x => x.id === payId);
+        if (!targetPay || targetPay.date === newDate) {
+          renderProjectDetailPage(p, state.displayCurrency);
+          return;
+        }
+        targetPay.date = newDate;
+        if (p.status === 'paid') {
+          const dated = (p.payments || []).map(x => x.date).filter(Boolean).sort();
+          if (dated.length > 0) p.paidDate = dated[dated.length - 1];
+        }
+        saveBudget();
+        renderProjectDetailPage(p, state.displayCurrency);
+        renderBudgetView();
+        showToast('Payment Date Updated', `Payment date changed to ${newDate}.`, 'success');
+      };
+
       paymentsList.addEventListener('click', async (e) => {
+        const editDateBtn = e.target.closest('.edit-detail-payment-date-btn');
+        if (editDateBtn) {
+          const row = editDateBtn.closest('.group\\/pay');
+          const dateInp = row ? row.querySelector('.detail-payment-date-input') : null;
+          if (dateInp) {
+            editDateBtn.classList.add('hidden');
+            dateInp.classList.remove('hidden');
+            dateInp.focus();
+            if (typeof dateInp.showPicker === 'function') {
+              try { dateInp.showPicker(); } catch (err) {}
+            }
+          }
+          return;
+        }
         const delBtn = e.target.closest('.delete-detail-payment-btn');
         if (delBtn) {
           const payId = delBtn.getAttribute('data-payment-id');
@@ -36987,6 +37049,31 @@ ${sectionsText}
           }
         }
       });
+
+      paymentsList.addEventListener('change', (e) => {
+        const dateInp = e.target.closest('.detail-payment-date-input');
+        if (dateInp) {
+          saveInlinePaymentDate(dateInp.getAttribute('data-payment-id'), dateInp.value);
+        }
+      });
+      paymentsList.addEventListener('keydown', (e) => {
+        const dateInp = e.target.closest('.detail-payment-date-input');
+        if (!dateInp) return;
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveInlinePaymentDate(dateInp.getAttribute('data-payment-id'), dateInp.value);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
+          if (p) renderProjectDetailPage(p, state.displayCurrency);
+        }
+      });
+      paymentsList.addEventListener('blur', (e) => {
+        const dateInp = e.target.closest('.detail-payment-date-input');
+        if (dateInp) {
+          saveInlinePaymentDate(dateInp.getAttribute('data-payment-id'), dateInp.value);
+        }
+      }, true);
     }
 
     // Add Step Form

@@ -1566,9 +1566,10 @@
                     <div id="detailRemainingFee" class="font-mono text-base font-bold text-slate-900 leading-tight">€0.00</div>
                     <div id="detailRemainingFeeEquiv" class="text-[10px] font-semibold text-slate-500 mt-0.5">Awaiting payment</div>
                   </div>
-                  <div id="detailRemainingFeeEditForm" class="hidden items-center gap-1 mt-1">
+                  <div id="detailRemainingFeeEditForm" class="hidden items-center gap-1 mt-1 flex-wrap">
                     <span id="detailRemainingFeeCurPrefix" class="text-xs font-bold text-emerald-600">+€</span>
-                    <input type="number" step="any" min="0" id="detailRemainingFeeInput" placeholder="0.00" class="w-20 font-mono text-sm font-bold text-slate-900 bg-white border border-emerald-400 rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                    <input type="number" step="any" min="0" id="detailRemainingFeeInput" placeholder="0.00" class="w-16 font-mono text-sm font-bold text-slate-900 bg-white border border-emerald-400 rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                    <input type="date" id="detailRemainingDateInput" class="text-[11px] font-semibold text-slate-700 bg-white border border-emerald-300 rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" title="Payment Date">
                     <button type="button" id="saveRemainingPaymentBtn" class="text-emerald-600 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Log Payment (Enter)"><i data-lucide="check" class="w-3.5 h-3.5"></i></button>
                     <button type="button" id="cancelRemainingPaymentBtn" class="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer" title="Cancel (Esc)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                   </div>
