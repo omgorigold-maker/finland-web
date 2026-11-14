@@ -1072,10 +1072,10 @@ select:not(.hidden):focus {
 
 /* Document Snapshot Viewer Modal Sheet Sizing */
 #followupSnapshotSheetContainer {
-  align-items: flex-start;
+  display: block;
 }
 #followupSnapshotSheetContainer .price-offering-sheet {
-  align-self: flex-start;
+  margin: 0 auto !important;
   height: auto !important;
   min-height: 297mm;
 }

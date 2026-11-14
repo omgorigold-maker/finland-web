@@ -32230,12 +32230,10 @@ function initSortableWidgets() {
 
   function getActiveDocType() {
     if (typeof poEditingMasterTemplateType !== 'undefined' && poEditingMasterTemplateType) return poEditingMasterTemplateType;
+    if (state.activeStudioDocId) return 'studio';
     if (state.activeDepositProformaProjectId) return 'deposit_proforma';
     if (state.activeProformaProjectId) return 'proforma';
-    const target = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
-    if (target?._isDepositProforma || target?.priceOffering?._isDepositProforma) return 'deposit_proforma';
-    if (target?._isProforma || target?.priceOffering?._isProforma) return 'proforma';
-    if (target?._isStudioDoc || target?.priceOffering?._studioDoc) return 'studio';
+    if (state.activePriceOfferingLeadId || state.activeFollowupLeadId) return 'price_quote';
     return 'price_quote';
   }
 
