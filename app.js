@@ -25859,17 +25859,17 @@ function initSortableWidgets() {
       { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
       {
         id: 'sec_timeline_quote',
-        type: 'terms',
+        type: 'timeline',
         title: 'PROJECT TIMELINE & DELIVERY',
         pageBreakBefore: false,
-        content: '<div>1. Concept & First Drafts: Delivered within ____________ business days from deposit payment.</div><div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: _________________</div>'
+        content: '<div>1. Concept &amp; First Drafts: Delivered within ____________ business days from signature &amp; project kickoff.</div><div>2. Feedback &amp; Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: _________________</div>'
       },
       {
         id: 'sec_terms_quote',
-        type: 'terms',
+        type: 'conditions',
         title: 'TERMS & CONDITIONS',
         pageBreakBefore: false,
-        content: '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div><div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div><div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div><div>• The remaining 50% project balance will be invoiced upon final review and final project files handoff.</div>'
+        content: '<div>• 2 rounds of revisions included per item; additional revisions billed at agreed hourly rate.</div><div>• 50% upfront deposit is required upon quote approval to lock project scheduling and commence work.</div><div>• Remaining 50% balance is due upon final delivery and handover of all final production files.</div>'
       },
       {
         id: 'sec_bank_quote',
@@ -25887,12 +25887,12 @@ function initSortableWidgets() {
         pageBreakBefore: false,
         clientTitle: 'Client Signature',
         providerTitle: 'Service Provider Signature',
-        signSealText: 'Signature & Seal',
+        signSealText: 'Signature',
         signDateText: 'Date: _________________',
         signNameText: 'Name: _________________',
-        signSealProviderText: 'Signature & Seal',
+        signSealProviderText: 'Signature',
         signDateProviderText: 'Date: _________________',
-        signNameProviderText: 'Name: _________________'
+        signNameProviderText: 'Name: Ori Gold'
       }
     ];
   }
@@ -25905,10 +25905,19 @@ function initSortableWidgets() {
     const vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
     const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
     const leakedProformaSubs = ['PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST', 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST', 'Preliminary Invoice / Advance Payment Request'];
-    const cleanSubtitle = (customTpl.docSubtitle !== undefined && !leakedProformaSubs.includes(customTpl.docSubtitle))
+    const isLeakedProformaTpl = !!(
+      (customTpl.docTitle && /proforma|deposit/i.test(customTpl.docTitle)) ||
+      customTpl.docType === 'deposit_proforma' ||
+      customTpl.docType === 'proforma' ||
+      (customTpl.docSubtitle && leakedProformaSubs.includes(customTpl.docSubtitle)) ||
+      (Array.isArray(customTpl.sections) && customTpl.sections.some(s => s && /deposit/i.test(String(s.title || ''))))
+    );
+    const cleanSubtitle = (!isLeakedProformaTpl && customTpl.docSubtitle !== undefined && !leakedProformaSubs.includes(customTpl.docSubtitle))
       ? customTpl.docSubtitle
       : DEFAULT_PO_TEMPLATE.docSubtitle;
-    const cleanLabels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {});
+    const cleanLabels = isLeakedProformaTpl
+      ? Object.assign({}, DEFAULT_PO_TEMPLATE.labels)
+      : Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {});
     if (cleanLabels.thDesc === 'Milestone / Deliverable') cleanLabels.thDesc = DEFAULT_PO_TEMPLATE.labels.thDesc;
     if (cleanLabels.thRate === 'Total') cleanLabels.thRate = DEFAULT_PO_TEMPLATE.labels.thRate;
     if (cleanLabels.thAmount === 'Deposit (50%)') cleanLabels.thAmount = DEFAULT_PO_TEMPLATE.labels.thAmount;
@@ -25918,18 +25927,21 @@ function initSortableWidgets() {
     if (cleanLabels.validUntil === 'Payment Due') cleanLabels.validUntil = DEFAULT_PO_TEMPLATE.labels.validUntil;
     if (cleanLabels.issueDate === 'Invoice Date') cleanLabels.issueDate = DEFAULT_PO_TEMPLATE.labels.issueDate;
     if (!cleanLabels.discount || cleanLabels.discount === 'Discount') cleanLabels.discount = 'Bundle Discount';
+    const cleanSections = (!isLeakedProformaTpl && Array.isArray(customTpl.sections) && customTpl.sections.length > 0)
+      ? JSON.parse(JSON.stringify(customTpl.sections))
+      : getDefaultPoQuoteSections();
     return {
       id: customTpl.id || 'tpl_price_quote_master',
       docType: 'price_quote',
-      name: customTpl.name || 'Price Quote / Proposal Template',
+      name: isLeakedProformaTpl ? 'Price Quote / Proposal Template' : (customTpl.name || 'Price Quote / Proposal Template'),
       docTitle: 'Price Quote / Proposal',
       docSubtitle: cleanSubtitle,
       sender: Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {}),
       typography: Object.assign({}, DEFAULT_PO_TEMPLATE.typography, customTpl.typography || {}),
       elementStyles: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_PO_TEMPLATE.elementStyles)), JSON.parse(JSON.stringify(customTpl.elementStyles || {}))),
       labels: cleanLabels,
-      sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : getDefaultPoQuoteSections(),
-      richText: Object.assign({}, DEFAULT_PO_TEMPLATE.richText || {}, customTpl.richText || {})
+      sections: cleanSections,
+      richText: Object.assign({}, DEFAULT_PO_TEMPLATE.richText || {}, isLeakedProformaTpl ? {} : (customTpl.richText || {}))
     };
   }
 
