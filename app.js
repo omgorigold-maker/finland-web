@@ -25856,20 +25856,21 @@ function initSortableWidgets() {
       { id: 'sec_header', type: 'header', title: 'Document Header' },
       { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
       { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
+      { id: 'sec_scope_quote', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '' },
       { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
       {
         id: 'sec_timeline_quote',
-        type: 'timeline',
+        type: 'terms',
         title: 'PROJECT TIMELINE & DELIVERY',
         pageBreakBefore: false,
-        content: '<div>1. Concept &amp; First Drafts: Delivered within ____________ business days from signature &amp; project kickoff.</div><div>2. Feedback &amp; Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: _________________</div>'
+        content: '<div>1. Concept & First Drafts: Delivered within ____________ business days from deposit payment.</div><div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: _________________</div>'
       },
       {
         id: 'sec_terms_quote',
-        type: 'conditions',
+        type: 'terms',
         title: 'TERMS & CONDITIONS',
         pageBreakBefore: false,
-        content: '<div>• 2 rounds of revisions included per item; additional revisions billed at agreed hourly rate.</div><div>• 50% upfront deposit is required upon quote approval to lock project scheduling and commence work.</div><div>• Remaining 50% balance is due upon final delivery and handover of all final production files.</div>'
+        content: '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div><div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div><div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div><div>• The remaining 50% project balance will be invoiced upon final review and final project files handoff.</div>'
       },
       {
         id: 'sec_bank_quote',
@@ -25887,12 +25888,12 @@ function initSortableWidgets() {
         pageBreakBefore: false,
         clientTitle: 'Client Signature',
         providerTitle: 'Service Provider Signature',
-        signSealText: 'Signature',
+        signSealText: 'Signature & Seal',
         signDateText: 'Date: _________________',
         signNameText: 'Name: _________________',
-        signSealProviderText: 'Signature',
+        signSealProviderText: 'Signature & Seal',
         signDateProviderText: 'Date: _________________',
-        signNameProviderText: 'Name: Ori Gold'
+        signNameProviderText: 'Name: _________________'
       }
     ];
   }
