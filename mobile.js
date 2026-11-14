@@ -1638,6 +1638,7 @@
     const cats = [...new Set((state.expenses || []).map(e => e && e.category).filter(Boolean))];
     document.getElementById('txCategoryDatalist').replaceChildren(...cats.map(c => el('option', { value: c })));
     openDialog('txDialog');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   function openCalItemForm(existing) {
@@ -1652,6 +1653,7 @@
     document.getElementById('calItemTimeInput').value = isEdit ? (existing.time || '') : '';
     document.getElementById('calItemDeleteBtn').hidden = !isEdit;
     openDialog('calItemDialog');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   function openNoteForm(existing) {

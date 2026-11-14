@@ -195,7 +195,7 @@
   </dialog>
 
   <!-- 2. Transaction Form Dialog -->
-  <dialog id="txDialog" class="sheet-dialog" closedby="any" aria-labelledby="txDialogTitle">
+  <dialog id="txDialog" class="sheet-dialog" closedby="any" tabindex="-1" aria-labelledby="txDialogTitle">
     <div class="sheet-handle" aria-hidden="true"></div>
     <div class="sheet-header">
       <h2 id="txDialogTitle" class="sheet-title">New Transaction</h2>
@@ -210,7 +210,7 @@
       <div class="form-row-2">
         <label class="field">
           <span>Amount</span>
-          <input type="number" id="txAmountInput" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required autofocus>
+          <input type="number" id="txAmountInput" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required>
         </label>
         <label class="field">
           <span>Currency</span>
@@ -244,7 +244,7 @@
   </dialog>
 
   <!-- 3. Calendar Item Form Dialog -->
-  <dialog id="calItemDialog" class="sheet-dialog" closedby="any" aria-labelledby="calItemDialogTitle">
+  <dialog id="calItemDialog" class="sheet-dialog" closedby="any" tabindex="-1" aria-labelledby="calItemDialogTitle">
     <div class="sheet-handle" aria-hidden="true"></div>
     <div class="sheet-header">
       <h2 id="calItemDialogTitle" class="sheet-title">New Calendar Item</h2>
@@ -258,7 +258,7 @@
       </div>
       <label class="field">
         <span>Title</span>
-        <input type="text" id="calItemTitleInput" placeholder="What's happening?" required autofocus>
+        <input type="text" id="calItemTitleInput" placeholder="What's happening?" required>
       </label>
       <div class="form-row-2">
         <label class="field">
