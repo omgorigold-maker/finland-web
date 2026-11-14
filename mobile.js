@@ -1664,25 +1664,46 @@
     document.getElementById('noteDeleteBtn').hidden = !isEdit;
 
     const known = getAllKnownLabels();
-    document.getElementById('noteLabelDatalist').replaceChildren(...known.map(l => el('option', { value: l.name })));
-    const picker = document.getElementById('noteLabelPicker');
-    if (picker) {
-      picker.replaceChildren(...known.map(l =>
-        el('button', {
+    const initialLabel = isEdit ? (existing.label || 'General') : (known[0] ? known[0].name : 'General');
+    const setSelectedCategory = (name) => {
+      const matched = known.find(k => k.name.toLowerCase() === String(name || '').toLowerCase());
+      const resolvedName = matched ? matched.name : (name || 'General');
+      const resolvedColor = matched ? matched.color : '#64748b';
+      document.getElementById('noteLabelInput').value = resolvedName;
+      const dot = document.getElementById('noteCategoryDot');
+      const txt = document.getElementById('noteCategoryText');
+      if (dot) dot.style.background = resolvedColor;
+      if (txt) txt.textContent = resolvedName;
+    };
+    setSelectedCategory(initialLabel);
+
+    const menu = document.getElementById('noteCategoryMenu');
+    const catBtn = document.getElementById('noteCategoryBtn');
+    if (menu && catBtn) {
+      menu.hidden = true;
+      catBtn.setAttribute('aria-expanded', 'false');
+      menu.replaceChildren(...known.map(l => {
+        const isSel = initialLabel.toLowerCase() === l.name.toLowerCase();
+        return el('button', {
           type: 'button',
-          className: `filter-chip${(document.getElementById('noteLabelInput').value || '').toLowerCase() === l.name.toLowerCase() ? ' active' : ''}`,
+          className: `cat-select-option${isSel ? ' active' : ''}`,
+          role: 'option',
+          'aria-selected': isSel ? 'true' : 'false',
           onClick: () => {
-            document.getElementById('noteLabelInput').value = l.name;
-            picker.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            // Mark clicked chip active
-            const idx = known.findIndex(k => k.name === l.name);
-            if (picker.children[idx]) picker.children[idx].classList.add('active');
+            setSelectedCategory(l.name);
+            menu.querySelectorAll('.cat-select-option').forEach((opt, i) => {
+              const active = known[i] && known[i].name === l.name;
+              opt.classList.toggle('active', active);
+              opt.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            menu.hidden = true;
+            catBtn.setAttribute('aria-expanded', 'false');
           }
         }, [
           el('span', { className: 'label-dot', style: `background:${l.color}` }),
           el('span', { textContent: l.name })
-        ])
-      ));
+        ]);
+      }));
     }
     openDialog('noteDialog');
   }
@@ -1938,6 +1959,24 @@
       renderAll();
       showToast('Note saved');
     });
+
+    const noteCatBtn = document.getElementById('noteCategoryBtn');
+    const noteCatMenu = document.getElementById('noteCategoryMenu');
+    const noteCatWrap = document.getElementById('noteCategoryWrap');
+    if (noteCatBtn && noteCatMenu) {
+      noteCatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nextOpen = noteCatMenu.hidden;
+        noteCatMenu.hidden = !nextOpen;
+        noteCatBtn.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e) => {
+        if (!noteCatMenu.hidden && noteCatWrap && !noteCatWrap.contains(e.target)) {
+          noteCatMenu.hidden = true;
+          noteCatBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
 
     document.getElementById('noteDeleteBtn').addEventListener('click', async () => {
       const id = document.getElementById('noteIdInput').value;

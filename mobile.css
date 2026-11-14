@@ -1405,12 +1405,93 @@ dialog::backdrop {
 .field input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
+  height: 44px;
+  padding: 0 10px;
 }
 
-#noteLabelPicker {
-  flex-wrap: wrap;
-  overflow-x: visible;
-  padding-bottom: 2px;
+.cat-select-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.cat-select-btn {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.cat-select-val {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cat-select-val span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-select-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.cat-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-dock);
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cat-select-menu[hidden] {
+  display: none;
+}
+
+.cat-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-align: left;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+}
+
+.cat-select-option:last-child {
+  border-bottom: 0;
+}
+
+.cat-select-option.active {
+  color: var(--ink);
+  font-weight: 700;
+  background: #f8fafc;
 }
 
 .field input:focus,

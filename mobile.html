@@ -295,17 +295,25 @@
         <textarea id="noteBodyInput" rows="5" placeholder="Write your note..."></textarea>
       </label>
       <div class="form-row-2">
-        <label class="field">
-          <span>Label</span>
-          <input type="text" id="noteLabelInput" placeholder="General" list="noteLabelDatalist">
-          <datalist id="noteLabelDatalist"></datalist>
-        </label>
+        <div class="field category-field">
+          <span>Category</span>
+          <input type="hidden" id="noteLabelInput">
+          <div class="cat-select-wrap" id="noteCategoryWrap">
+            <button type="button" id="noteCategoryBtn" class="cat-select-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="cat-select-val">
+                <span id="noteCategoryDot" class="label-dot"></span>
+                <span id="noteCategoryText">General</span>
+              </span>
+              <svg class="cat-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="noteCategoryMenu" class="cat-select-menu" role="listbox" hidden></div>
+          </div>
+        </div>
         <label class="field">
           <span>Due Date (optional)</span>
           <input type="date" id="noteDueDateInput">
         </label>
       </div>
-      <div id="noteLabelPicker" class="chip-scroll" aria-label="Quick label picker"></div>
       <label class="checkbox-row">
         <input type="checkbox" id="notePinnedInput">
         <span>Pin note to top</span>
