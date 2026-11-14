@@ -25860,14 +25860,14 @@ function initSortableWidgets() {
         type: 'terms',
         title: 'PROJECT TIMELINE & DELIVERY',
         pageBreakBefore: false,
-        content: '<div>1. Concept & First Drafts: Delivered within ____________ business days from deposit payment.</div><div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: _________________</div>'
+        content: '<div>1. Concept & First Drafts: Delivered within ________ business days from deposit payment.</div><div>2. Feedback & Revisions: Up to 2 revision rounds per deliverable.</div><div>3. Final Delivery: ________________</div>'
       },
       {
         id: 'sec_terms_quote',
         type: 'terms',
         title: 'TERMS & CONDITIONS',
         pageBreakBefore: false,
-        content: '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work.</div><div>• Production and active deliverable design kick off immediately upon receipt of the deposit funds.</div><div>• This deposit proforma invoice serves as a preliminary payment request; an official VAT tax invoice / receipt will be issued upon receipt of payment.</div><div>• The remaining 50% project balance will be invoiced upon final review and final project files handoff.</div>'
+        content: '<div>• 50% upfront deposit is required to lock project scheduling and commence active production work. Production and active deliverable design kick off immediately upon receipt of the deposit, and never before. The deposit is non-refundable, except in an event where the work is not completed solely due to cancellation by the Provider (Ori Gold).</div><div>• Quote approval constitutes a commitment by the Client to pay the remaining balance upon completion of the agreed scope. All final high-resolution source and production files to be transferred to the Client by the Provider upon completed settlement of final invoice.</div>'
       },
       {
         id: 'sec_bank_quote',
@@ -25928,6 +25928,15 @@ function initSortableWidgets() {
     const cleanSections = (!isLeakedProformaTpl && Array.isArray(customTpl.sections) && customTpl.sections.length > 0)
       ? JSON.parse(JSON.stringify(customTpl.sections))
       : getDefaultPoQuoteSections();
+    const defaultQuoteSections = getDefaultPoQuoteSections();
+    const defaultQuoteTerms = defaultQuoteSections.find(s => s.id === 'sec_terms_quote');
+    if (defaultQuoteTerms) {
+      cleanSections.forEach(s => {
+        if (s && s.type === 'terms' && /TERMS\s*&\s*CONDITIONS/i.test(String(s.title || '')) && /This deposit proforma invoice serves as a preliminary payment request/i.test(String(s.content || ''))) {
+          s.content = defaultQuoteTerms.content;
+        }
+      });
+    }
     return {
       id: customTpl.id || 'tpl_price_quote_master',
       docType: 'price_quote',
