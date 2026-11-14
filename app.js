@@ -33185,6 +33185,96 @@ function initSortableWidgets() {
     return clone.outerHTML;
   }
 
+  function renderExactPoSheetHtml(snap, entity = null, isProforma = false, isDeposit = false) {
+    const printAreaEl = document.getElementById('priceOfferingPrintArea');
+    if (!printAreaEl || typeof renderPriceOfferingDocument !== 'function') return '';
+    const docData = (snap && snap.data) ? JSON.parse(JSON.stringify(snap.data)) : (snap ? JSON.parse(JSON.stringify(snap)) : {});
+    const resolvedDeposit = !!(isDeposit || docData._isDepositProforma);
+    const resolvedProforma = !resolvedDeposit && !!(isProforma || docData._isProforma);
+
+    const prevActiveLeadId = state.activePriceOfferingLeadId;
+    const prevActiveProfId = state.activeProformaProjectId;
+    const prevActiveDepId = state.activeDepositProformaProjectId;
+    const prevActiveStudioId = state.activeStudioDocId;
+    const prevElementStyles = poElementStyles;
+    const prevRichText = poRichText;
+    const prevSelectedId = poSelectedElementId;
+    const prevSelectedMeta = poSelectedElementMeta;
+    const prevTypography = Object.assign({}, activePoTypography);
+    const prevSections = currentPoSections;
+    const prevItems = currentPoItems;
+    const prevSignatures = currentPoSignatures;
+    const prevTemplateId = activePoTemplateId;
+    const prevSelectedSecIdx = selectedPoSectionIndex;
+    const prevPrintAreaHtml = printAreaEl.innerHTML;
+    const prevPrintAreaMinH = printAreaEl.style.minHeight;
+
+    try {
+      state.activeStudioDocId = null;
+      state.activeDepositProformaProjectId = (resolvedDeposit && entity && entity.id) ? entity.id : null;
+      state.activeProformaProjectId = (!resolvedDeposit && resolvedProforma && entity && entity.id) ? entity.id : null;
+      state.activePriceOfferingLeadId = (!resolvedDeposit && !resolvedProforma && entity && entity.id) ? entity.id : null;
+
+      const masterTpl = resolvedDeposit
+        ? getMasterDepositProformaTemplate()
+        : (resolvedProforma ? getMasterProformaTemplate() : getMasterPoTemplate());
+
+      const baseElemStyles = JSON.parse(JSON.stringify(masterTpl.elementStyles || {}));
+      const docElemStyles = (docData.elementStyles && typeof docData.elementStyles === 'object') ? JSON.parse(JSON.stringify(docData.elementStyles)) : {};
+      poElementStyles = {};
+      new Set([...Object.keys(baseElemStyles), ...Object.keys(docElemStyles)]).forEach(k => {
+        poElementStyles[k] = Object.assign({}, baseElemStyles[k] || {}, docElemStyles[k] || {});
+      });
+
+      poRichText = Object.assign(
+        {},
+        JSON.parse(JSON.stringify(masterTpl.richText || {})),
+        (docData.richText && typeof docData.richText === 'object') ? JSON.parse(JSON.stringify(docData.richText)) : {}
+      );
+      poSelectedElementId = null;
+      poSelectedElementMeta = null;
+      selectedPoSectionIndex = null;
+
+      const defaultTypo = Object.assign({}, DEFAULT_PO_TEMPLATE.typography, masterTpl.typography || {});
+      applyPriceOfferingTypography(docData.typography ? Object.assign({}, defaultTypo, docData.typography) : defaultTypo, false);
+
+      currentPoSections = Array.isArray(docData.sections) && docData.sections.length > 0
+        ? JSON.parse(JSON.stringify(docData.sections))
+        : getDefaultPoSections(docData, entity);
+      currentPoItems = Array.isArray(docData.items) ? JSON.parse(JSON.stringify(docData.items)) : [];
+      currentPoSignatures = Array.isArray(docData.signatures) ? JSON.parse(JSON.stringify(docData.signatures)) : [];
+      activePoTemplateId = docData.templateId || masterTpl.id || 'tpl_studio_master';
+
+      const targetProxy = Object.assign({}, entity || {}, {
+        _isDepositProforma: resolvedDeposit,
+        _isProforma: resolvedProforma
+      });
+      printAreaEl.innerHTML = '';
+      renderPriceOfferingDocument(targetProxy, docData);
+      return captureCleanPoSheetHtml();
+    } catch (err) {
+      console.warn('Exact sheet render fallback:', err);
+      return '';
+    } finally {
+      state.activePriceOfferingLeadId = prevActiveLeadId;
+      state.activeProformaProjectId = prevActiveProfId;
+      state.activeDepositProformaProjectId = prevActiveDepId;
+      state.activeStudioDocId = prevActiveStudioId;
+      poElementStyles = prevElementStyles;
+      poRichText = prevRichText;
+      poSelectedElementId = prevSelectedId;
+      poSelectedElementMeta = prevSelectedMeta;
+      currentPoSections = prevSections;
+      currentPoItems = prevItems;
+      currentPoSignatures = prevSignatures;
+      activePoTemplateId = prevTemplateId;
+      selectedPoSectionIndex = prevSelectedSecIdx;
+      applyPriceOfferingTypography(prevTypography, false);
+      printAreaEl.innerHTML = prevPrintAreaHtml;
+      printAreaEl.style.minHeight = prevPrintAreaMinH;
+    }
+  }
+
   function buildRealPoSheetHtml(snap, entity = null, isProforma = false) {
     const d = (snap && snap.data) ? snap.data : (snap || {});
     if (!entity) {
@@ -33830,7 +33920,8 @@ function initSortableWidgets() {
 
     const isOldFallback = typeof snap.sheetHtml === 'string' && snap.sheetHtml.includes('grid-cols-2 sm:grid-cols-4');
     if (!snap.sheetHtml || isOldFallback || isDraft) {
-      containerEl.innerHTML = buildRealPoSheetHtml(snap, entity, isProforma);
+      const exactHtml = renderExactPoSheetHtml(snap, entity, isProforma, isDeposit);
+      containerEl.innerHTML = exactHtml || buildRealPoSheetHtml(snap, entity, isProforma);
     } else {
       containerEl.innerHTML = snap.sheetHtml;
     }
