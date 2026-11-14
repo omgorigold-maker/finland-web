@@ -1194,6 +1194,7 @@ dialog.sheet-dialog {
   width: 100%;
   max-width: 520px;
   max-height: 88dvh;
+  overflow-x: hidden;
   border: 0;
   border-radius: 26px 26px 0 0;
   padding: 10px 20px calc(22px + var(--safe-bottom));
@@ -1334,6 +1335,8 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .type-toggle {
@@ -1361,14 +1364,21 @@ dialog::backdrop {
 
 .form-row-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.form-row-2 > * {
+  min-width: 0;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 
 .field span {
@@ -1381,6 +1391,8 @@ dialog::backdrop {
 .field select,
 .field textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 11px 12px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -1388,6 +1400,17 @@ dialog::backdrop {
   font: inherit;
   font-size: 16px;
   color: var(--ink);
+}
+
+.field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#noteLabelPicker {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  padding-bottom: 2px;
 }
 
 .field input:focus,
