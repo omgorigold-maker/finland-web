@@ -1164,11 +1164,12 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   min-height: 46px;
   min-width: 0;
-  padding: 0 2px;
+  padding: 2px;
   border-radius: 14px;
+  background: transparent;
   color: var(--ink-muted);
   font-size: 10px;
   font-weight: 600;
@@ -1176,20 +1177,26 @@ button {
 }
 
 .nav-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 30px;
+  height: 30px;
+  padding: 5.5px;
+  border-radius: 999px;
+  stroke: var(--tab-accent, var(--ink));
   stroke-width: 1.85;
+  background: transparent;
+  transition: background-color 0.16s ease, stroke-width 0.14s ease, transform 0.14s ease;
 }
 
 .nav-btn.active {
-  background: color-mix(in srgb, var(--tab-accent, var(--nav-accent, #0f172a)) 9%, transparent);
-  color: var(--tab-accent, var(--nav-accent, var(--ink)));
+  background: transparent;
+  color: var(--ink);
   font-weight: 700;
 }
 
 .nav-btn.active svg {
-  stroke: var(--tab-accent, var(--nav-accent, var(--ink)));
-  stroke-width: 2.15;
+  stroke: var(--tab-accent, var(--ink));
+  stroke-width: 2.35;
+  background: color-mix(in srgb, var(--tab-accent, #0f172a) 13%, transparent);
 }
 
 .bottom-nav.dock-solid {
@@ -1209,8 +1216,9 @@ button {
 }
 
 .bottom-nav.nav-icons-only .nav-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
 }
 
 .fab-btn {
