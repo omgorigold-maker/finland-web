@@ -1225,7 +1225,8 @@
     state.activeTab = tab;
     const meta = TAB_META[tab] || TAB_META.followups;
     document.getElementById('headerTitle').textContent = meta.title;
-    document.getElementById('headerSubtitle').textContent = meta.sub;
+    const subEl = document.getElementById('headerSubtitle');
+    if (subEl) subEl.textContent = meta.sub;
 
     document.querySelectorAll('.tab-view').forEach(sec => {
       sec.hidden = sec.id !== `view-${tab}`;

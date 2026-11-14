@@ -15,13 +15,14 @@
 </head>
 <body>
   <div class="app-shell">
-    <!-- Minimal Top Header -->
+    <!-- Minimal Top Header (Inspired by Desktop Sidebar) -->
     <header class="top-bar">
       <div class="top-bar-left">
         <img src="AppIcon.iconset/sidebar_logo.png?v=sister7" alt="Finland" class="brand-logo" onerror="this.style.display='none'">
-        <div>
+        <div class="brand-title-wrap">
+          <span class="brand-name">Finland</span>
+          <span class="brand-sep" aria-hidden="true">/</span>
           <h1 id="headerTitle" class="header-title">Follow-Ups</h1>
-          <p id="headerSubtitle" class="header-subtitle">Projects &amp; Leads</p>
         </div>
       </div>
       <div class="top-bar-right">
@@ -291,19 +292,20 @@
     <div id="detailBody" class="detail-body"></div>
   </dialog>
 
-  <!-- 6. PIN Unlock Dialog (for remote phone access) -->
+  <!-- 6. PIN / Cloud Key Unlock Dialog -->
   <dialog id="pinDialog" class="sheet-dialog" closedby="none" aria-labelledby="pinDialogTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
     <div class="sheet-header">
       <h2 id="pinDialogTitle" class="sheet-title">Unlock Finland Vault</h2>
     </div>
     <form id="pinForm" class="sheet-form">
-      <p class="pin-hint">Enter your Finland vault PIN or pairing token to sync.</p>
+      <p class="pin-hint">Paste your Cloud Vault key or enter your local PIN to sync.</p>
       <label class="field">
-        <span>PIN / Token</span>
-        <input type="password" id="pinInput" placeholder="Enter PIN" required autofocus>
+        <span>Cloud Key / PIN</span>
+        <input type="password" id="pinInput" class="mono" placeholder="Paste key or PIN" required autofocus>
       </label>
-      <p id="pinError" class="pin-error" hidden>Invalid PIN. Please try again.</p>
-      <button type="submit" class="btn-primary">Unlock</button>
+      <p id="pinError" class="pin-error" hidden>Could not unlock. Please check your key and try again.</p>
+      <button type="submit" class="btn-primary">Unlock Vault</button>
     </form>
   </dialog>
 
