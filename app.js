@@ -25247,10 +25247,16 @@ function initSortableWidgets() {
     elementStyles: {
       doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
       doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em', fontSize: 14 },
-      sender_name: { fontFamily: "'Montserrat', sans-serif" },
-      sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
-      sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-      sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+      sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+      sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+      sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+      sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+      client_email: { offsetY: -2 },
+      client_address: { offsetY: -3 },
+      divider_overview: { offsetY: -1 },
+      sec_sec_div_overview: { offsetY: -4.5 },
+      sec_sec_deliverables: { offsetY: 1 },
+      totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
       th_desc: { lineHeight: '1.7' },
       th_amount: { lineHeight: '2' },
       item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
@@ -25337,16 +25343,23 @@ function initSortableWidgets() {
   const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
     doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
     doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
-    sender_name: { fontFamily: "'Montserrat', sans-serif" },
-    sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
-    sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-    sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    client_email: { offsetY: -2 },
+    client_address: { offsetY: -3 },
+    sec_sec_deliverables: { offsetY: 1 },
+    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+    divider_overview: { offsetY: -1 },
+    sec_sec_div_overview: { offsetY: -2.5 },
     cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     th_desc: { lineHeight: '1.7' },
-    th_amount: { lineHeight: '2' },
+    th_amount: { offsetX: 5.75 },
     item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+    item_amount_0: { offsetY: 0, offsetX: 5.5 },
     item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
     title_sec_terms_dep: { lineHeight: '1.3' },
     content_sec_terms_dep: { lineHeight: '1.5' },
@@ -25375,10 +25388,16 @@ function initSortableWidgets() {
   const PROFORMA_DEFAULT_ELEMENT_STYLES = {
     doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
     doc_subtitle: { color: '#94a3b8', fontWeight: '700', letterSpacing: '0.05em' },
-    sender_name: { fontFamily: "'Montserrat', sans-serif" },
-    sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
-    sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-    sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
+    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
+    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
+    client_email: { offsetY: -2 },
+    client_address: { offsetY: -3 },
+    sec_sec_deliverables: { offsetY: 1 },
+    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+    divider_overview: { offsetY: -1 },
+    sec_sec_div_overview: { offsetY: -4.5 },
     cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
@@ -25388,7 +25407,6 @@ function initSortableWidgets() {
     label_valid_until: { color: '#94a3b8' },
     label_cur: { color: '#94a3b8' },
     th_desc: { lineHeight: '1.7' },
-    th_amount: { lineHeight: '2' },
     item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
     item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' },
     item_desc_2: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' },
@@ -30021,7 +30039,7 @@ function initSortableWidgets() {
           <input type="text" id="poDocHeading" class="po-selectable po-doc-title-input text-2xl sm:text-3xl font-black text-slate-900 tracking-tight bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="doc_heading" data-elem-name="Document Title" data-elem-type="text" value="${escapeHtml(docTitle)}" placeholder="PRICE QUOTE / PROPOSAL...">
           <input type="text" id="poDocSubtitle" class="po-selectable text-xs font-semibold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="doc_subtitle" data-elem-name="Document Subtitle" data-elem-type="text" value="${escapeHtml(docSubtitle)}" placeholder="Add subtitle or project reference...">
         </div>
-        <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs po-sender-block" data-po-unit-id="header_col_right" data-po-container="header_right">
+        <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs" data-po-unit-id="header_col_right" data-po-container="header_right">
           <input type="text" id="poSenderName" class="po-selectable font-bold text-slate-900 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto transition-colors" data-elem-id="sender_name" data-elem-name="Sender Name" data-elem-type="text" value="${escapeHtml(sender.name || '')}" placeholder="Your Name / Studio...">
           <input type="text" id="poSenderTitle" class="po-selectable text-slate-500 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto text-[11px] transition-colors" data-elem-id="sender_title" data-elem-name="Sender Title" data-elem-type="text" value="${escapeHtml(sender.title || '')}" placeholder="Role / Discipline...">
           <input type="text" id="poSenderContact" class="po-selectable text-slate-500 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto text-[11px] transition-colors" data-elem-id="sender_contact" data-elem-name="Sender Contact" data-elem-type="text" value="${escapeHtml(sender.contact || '')}" placeholder="email@domain.com • +1 234 567...">
@@ -30036,7 +30054,7 @@ function initSortableWidgets() {
     const labelInput = (elemId, name, val, ph) => `<input type="text" class="po-selectable po-meta-label text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="${elemId}" data-elem-name="${name}" data-elem-type="text" value="${escapeHtml(val)}" placeholder="${ph}">`;
     return `
       <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" data-po-container="overview_grid">
-        <div class="space-y-1 min-w-0 po-client-block" data-po-unit-id="overview_col_left" data-po-container="overview_left">
+        <div class="space-y-1 min-w-0" data-po-unit-id="overview_col_left" data-po-container="overview_left">
           ${labelInput('label_client', 'Client Label', labels.client, 'CLIENT / RECIPIENT...')}
           <input type="text" id="poClientName" class="po-selectable font-bold text-slate-900 text-base bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="client_name" data-elem-name="Client Name" data-elem-type="text" value="${escapeHtml(client)}" placeholder="Client Name / Organization...">
           <input type="text" id="poClientEmail" class="po-selectable text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full text-xs transition-colors" data-elem-id="client_email" data-elem-name="Client Email" data-elem-type="text" value="${escapeHtml(clientEmail)}" placeholder="client@company.com...">
