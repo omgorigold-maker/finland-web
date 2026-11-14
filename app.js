@@ -21954,8 +21954,11 @@ function initSortableWidgets() {
       return;
     }
     const curSel = document.getElementById('detailTotalFeeCurrencySelect');
-    const newCur = (curSel && curSel.value) ? curSel.value : (p.currency || state.displayCurrency || 'EUR');
+    const prevCur = p.currency || state.displayCurrency || 'EUR';
+    const prevFee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
+    const newCur = (curSel && curSel.value) ? curSel.value : prevCur;
     closeTotalFeeEdit();
+    if (newFee === prevFee && newCur === prevCur) return;
     p.fee = newFee;
     p.amount = newFee;
     p.currency = newCur;
@@ -22293,7 +22296,8 @@ function initSortableWidgets() {
       return;
     }
     closeClientNameEdit();
-    const prevClient = p.client;
+    const prevClient = p.client || '';
+    if (newName === prevClient) return;
     p.client = newName;
     if (p.proformaInvoice) {
       syncFollowupDocMetadataWithEntity(p.proformaInvoice, p, prevClient, p.title || p.description);
@@ -22345,7 +22349,8 @@ function initSortableWidgets() {
       return;
     }
     closeProjectTitleEdit();
-    const prevTitle = p.title || p.description;
+    const prevTitle = p.title || p.description || '';
+    if (newTitle === prevTitle) return;
     p.title = newTitle;
     p.description = newTitle;
     if (p.proformaInvoice) {
@@ -25094,7 +25099,8 @@ function initSortableWidgets() {
       return;
     }
     closeLeadClientNameEdit();
-    const prevClient = lead.client;
+    const prevClient = lead.client || '';
+    if (newName === prevClient) return;
     lead.client = newName;
     if (lead.priceOffering) {
       syncFollowupDocMetadataWithEntity(lead.priceOffering, lead, prevClient, lead.title);
@@ -25142,7 +25148,8 @@ function initSortableWidgets() {
       return;
     }
     closeLeadTitleEdit();
-    const prevTitle = lead.title;
+    const prevTitle = lead.title || '';
+    if (newTitle === prevTitle) return;
     lead.title = newTitle;
     if (lead.priceOffering) {
       syncFollowupDocMetadataWithEntity(lead.priceOffering, lead, lead.client, prevTitle);
@@ -25204,8 +25211,12 @@ function initSortableWidgets() {
       return;
     }
     closeLeadAmountEdit();
+    const prevAmt = parseFloat(lead.amount) || 0;
+    const prevCur = lead.currency || state.displayCurrency || 'EUR';
+    const nextCur = curSelect ? (curSelect.value || prevCur) : prevCur;
+    if (newAmt === prevAmt && nextCur === prevCur) return;
     lead.amount = newAmt;
-    if (curSelect) lead.currency = curSelect.value || state.displayCurrency;
+    if (curSelect) lead.currency = nextCur;
     if (lead.priceOffering) {
       syncDraftSingleItemAmount(lead.priceOffering, newAmt, lead.currency);
     }
