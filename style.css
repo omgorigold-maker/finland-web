@@ -927,6 +927,68 @@ select:not(.hidden):focus {
   margin: 0 !important;
 }
 
+/* Document Layout Natural Alignments & Tight Line Spacing (Native Default Positioning) */
+.po-sender-block {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+.po-sender-block input {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+}
+#poSenderTitle {
+  margin-top: -2px !important;
+}
+#poSenderContact {
+  margin-top: -3px !important;
+}
+#poSenderLocation {
+  margin-top: -4px !important;
+}
+
+.po-client-block {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+.po-client-block input {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+}
+#poClientName {
+  margin-top: 1px !important;
+}
+#poClientEmail {
+  margin-top: -2px !important;
+}
+#poClientAddress {
+  margin-top: -3px !important;
+}
+
+.po-block-divider,
+[data-elem-id="sec_sec_div_overview"] {
+  margin-top: -14px !important;
+  margin-bottom: 14px !important;
+}
+
+.po-table th.po-col-amount,
+.po-table td.po-col-amount {
+  padding-right: 4px !important;
+  text-align: right !important;
+}
+.po-table th.po-col-amount input,
+.po-table td.po-col-amount .po-item-amount-display {
+  text-align: right !important;
+  padding-right: 2px !important;
+}
+
+[data-elem-id^="totals_"] {
+  padding-right: 4px;
+}
+
 /* Page Break Divider between pages in the editor */
 .po-page-divider {
   display: flex;

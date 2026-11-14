@@ -25247,27 +25247,18 @@ function initSortableWidgets() {
     elementStyles: {
       doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
       doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em', fontSize: 14 },
-      sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
-      sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
-      sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-      sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
-      client_name: { offsetY: -1 },
-      client_email: { offsetY: -2 },
-      client_address: { offsetY: -3 },
-      divider_overview: { offsetY: -1 },
-      sec_sec_div_overview: { offsetY: -4.5 },
-      sec_sec_deliverables: { offsetY: 1 },
-      totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
+      sender_name: { fontFamily: "'Montserrat', sans-serif" },
+      sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
+      sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+      sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
       th_desc: { lineHeight: '1.7' },
-      th_amount: { lineHeight: '2', offsetX: 7.5 },
+      th_amount: { lineHeight: '2' },
       item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-      item_amount_0: { offsetX: 7 },
       item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
-      subtotal_val: { offsetX: -0.5 },
       cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
       issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
       valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
-      label_client: { offsetY: 0, color: '#475569' },
+      label_client: { color: '#475569' },
       label_ref: { color: '#475569' },
       label_issue_date: { color: '#475569' },
       label_valid_until: { color: '#475569' },
@@ -25346,23 +25337,16 @@ function initSortableWidgets() {
   const DEPOSIT_PROFORMA_DEFAULT_ELEMENT_STYLES = {
     doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
     doc_subtitle: { color: '#64748b', fontWeight: '700', letterSpacing: '0.05em' },
-    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
-    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
-    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
-    client_email: { offsetY: -2 },
-    client_address: { offsetY: -3 },
-    sec_sec_deliverables: { offsetY: 1 },
-    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
-    divider_overview: { offsetY: -1 },
-    sec_sec_div_overview: { offsetY: -2.5 },
+    sender_name: { fontFamily: "'Montserrat', sans-serif" },
+    sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
+    sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
     cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     th_desc: { lineHeight: '1.7' },
-    th_amount: { offsetX: 5.75 },
+    th_amount: { lineHeight: '2' },
     item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-    item_amount_0: { offsetY: 0, offsetX: 5.5 },
     item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300' },
     title_sec_terms_dep: { lineHeight: '1.3' },
     content_sec_terms_dep: { lineHeight: '1.5' },
@@ -25391,26 +25375,36 @@ function initSortableWidgets() {
   const PROFORMA_DEFAULT_ELEMENT_STYLES = {
     doc_heading: { fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" },
     doc_subtitle: { color: '#94a3b8', fontWeight: '700', letterSpacing: '0.05em' },
-    sender_name: { fontFamily: "'Montserrat', sans-serif", offsetY: 0.25 },
-    sender_title: { fontFamily: "'Outfit', sans-serif", offsetY: -0.75, fontWeight: '700', color: '#0f172a' },
-    sender_contact: { offsetY: -1.5, fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
-    sender_location: { offsetY: -3.5, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
-    client_email: { offsetY: -2 },
-    client_address: { offsetY: -3 },
-    sec_sec_deliverables: { offsetY: 1 },
-    totals_sec_deliverables: { offsetY: -0.5, offsetX: -1 },
-    divider_overview: { offsetY: -1 },
-    sec_sec_div_overview: { offsetY: -4.5 },
+    sender_name: { fontFamily: "'Montserrat', sans-serif" },
+    sender_title: { fontFamily: "'Outfit', sans-serif", fontWeight: '700', color: '#0f172a' },
+    sender_contact: { fontWeight: 'inherit', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569', fontSize: 10 },
+    sender_location: { fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#475569' },
     cur_input: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     issue_date_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
     valid_until_val: { fontFamily: 'Outfit, sans-serif', fontWeight: '400' },
+    label_client: { color: '#94a3b8' },
+    label_ref: { color: '#94a3b8' },
+    label_issue_date: { color: '#94a3b8' },
+    label_valid_until: { color: '#94a3b8' },
+    label_cur: { color: '#94a3b8' },
     th_desc: { lineHeight: '1.7' },
+    th_amount: { lineHeight: '2' },
     item_desc_0: { letterSpacing: '0.05em', fontWeight: '300', fontSize: 14, fontFamily: 'Plus Jakarta Sans, sans-serif' },
     item_desc_1: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' },
-    label_ref: { color: '#94a3b8' }
+    item_desc_2: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' },
+    item_desc_3: { fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: '300', letterSpacing: '0.05em' }
   };
 
-  const GENERIC_PROFORMA_DEFAULT_TERMS = '• Payment terms: Due upon receipt / within 7 days.\n• Bank transfer details:\nName: Studio Creative\nIBAN: DE89 3704 0044 0532 0130 00\nSwift/BIC: COBADEFFXXX\nBank address: European Commercial Bank';
+  const PROFORMA_DEFAULT_RICH_TEXT = {
+    doc_subtitle: '<span class="" style="color: rgb(148, 163, 184);">OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST</span>',
+    label_ref: '<span class="" style="color: rgb(148, 163, 184);">PROFORMA INVOICE #</span>',
+    label_issue_date: '<span class="" style="color: rgb(148, 163, 184);">INVOICE DATE</span>',
+    label_valid_until: '<span class="" style="color: rgb(148, 163, 184);">PAYMENT DUE</span>',
+    label_cur: '<span class="" style="color: rgb(148, 163, 184);">CURRENCY</span>',
+    label_client: '<span class="" style="color: rgb(148, 163, 184);">BILL TO / CLIENT</span>'
+  };
+
+  const GENERIC_PROFORMA_DEFAULT_TERMS = '<div>• Payment terms: Due upon receipt / within 7 days of invoice date.</div><div>• An official VAT tax invoice / receipt will be issued immediately upon payment confirmation.</div><div>• Full commercial usage rights and release of all final high-resolution source and production files transfer to the Client upon completed settlement of this invoice.</div><div>• All project work remains the property of the provider until payment is completed.<br><br></div><div><span class="" style="font-family: Inter, sans-serif;"><i>Bank account details:</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Name: Ori Gold</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>IBAN: BE63 9051 4444 2808</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Swift/BIC: TRWIBEB1XXX</i></span></div><div><span style="font-size: 14px; font-family: &quot;DM Sans&quot;, sans-serif;"><i>Bank address: Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</i></span></div>';
   const DEPOSIT_PROFORMA_DEFAULT_TERMS_CONTENT = [
     '• Deposit payment is due upon signing the project proposal / quote.',
     '• Project commencement begins upon receipt of deposit. Failure to pay the deposit in a timely manner may result in setbacks and postponing of deadlines.',
@@ -25780,7 +25774,7 @@ function initSortableWidgets() {
     const typography = Object.assign({}, PROFORMA_DEFAULT_TYPOGRAPHY, customTpl.typography || {});
     const elementStyles = Object.assign({}, PROFORMA_DEFAULT_ELEMENT_STYLES, customTpl.elementStyles || {});
     const labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, PROFORMA_DEFAULT_LABELS, customTpl.labels || {});
-    const richText = Object.assign({}, customTpl.richText || {});
+    const richText = Object.assign({}, PROFORMA_DEFAULT_RICH_TEXT, customTpl.richText || {});
 
     return {
       id: customTpl.id || 'tpl_master_proforma',
@@ -25798,7 +25792,7 @@ function initSortableWidgets() {
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_prof', type: 'scope', title: 'COMPLETED DELIVERABLES & ASSET HANDOVER', pageBreakBefore: false, content: '<div>Final Print &amp; Production Delivery - Includes all approved design assets.</div>' },
+        { id: 'sec_scope_prof', type: 'scope', title: 'COMPLETED DELIVERABLES & ASSET HANDOVER', pageBreakBefore: false, content: '<div>Final Print &amp; Production Delivery - Includes all approved production-ready graphic, print pre-press setup, and digital screen assets.</div>' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'Deliverables & Fees', pageBreakBefore: false },
         { id: 'sec_terms_prof', type: 'terms', title: 'Payment Terms & Bank Details', pageBreakBefore: false, content: getProformaDefaultTerms() },
         { id: 'sec_conditions_prof', type: 'conditions', title: 'Notice & Invoicing Notes', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
@@ -30027,7 +30021,7 @@ function initSortableWidgets() {
           <input type="text" id="poDocHeading" class="po-selectable po-doc-title-input text-2xl sm:text-3xl font-black text-slate-900 tracking-tight bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="doc_heading" data-elem-name="Document Title" data-elem-type="text" value="${escapeHtml(docTitle)}" placeholder="PRICE QUOTE / PROPOSAL...">
           <input type="text" id="poDocSubtitle" class="po-selectable text-xs font-semibold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="doc_subtitle" data-elem-name="Document Subtitle" data-elem-type="text" value="${escapeHtml(docSubtitle)}" placeholder="Add subtitle or project reference...">
         </div>
-        <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs" data-po-unit-id="header_col_right" data-po-container="header_right">
+        <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs po-sender-block" data-po-unit-id="header_col_right" data-po-container="header_right">
           <input type="text" id="poSenderName" class="po-selectable font-bold text-slate-900 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto transition-colors" data-elem-id="sender_name" data-elem-name="Sender Name" data-elem-type="text" value="${escapeHtml(sender.name || '')}" placeholder="Your Name / Studio...">
           <input type="text" id="poSenderTitle" class="po-selectable text-slate-500 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto text-[11px] transition-colors" data-elem-id="sender_title" data-elem-name="Sender Title" data-elem-type="text" value="${escapeHtml(sender.title || '')}" placeholder="Role / Discipline...">
           <input type="text" id="poSenderContact" class="po-selectable text-slate-500 sm:text-right bg-transparent border-none outline-none rounded px-0 py-0.5 w-full sm:w-60 block sm:ml-auto text-[11px] transition-colors" data-elem-id="sender_contact" data-elem-name="Sender Contact" data-elem-type="text" value="${escapeHtml(sender.contact || '')}" placeholder="email@domain.com • +1 234 567...">
@@ -30042,7 +30036,7 @@ function initSortableWidgets() {
     const labelInput = (elemId, name, val, ph) => `<input type="text" class="po-selectable po-meta-label text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="${elemId}" data-elem-name="${name}" data-elem-type="text" value="${escapeHtml(val)}" placeholder="${ph}">`;
     return `
       <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" data-po-container="overview_grid">
-        <div class="space-y-1 min-w-0" data-po-unit-id="overview_col_left" data-po-container="overview_left">
+        <div class="space-y-1 min-w-0 po-client-block" data-po-unit-id="overview_col_left" data-po-container="overview_left">
           ${labelInput('label_client', 'Client Label', labels.client, 'CLIENT / RECIPIENT...')}
           <input type="text" id="poClientName" class="po-selectable font-bold text-slate-900 text-base bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="client_name" data-elem-name="Client Name" data-elem-type="text" value="${escapeHtml(client)}" placeholder="Client Name / Organization...">
           <input type="text" id="poClientEmail" class="po-selectable text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full text-xs transition-colors" data-elem-id="client_email" data-elem-name="Client Email" data-elem-type="text" value="${escapeHtml(clientEmail)}" placeholder="client@company.com...">
@@ -30114,7 +30108,7 @@ function initSortableWidgets() {
                 <th class="po-col-rate py-2.5 px-3 text-right w-28">
                   <input type="text" class="po-selectable po-th-label w-full text-right text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 transition-colors" data-elem-id="th_rate" data-elem-name="Header: Rate" data-elem-type="text" value="${escapeHtml(labels.thRate || 'RATE')}" placeholder="RATE...">
                 </th>
-                <th class="po-col-amount py-2.5 px-3 text-right w-28">
+                <th class="po-col-amount py-2.5 pr-1 pl-3 text-right w-28">
                   <input type="text" class="po-selectable po-th-label w-full text-right text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 transition-colors" data-elem-id="th_amount" data-elem-name="Header: Amount" data-elem-type="text" value="${escapeHtml(labels.thAmount || 'AMOUNT')}" placeholder="AMOUNT...">
                 </th>
                 <th class="py-2.5 px-2 w-10 text-center po-edit-cell"></th>
@@ -31352,7 +31346,7 @@ function initSortableWidgets() {
           <td class="po-col-rate py-2 px-3 text-right">
             <input type="number" step="any" min="0" class="po-item-rate w-24 text-right font-mono text-xs text-slate-700 bg-transparent border-none outline-none focus:outline-none" placeholder="0..." value="${r > 0 ? r : ''}" data-index="${idx}">
           </td>
-          <td class="po-col-amount py-2 px-3 text-right font-mono font-semibold text-slate-900 po-item-amount-display po-selectable cursor-pointer" data-elem-id="item_amount_${idx}" data-elem-name="Item ${idx + 1} Amount" data-elem-type="text">
+          <td class="po-col-amount py-2 pr-1 pl-3 text-right font-mono font-semibold text-slate-900 po-item-amount-display po-selectable cursor-pointer" data-elem-id="item_amount_${idx}" data-elem-name="Item ${idx + 1} Amount" data-elem-type="text">
             ${formatMoney(amt, cur)}
           </td>
           <td class="py-2 px-2 text-center po-edit-cell">
@@ -33725,11 +33719,15 @@ function initSortableWidgets() {
   let poAfterPrintRestoreFn = null;
 
   function exportPriceOfferingPdf() {
-    if (!poSkipSnapshotOnPrint) {
-      savePriceOfferingDoc(false);
+    try {
+      if (!poSkipSnapshotOnPrint) {
+        savePriceOfferingDoc(false);
+      }
+      recalculatePriceOfferingTotals();
+      syncPriceOfferingTableMirrors();
+    } catch (e) {
+      console.warn('Pre-export sync non-fatal warning:', e);
     }
-    recalculatePriceOfferingTotals();
-    syncPriceOfferingTableMirrors();
 
     const originalTitle = poTitleBeforePrint || document.title;
     poTitleBeforePrint = originalTitle;
@@ -33744,8 +33742,12 @@ function initSortableWidgets() {
     if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
     preparePoPrintLayout();
 
-    if (!state.activeStudioDocId && !poSkipSnapshotOnPrint) {
-      recordPoExportSnapshot({ skipSave: true, skipLayoutPrep: true });
+    try {
+      if (!state.activeStudioDocId && !poSkipSnapshotOnPrint) {
+        recordPoExportSnapshot({ skipSave: true, skipLayoutPrep: true });
+      }
+    } catch (snapErr) {
+      console.warn('Snapshot record non-fatal warning:', snapErr);
     }
     poSkipSnapshotOnPrint = false;
 
@@ -38830,23 +38832,6 @@ ${sectionsText}
       }
     });
 
-    poDocPage.addEventListener('pointerdown', (e) => {
-      const fieldOrSec = e.target && e.target.closest && e.target.closest('.po-section-content, .po-field');
-      if (fieldOrSec) {
-        const raw = (fieldOrSec.innerText || fieldOrSec.textContent || '').trim();
-        if (raw === 'Project scope...' || raw === 'Project scope…' || raw === 'Project scope' || raw === '[PROJECT SCOPE & OBJECTIVE]') {
-          fieldOrSec.innerHTML = '';
-          const secId = fieldOrSec.getAttribute('data-sec-id');
-          if (secId) {
-            const sec = (currentPoSections || []).find(s => s && s.id === secId);
-            if (sec) sec.content = '';
-          }
-          triggerPriceOfferingAutoSave(false);
-          schedulePoInputSnapshot();
-        }
-      }
-    });
-
     const topUndoBtn = document.getElementById('poUndoBtn');
     if (topUndoBtn) {
       topUndoBtn.addEventListener('click', (e) => {
@@ -39923,21 +39908,21 @@ ${sectionsText}
         e.target.id === 'poElemOffsetXMmInput' ||
         e.target.id === 'poElemOffsetYMmInput'
       ) {
-        triggerPriceOfferingAutoSave(true);
-        pushPoUndoSnapshot();
+        triggerPriceOfferingAutoSave(false);
+        schedulePoInputSnapshot();
         return;
       }
       if (e.target.id === 'poCurrencyInput' || e.target.id === 'poCurrencySelect') {
         recalculatePriceOfferingTotals();
         syncPriceOfferingTableMirrors();
-        triggerPriceOfferingAutoSave(true);
-        pushPoUndoSnapshot();
+        triggerPriceOfferingAutoSave(false);
+        schedulePoInputSnapshot();
         return;
       }
       autoResizePoTextareas();
       syncPriceOfferingTableMirrors();
-      triggerPriceOfferingAutoSave(true);
-      pushPoUndoSnapshot();
+      triggerPriceOfferingAutoSave(false);
+      schedulePoInputSnapshot();
     });
 
     // Pasting into a rich field or section content brings plain text only (formatting is applied with the Design tools)
