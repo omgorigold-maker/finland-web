@@ -34721,16 +34721,15 @@ ${sectionsText}
     const projQuoteAttachments = getLeadQuoteAttachmentsList(proj);
 
     if (projQuoteStatus && projQuoteActions) {
-      const totalQuoteItems = (proj.priceOffering ? 1 : 0) + projQuoteExports.length + projQuoteAttachments.length;
       if (proj.priceOffering) {
         if (projQuoteExports.length > 0) {
           const latestVer = projQuoteExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.priceOffering) === getPoContentFingerprint(projQuoteExports[0].data);
           projQuoteStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer} · ${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`
-            : `Edited since v${latestVer} · ${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`;
+            ? `Draft matches v${latestVer}`
+            : `Edited since v${latestVer}`;
         } else {
-          projQuoteStatus.textContent = `${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`;
+          projQuoteStatus.textContent = '';
         }
         projQuoteActions.innerHTML = `
           <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach external quote file">
@@ -34739,9 +34738,7 @@ ${sectionsText}
         `;
       } else {
         const savedCount = projQuoteExports.length + projQuoteAttachments.length;
-        projQuoteStatus.textContent = savedCount > 0
-          ? `${savedCount} saved ${savedCount === 1 ? 'file' : 'files'}`
-          : 'Not created';
+        projQuoteStatus.textContent = savedCount > 0 ? '' : 'Not created';
         projQuoteActions.innerHTML = `
           <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
             + Generate Doc
@@ -34853,16 +34850,15 @@ ${sectionsText}
     if (depositStatus && depositActions) {
       const depositAttachments = Array.isArray(proj.depositProformaAttachments) ? proj.depositProformaAttachments : [];
       const depositExports = Array.isArray(proj.depositProformaExports) ? proj.depositProformaExports : [];
-      const totalDepositItems = (proj.depositProforma ? 1 : 0) + depositExports.length + depositAttachments.length;
       if (proj.depositProforma) {
         if (depositExports.length > 0) {
           const latestVer = depositExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.depositProforma) === getPoContentFingerprint(depositExports[0].data);
           depositStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer} · ${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`
-            : `Edited since v${latestVer} · ${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`;
+            ? `Draft matches v${latestVer}`
+            : `Edited since v${latestVer}`;
         } else {
-          depositStatus.textContent = `${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`;
+          depositStatus.textContent = '';
         }
         depositActions.innerHTML = `
           <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
@@ -34870,14 +34866,9 @@ ${sectionsText}
           </button>
         `;
       } else {
-        if (depositAttachments.length > 0 || depositExports.length > 0) {
-          const totalSaved = depositAttachments.length + depositExports.length;
-          depositStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'}`;
-        } else {
-          depositStatus.textContent = 'Not created';
-        }
+        depositStatus.textContent = (depositAttachments.length > 0 || depositExports.length > 0) ? '' : 'Not created';
         depositActions.innerHTML = `
-          <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
+          <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
             + Generate Doc
           </button>
           <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
@@ -34894,7 +34885,7 @@ ${sectionsText}
           const dpRef = proj.depositProforma.refNo || proj.depositProforma.docTitle || 'Deposit Proforma';
           const dateStr = formatFollowupDocTimestamp(proj.depositProforma.updatedAt || proj.createdAt);
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200/90 shadow-2xs">
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-purple-200/90 shadow-2xs">
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(dpRef)}">${escapeHtml(dpRef)} <span class="font-bold text-slate-900">(${formatMoney(dpTot, dpCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
@@ -34903,10 +34894,10 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
                   View
                 </button>
-                <button type="button" class="open-project-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
+                <button type="button" class="open-project-deposit-proforma-btn px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
                   Edit
                 </button>
                 <button type="button" class="delete-project-deposit-proforma-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" title="Delete editable document">
@@ -34932,7 +34923,7 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
                   View
                 </button>
                 <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="deposit_project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the live editor">
@@ -34961,7 +34952,7 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
+                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="deposit_proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
@@ -34989,16 +34980,15 @@ ${sectionsText}
     if (proformaStatus && proformaActions) {
       const proformaAttachments = getProjectProformaAttachmentsList(proj);
       const proformaExports = Array.isArray(proj.proformaExports) ? proj.proformaExports : [];
-      const totalProformaItems = (proj.proformaInvoice ? 1 : 0) + proformaExports.length + proformaAttachments.length;
       if (proj.proformaInvoice) {
         if (proformaExports.length > 0) {
           const latestVer = proformaExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.proformaInvoice) === getPoContentFingerprint(proformaExports[0].data);
           proformaStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer} · ${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`
-            : `Edited since v${latestVer} · ${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`;
+            ? `Draft matches v${latestVer}`
+            : `Edited since v${latestVer}`;
         } else {
-          proformaStatus.textContent = `${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`;
+          proformaStatus.textContent = '';
         }
         proformaActions.innerHTML = `
           <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
@@ -35006,14 +34996,9 @@ ${sectionsText}
           </button>
         `;
       } else {
-        if (proformaAttachments.length > 0 || proformaExports.length > 0) {
-          const totalSaved = proformaAttachments.length + proformaExports.length;
-          proformaStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'}`;
-        } else {
-          proformaStatus.textContent = 'Not created';
-        }
+        proformaStatus.textContent = (proformaAttachments.length > 0 || proformaExports.length > 0) ? '' : 'Not created';
         proformaActions.innerHTML = `
-          <button type="button" class="open-project-proforma-btn px-2.5 py-1 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
+          <button type="button" class="open-project-proforma-btn px-2.5 py-1 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
             + Generate Doc
           </button>
           <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
@@ -35030,7 +35015,7 @@ ${sectionsText}
           const piRef = proj.proformaInvoice.refNo || proj.proformaInvoice.docTitle || 'Proforma Invoice';
           const dateStr = formatFollowupDocTimestamp(proj.proformaInvoice.updatedAt || proj.createdAt);
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-purple-200/90 shadow-2xs">
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-blue-200/90 shadow-2xs">
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(piRef)}">${escapeHtml(piRef)} <span class="font-bold text-slate-900">(${formatMoney(piTot, piCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
@@ -35039,10 +35024,10 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="__draft__" title="Preview live document">
                   View
                 </button>
-                <button type="button" class="open-project-proforma-btn px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
+                <button type="button" class="open-project-proforma-btn px-1.5 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Open in A4 Editor">
                   Edit
                 </button>
                 <button type="button" class="delete-project-proforma-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" title="Delete editable document">
@@ -35068,7 +35053,7 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
+                <button type="button" class="view-followup-export-snapshot-btn px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="View read-only exported snapshot">
                   View
                 </button>
                 <button type="button" class="restore-followup-export-snapshot-btn px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-target-type="project" data-target-id="${escapeHtml(proj.id)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Load this older version into the live editor">
@@ -35097,7 +35082,7 @@ ${sectionsText}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-detail-proforma-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
+                <button type="button" class="view-detail-proforma-btn px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
@@ -35123,9 +35108,7 @@ ${sectionsText}
     const receiptSavedList = document.getElementById('detailReceiptSavedList');
     if (receiptStatus && receiptActions) {
       const receiptAttachments = getProjectReceiptAttachmentsList(proj);
-      receiptStatus.textContent = receiptAttachments.length > 0
-        ? `${receiptAttachments.length} saved ${receiptAttachments.length === 1 ? 'file' : 'files'}`
-        : 'Not attached';
+      receiptStatus.textContent = receiptAttachments.length > 0 ? '' : 'Not attached';
       receiptActions.innerHTML = `
         <button type="button" class="direct-attach-receipt-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
           + Attach
@@ -35171,9 +35154,7 @@ ${sectionsText}
     const projBriefSavedList = document.getElementById('detailBriefSavedList');
     if (projBriefStatus && projBriefActions) {
       const briefAttachments = getProjectBriefAttachmentsList(proj);
-      projBriefStatus.textContent = briefAttachments.length > 0
-        ? `${briefAttachments.length} saved ${briefAttachments.length === 1 ? 'file' : 'files'}`
-        : 'Not attached';
+      projBriefStatus.textContent = briefAttachments.length > 0 ? '' : 'Not attached';
       projBriefActions.innerHTML = `
         <button type="button" class="direct-attach-lead-brief-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
           + Attach
