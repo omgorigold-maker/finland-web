@@ -25809,9 +25809,16 @@ function initSortableWidgets() {
     const existingScope = prevSecs.find(s => s && (s.type === 'scope' || (s.type === 'custom' && (s.title || '').toLowerCase() === 'summary')));
     const existingTerms = prevSecs.find(s => s && s.type === 'terms');
     const existingCond = prevSecs.find(s => s && s.type === 'conditions');
+
+    const projName = (entity?.title || entity?.description || 'Project Scope').trim();
+    const custName = (entity?.client || 'Client').trim();
+    const defaultProformaSummary = `Final invoice for ${projName} for ${custName}`;
+
     const fallbackScopeText = isDeposit
       ? 'As agreed upon signing quote / proposal'
-      : (existingScope?.content || (entity?.notes ? String(entity.notes).split('\n\n---\n\n')[0] : (entity?.title || '')));
+      : (existingScope?.content && !existingScope.content.includes('[PROJECT SCOPE') && !existingScope.content.includes('Final Print &')
+          ? existingScope.content
+          : defaultProformaSummary);
 
     let out = Array.isArray(tplSections) && tplSections.length > 0
       ? JSON.parse(JSON.stringify(tplSections))
@@ -25840,17 +25847,22 @@ function initSortableWidgets() {
         if (!tplScope.content || tplScope.content.includes('[PROJECT SCOPE') || tplScope.content.trim() === '') {
           tplScope.content = 'As agreed upon signing quote / proposal';
         }
-      } else if ((!tplScope.content || !String(tplScope.content).replace(/<[^>]*>/g, '').trim()) && fallbackScopeText) {
-        tplScope.content = fallbackScopeText;
+      } else {
+        tplScope.title = 'SUMMARY';
+        if (!tplScope.content || tplScope.content.includes('[PROJECT SCOPE') || tplScope.content.includes('Final Print &') || tplScope.content.includes('[project name]') || tplScope.content.trim() === '') {
+          tplScope.content = defaultProformaSummary;
+        } else {
+          tplScope.content = existingScope?.content || fallbackScopeText;
+        }
       }
-    } else if (isDeposit) {
+    } else {
       const ovPos = out.findIndex(s => s && s.type === 'divider');
       const scopeBlock = {
         id: 'sec_scope_' + Date.now(),
         type: 'scope',
         title: 'SUMMARY',
         pageBreakBefore: false,
-        content: 'As agreed upon signing quote / proposal'
+        content: isDeposit ? 'As agreed upon signing quote / proposal' : defaultProformaSummary
       };
       if (ovPos !== -1) out.splice(ovPos + 1, 0, scopeBlock);
       else out.push(scopeBlock);
@@ -26131,7 +26143,7 @@ function initSortableWidgets() {
         { id: 'sec_header', type: 'header', title: 'Document Header' },
         { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
         { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-        { id: 'sec_scope_prof', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '' },
+        { id: 'sec_scope_prof', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '<div>Final invoice for [project name] for [customer name]</div>' },
         { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES & FEES', pageBreakBefore: false },
         { id: 'sec_terms_prof', type: 'terms', title: 'PAYMENT TERMS & BANK DETAILS', pageBreakBefore: false, content: getProformaDefaultTerms() },
         { id: 'sec_conditions_prof', type: 'conditions', title: 'NOTICE & INVOICING NOTES', pageBreakBefore: false, content: PROFORMA_DEFAULT_CONDITIONS_CONTENT }
@@ -32697,10 +32709,9 @@ function initSortableWidgets() {
         }
       }
 
-      const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
-      const initScopeContent = (srcScopeSec && srcScopeSec.content)
-        ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : '');
+      const profProjTitle = (proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables').trim();
+      const profClientName = (proj.client || (srcQuote && srcQuote.client) || 'Client').trim();
+      const initScopeContent = `Final invoice for ${profProjTitle} for ${profClientName}`;
 
       proj.proformaInvoice = {
         _isProforma: true,
@@ -32776,8 +32787,20 @@ function initSortableWidgets() {
     po._isProforma = true;
     po._isDepositProforma = false;
 
-    // Only replace literal unfilled bank placeholder if present; never overwrite user-edited sections
+    // Only replace literal unfilled bank placeholder or old placeholder scope if present; never overwrite user-edited sections
     if (Array.isArray(po.sections) && po.sections.length > 0) {
+      const projItemName = (proj.title || proj.description || 'Project Scope & Deliverables').trim();
+      const projClientName = (proj.client || 'Client').trim();
+      const defaultProformaSummary = `Final invoice for ${projItemName} for ${projClientName}`;
+
+      const scopeSec = po.sections.find(s => s && (s.type === 'scope' || (s.title || '').toLowerCase() === 'summary'));
+      if (scopeSec) {
+        scopeSec.title = 'SUMMARY';
+        if (!scopeSec.content || scopeSec.content.includes('[PROJECT SCOPE') || scopeSec.content.includes('Final Print &') || scopeSec.content.includes('[project name]')) {
+          scopeSec.content = `<div>${defaultProformaSummary}</div>`;
+        }
+      }
+
       const termsSec = po.sections.find(s => s && s.type === 'terms');
       if (termsSec && typeof termsSec.content === 'string' && termsSec.content.includes('[Your Bank Name]')) {
         termsSec.content = getProformaDefaultTerms();
@@ -32969,7 +32992,7 @@ function initSortableWidgets() {
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : '');
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : 'As agreed upon signing quote / proposal'));
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
