@@ -30048,10 +30048,8 @@ function initSortableWidgets() {
   function renderPoOverviewBlockHtml(ctx) {
     const { labels, client, clientEmail, clientAddress, refNo, cur, issueDate, validUntil } = ctx;
     const isDeposit = getActiveDocType() === 'deposit_proforma';
-    const displayValidUntil = isDeposit
-      ? ((validUntil && !/^\d{4}-\d{2}-\d{2}$/.test(String(validUntil).trim()) && !/^\d{4}/.test(String(validUntil).trim())) ? validUntil : 'upon signing quote / agreement')
-      : validUntil;
-    const validUntilPh = isDeposit ? 'upon signing quote / agreement...' : 'Valid Until Date...';
+    const displayValidUntil = validUntil || '';
+    const validUntilPh = isDeposit ? 'Payment Due Date...' : 'Valid Until Date...';
     const labelInput = (elemId, name, val, ph) => `<input type="text" class="po-selectable po-meta-label text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="${elemId}" data-elem-name="${name}" data-elem-type="text" value="${escapeHtml(val)}" placeholder="${ph}">`;
     return `
       <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" data-po-container="overview_grid">
@@ -30966,7 +30964,9 @@ function initSortableWidgets() {
     const todayStr = new Date().toISOString().split('T')[0];
     const twoWeeksStr = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
     const issueDate = live('poIssueDate', po.issueDate || todayStr);
-    const validUntil = live('poValidUntil', po.validUntil || (lead.dueDate || twoWeeksStr));
+    const validUntilDefault = isDepositProforma ? todayStr : (lead.dueDate || twoWeeksStr);
+    const validUntilRaw = (po.validUntil && po.validUntil !== 'upon signing quote / agreement') ? po.validUntil : validUntilDefault;
+    const validUntil = live('poValidUntil', validUntilRaw);
     const cur = (live('poCurrencyInput', po.currency || lead.currency || state.displayCurrency || 'EUR') || 'EUR').toUpperCase();
 
     const client = live('poClientName', po.client !== undefined ? po.client : (lead.client || ''));
@@ -32571,7 +32571,7 @@ function initSortableWidgets() {
       const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
       const projCur = proj.currency || (srcQuote && srcQuote.currency) || state.displayCurrency || 'EUR';
       const todayStr = new Date().toISOString().split('T')[0];
-      const dueStr = 'upon signing quote / agreement';
+      const dueStr = todayStr;
 
       const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables';
       let initialItems = [
@@ -32698,8 +32698,8 @@ function initSortableWidgets() {
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
     po.docTitle = 'DEPOSIT PROFORMA INVOICE';
     po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
-    if (!po.validUntil || /^\d{4}-\d{2}-\d{2}$/.test(String(po.validUntil).trim()) || String(po.validUntil).trim().startsWith('2026')) {
-      po.validUntil = 'upon signing quote / agreement';
+    if (!po.validUntil || po.validUntil === 'upon signing quote / agreement') {
+      po.validUntil = new Date().toISOString().split('T')[0];
     }
     if (!po.sender || !po.sender.name || po.sender.name === 'Your Name / Studio') {
       po.sender = {
