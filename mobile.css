@@ -851,7 +851,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .notes-toolbar .search-input {
@@ -1010,8 +1010,11 @@ button {
   max-width: 100%;
   overflow-x: auto;
   touch-action: pan-x;
-  padding-bottom: 10px;
-  margin-bottom: 4px;
+  padding: 0 28px 12px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
   scrollbar-width: none;
 }
 
@@ -1041,6 +1044,10 @@ button {
   letter-spacing: 0.06em;
   color: var(--ink-soft);
   margin: 10px 4px 4px;
+}
+
+.section-label:first-child {
+  margin-top: 0;
 }
 
 /* Money Summary */
