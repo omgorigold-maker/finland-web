@@ -2472,7 +2472,7 @@
 
   async function init() {
     loadMobilePrefs();
-    const hasCachedData = !!localStorage.getItem(CACHE_PREFIX + KEYS.BUDGET) || !!localStorage.getItem(CACHE_PREFIX + KEYS.NOTES);
+    const hasCachedData = !!localStorage.getItem(MOBILE_CACHE_PREFIX + KEYS.BUDGET) || !!localStorage.getItem(MOBILE_CACHE_PREFIX + KEYS.NOTES);
     loadFromLocalStorage();
     if (state.mobilePrefs && state.mobilePrefs.startTab) {
       setTab(state.mobilePrefs.startTab);
