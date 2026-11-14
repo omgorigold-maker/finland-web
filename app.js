@@ -25455,15 +25455,9 @@ function initSortableWidgets() {
       label_valid_until: { color: '#475569' },
       label_cur: { color: '#475569' }
     },
-    richText: {
-      label_client: '<span style="color: rgb(71, 85, 105);">Client / Recipient</span>',
-      label_ref: '<span style="color: rgb(71, 85, 105);">Reference</span>',
-      label_issue_date: '<span style="color: rgb(71, 85, 105);">Date Issued</span>',
-      label_valid_until: '<span style="color: rgb(71, 85, 105);">Valid Until</span>',
-      label_cur: '<span style="color: rgb(71, 85, 105);">Currency</span>'
-    },
+    richText: {},
     labels: {
-      client: 'Client / Recipient',
+      client: 'Bill To / Client',
       reference: 'Reference',
       currency: 'Currency',
       issueDate: 'Date Issued',
@@ -31152,10 +31146,19 @@ function initSortableWidgets() {
     const refPrefix = isDepositProforma ? 'DPI' : (isProforma ? 'PI' : 'PO');
     const refNo = live('poRefNo', po.refNo || `${refPrefix}-${curYear}-${String(lead.id || '').replace(/\D/g, '').slice(-3) || '001'}`);
     const todayStr = new Date().toISOString().split('T')[0];
-    const twoWeeksStr = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
-    const issueDate = live('poIssueDate', po.issueDate || todayStr);
-    const validUntilDefault = isDepositProforma ? todayStr : (lead.dueDate || twoWeeksStr);
-    const validUntilRaw = (po.validUntil && po.validUntil !== 'upon signing quote / agreement') ? po.validUntil : validUntilDefault;
+    const getEndOfMonthYmd = (ymd) => {
+      const m = String(ymd || '').match(/^(\d{4})-(\d{2})/);
+      const base = m
+        ? new Date(parseInt(m[1], 10), parseInt(m[2], 10), 0)
+        : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+      const y = base.getFullYear();
+      const mo = String(base.getMonth() + 1).padStart(2, '0');
+      const d = String(base.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${d}`;
+    };
+    const issueDate = live('poIssueDate', po.issueDate !== undefined ? po.issueDate : todayStr);
+    const validUntilDefault = isDepositProforma ? todayStr : getEndOfMonthYmd(issueDate || todayStr);
+    const validUntilRaw = (po.validUntil !== undefined && po.validUntil !== 'upon signing quote / agreement') ? po.validUntil : validUntilDefault;
     const validUntil = live('poValidUntil', validUntilRaw);
     const cur = (live('poCurrencyInput', po.currency || lead.currency || state.displayCurrency || 'EUR') || 'EUR').toUpperCase();
 
@@ -31784,7 +31787,7 @@ function initSortableWidgets() {
   }
 
   const PO_LABEL_ELEM_MAP = {
-    client: ['label_client', 'Client / Recipient'],
+    client: ['label_client', 'Bill To / Client'],
     reference: ['label_ref', 'Reference'],
     currency: ['label_cur', 'Currency'],
     issueDate: ['label_issue_date', 'Date Issued'],
@@ -31807,9 +31810,9 @@ function initSortableWidgets() {
     Object.keys(PO_LABEL_ELEM_MAP).forEach(key => {
       const [elemId, def] = PO_LABEL_ELEM_MAP[key];
       const el = document.querySelector(`#priceOfferingPrintArea [data-elem-id="${elemId}"]`);
-      if (el && typeof el.value === 'string' && el.value.trim() !== '') {
+      if (el && typeof el.value === 'string') {
         out[key] = el.value;
-      } else if (prev && prev[key] !== undefined && String(prev[key]).trim() !== '') {
+      } else if (prev && prev[key] !== undefined && prev[key] !== null) {
         out[key] = prev[key];
       } else {
         out[key] = def;
@@ -32358,7 +32361,7 @@ function initSortableWidgets() {
       po.labels = Object.assign({}, masterTpl.labels || DEFAULT_PO_TEMPLATE.labels);
     } else {
       Object.keys(DEFAULT_PO_TEMPLATE.labels).forEach(lk => {
-        if (po.labels[lk] === '' || po.labels[lk] === undefined || po.labels[lk] === null) {
+        if (po.labels[lk] === undefined || po.labels[lk] === null) {
           po.labels[lk] = DEFAULT_PO_TEMPLATE.labels[lk];
         }
       });
