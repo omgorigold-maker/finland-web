@@ -689,7 +689,7 @@ button {
 .cal-day-cell.is-today.today-ring,
 .cal-day-cell.is-today.today-ring.has-bill,
 .cal-day-cell.is-today.today-ring.has-bill.is-paid {
-  border: 2px solid var(--cal-today-color, #f97315) !important;
+  border: 2.5px solid var(--cal-today-color, #f97315) !important;
   box-shadow: none !important;
 }
 
@@ -698,7 +698,7 @@ button {
 .cal-day-cell.is-today.today-solid.has-bill,
 .cal-day-cell.is-today.today-solid.has-bill.is-paid {
   background-color: var(--cal-today-color, #f97315) !important;
-  border: 1px solid var(--cal-today-color, #f97315) !important;
+  border: 2px solid var(--cal-today-color, #f97315) !important;
   color: #ffffff;
   font-weight: 800;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18) !important;
@@ -710,7 +710,7 @@ button {
 .cal-day-cell.is-today.today-bold.has-bill.is-paid {
   font-weight: 900 !important;
   color: var(--cal-today-color, #ea580c);
-  border: 1px solid color-mix(in srgb, var(--cal-today-color, #f97315) 75%, transparent) !important;
+  border: 2px solid color-mix(in srgb, var(--cal-today-color, #f97315) 85%, transparent) !important;
   box-shadow: none !important;
 }
 
