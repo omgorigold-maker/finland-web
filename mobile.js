@@ -1706,6 +1706,9 @@
       }));
     }
     openDialog('noteDialog');
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
   }
 
   function renderNoteLabelsManager() {

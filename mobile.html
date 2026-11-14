@@ -278,7 +278,7 @@
   </dialog>
 
   <!-- 4. Note Editor Dialog -->
-  <dialog id="noteDialog" class="sheet-dialog" closedby="any" aria-labelledby="noteDialogTitle">
+  <dialog id="noteDialog" class="sheet-dialog" closedby="any" tabindex="-1" aria-labelledby="noteDialogTitle">
     <div class="sheet-handle" aria-hidden="true"></div>
     <div class="sheet-header">
       <h2 id="noteDialogTitle" class="sheet-title">New Note</h2>
@@ -288,7 +288,7 @@
       <input type="hidden" id="noteIdInput">
       <label class="field">
         <span>Title</span>
-        <input type="text" id="noteTitleInput" placeholder="Note title" required autofocus>
+        <input type="text" id="noteTitleInput" placeholder="Note title" required>
       </label>
       <label class="field">
         <span>Note</span>
