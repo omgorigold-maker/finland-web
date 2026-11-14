@@ -24504,11 +24504,10 @@ function initSortableWidgets() {
         const poTot = parseFloat(lead.priceOffering.total) || 0;
         const poRef = lead.priceOffering.refNo ? ` · ${lead.priceOffering.refNo}` : '';
         if (quoteExports.length > 0) {
-          const latestVer = quoteExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(lead.priceOffering) === getPoContentFingerprint(quoteExports[0].data);
           quoteStatus.textContent = matchesLatest
-            ? `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Saved (v${latestVer})`
-            : `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Edited since v${latestVer}`;
+            ? `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Matches last export`
+            : `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Edited since last export`;
         } else {
           quoteStatus.textContent = `Editable Doc (${formatMoney(poTot, poCur)}${poRef})`;
         }
@@ -24571,12 +24570,11 @@ function initSortableWidgets() {
             </div>
           `;
         }
-        const draftFp = lead.priceOffering ? getPoContentFingerprint(lead.priceOffering) : '';
-        const visibleExports = quoteExports.filter((exp, idx) => !(idx === 0 && draftFp && getPoContentFingerprint(exp.data) === draftFp));
+        const visibleExports = quoteExports.slice(0, 1);
         const exportRowsHtml = visibleExports.map(exp => {
           const expCur = exp.currency || leadCur;
           const expTot = parseFloat(exp.total) || 0;
-          const verLabel = exp.label || `v${exp.version || 1} · Exported`;
+          const verLabel = 'Last Exported';
           const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
           const refText = exp.refNo || exp.docTitle || 'Price Quote';
           return `
@@ -33717,10 +33715,12 @@ function initSortableWidgets() {
     }
     const exportsArr = isDeposit ? proj.depositProformaExports : (isProforma ? proj.proformaExports : lead.quoteExports);
 
-    // Deduplicate if the latest snapshot has the exact same content
+    // Keep only the single latest exported copy (no multi-version stack)
     const curFingerprint = getPoContentFingerprint(sourceData);
     if (exportsArr.length > 0 && curFingerprint && getPoContentFingerprint(exportsArr[0].data) === curFingerprint) {
       const latest = exportsArr[0];
+      latest.version = 1;
+      latest.label = 'Last Exported';
       latest.exportedAt = new Date().toISOString();
       latest.refNo = sourceData.refNo || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO'));
       latest.docTitle = sourceData.docTitle || (isDeposit ? 'PROFORMA INVOICE' : (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal'));
@@ -33728,17 +33728,16 @@ function initSortableWidgets() {
       latest.currency = sourceData.currency || state.displayCurrency || 'EUR';
       latest.data = JSON.parse(JSON.stringify(sourceData));
       if (cleanSheetHtml) latest.sheetHtml = cleanSheetHtml;
+      exportsArr.splice(0, exportsArr.length, latest);
       saveBudget();
       renderPoVersionsDropdown();
       return latest;
     }
 
-    const nextVer = exportsArr.reduce((max, x) => Math.max(max, parseInt(x.version, 10) || 0), 0) + 1;
-
     const snap = {
       id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      version: nextVer,
-      label: `v${nextVer} · Exported`,
+      version: 1,
+      label: 'Last Exported',
       exportedAt: new Date().toISOString(),
       refNo: sourceData.refNo || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO')),
       docTitle: sourceData.docTitle || (isDeposit ? 'PROFORMA INVOICE' : (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal')),
@@ -33748,8 +33747,7 @@ function initSortableWidgets() {
       sheetHtml: cleanSheetHtml
     };
 
-    exportsArr.unshift(snap);
-    if (exportsArr.length > 25) exportsArr.length = 25;
+    exportsArr.splice(0, exportsArr.length, snap);
 
     if (isDeposit) {
       proj.hasDepositProformaDoc = true;
@@ -33845,10 +33843,10 @@ function initSortableWidgets() {
 
     if (state.activeStudioDocId || (!state.activePriceOfferingLeadId && !state.activeProformaProjectId && !state.activeDepositProformaProjectId)) {
       wrapper.classList.add('hidden');
+      wrapper.classList.remove('inline-flex');
       return;
     }
 
-    wrapper.classList.remove('hidden');
     const isDeposit = !!state.activeDepositProformaProjectId;
     const isProforma = !!state.activeProformaProjectId;
     const targetType = isDeposit ? 'deposit_project' : (isProforma ? 'project' : 'lead');
@@ -33862,53 +33860,42 @@ function initSortableWidgets() {
           : (isProforma ? (Array.isArray(entity.proformaExports) ? entity.proformaExports : []) : (Array.isArray(entity.quoteExports) ? entity.quoteExports : [])))
       : [];
 
-    badge.textContent = String(exportsArr.length);
-    badge.className = exportsArr.length > 0
-      ? (isDeposit
-          ? 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 tabular-nums'
-          : (isProforma
-              ? 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 tabular-nums'
-              : 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 tabular-nums'))
-      : 'px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 tabular-nums';
-
     if (exportsArr.length === 0) {
-      listEl.innerHTML = `
-        <div class="py-4 px-2 text-center text-[11px] text-slate-400">
-          No exported copies yet. Exporting a PDF automatically saves a copy here.
-        </div>
-      `;
-    } else {
-      const pillClass = isDeposit ? 'bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-800');
-      const viewBtnClass = isDeposit ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-50 hover:bg-purple-100 text-purple-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700');
-      listEl.innerHTML = exportsArr.map(exp => {
-        const expCur = exp.currency || state.displayCurrency || 'EUR';
-        const expTot = parseFloat(exp.total) || 0;
-        const verLabel = exp.label || `v${exp.version || 1} · Exported`;
-        const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
-        return `
-          <div class="flex items-center justify-between gap-2 p-2 rounded-lg border border-slate-200/80 bg-slate-50/70 hover:bg-slate-50 transition-colors">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${pillClass}">${escapeHtml(verLabel)}</span>
-                <span class="font-semibold text-slate-800 font-mono text-[11px] truncate">${formatMoney(expTot, expCur)}</span>
-              </div>
-              <div class="text-[10px] text-slate-400 truncate mt-0.5">${escapeHtml((exp.refNo ? exp.refNo + ' • ' : '') + (dateLabel || 'Saved snapshot'))}</div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button type="button" class="view-followup-export-snapshot-btn px-2 py-0.5 ${viewBtnClass} rounded text-[11px] font-semibold cursor-pointer transition-colors" data-target-type="${targetType}" data-target-id="${escapeHtml(targetId)}" data-snapshot-id="${escapeHtml(exp.id)}">
-                View
-              </button>
-              <button type="button" class="restore-followup-export-snapshot-btn px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded text-[11px] font-medium cursor-pointer transition-colors" data-target-type="${targetType}" data-target-id="${escapeHtml(targetId)}" data-snapshot-id="${escapeHtml(exp.id)}">
-                Restore
-              </button>
-              <button type="button" class="delete-followup-export-snapshot-btn p-1 text-slate-300 hover:text-rose-600 rounded transition-colors cursor-pointer" data-target-type="${targetType}" data-target-id="${escapeHtml(targetId)}" data-snapshot-id="${escapeHtml(exp.id)}" title="Delete version">
-                <i data-lucide="x" class="w-3 h-3"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
+      wrapper.classList.add('hidden');
+      wrapper.classList.remove('inline-flex');
+      listEl.innerHTML = '';
+      return;
     }
+
+    wrapper.classList.remove('hidden');
+    wrapper.classList.add('inline-flex');
+
+    const latestExp = exportsArr[0];
+    const pillClass = isDeposit ? 'bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-800');
+    const viewBtnClass = isDeposit ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700' : (isProforma ? 'bg-purple-50 hover:bg-purple-100 text-purple-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700');
+    const expCur = latestExp.currency || state.displayCurrency || 'EUR';
+    const expTot = parseFloat(latestExp.total) || 0;
+    const dateLabel = formatFollowupDocTimestamp(latestExp.exportedAt);
+
+    listEl.innerHTML = `
+      <div class="flex items-center justify-between gap-2 p-2 rounded-lg border border-slate-200/80 bg-slate-50/70 hover:bg-slate-50 transition-colors">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${pillClass}">Last Exported</span>
+            <span class="font-semibold text-slate-800 font-mono text-[11px] truncate">${formatMoney(expTot, expCur)}</span>
+          </div>
+          <div class="text-[10px] text-slate-400 truncate mt-0.5">${escapeHtml((latestExp.refNo ? latestExp.refNo + ' • ' : '') + (dateLabel || 'Saved copy'))}</div>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" class="view-followup-export-snapshot-btn px-2 py-0.5 ${viewBtnClass} rounded text-[11px] font-semibold cursor-pointer transition-colors" data-target-type="${targetType}" data-target-id="${escapeHtml(targetId)}" data-snapshot-id="${escapeHtml(latestExp.id)}">
+            View
+          </button>
+          <button type="button" class="restore-followup-export-snapshot-btn px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded text-[11px] font-medium cursor-pointer transition-colors" data-target-type="${targetType}" data-target-id="${escapeHtml(targetId)}" data-snapshot-id="${escapeHtml(latestExp.id)}" title="Revert draft to last exported copy">
+            Revert
+          </button>
+        </div>
+      </div>
+    `;
     refreshLucideIcons(document.getElementById('poVersionsDropdownMenu'));
   }
 
@@ -34891,11 +34878,10 @@ ${sectionsText}
     if (projQuoteStatus && projQuoteActions) {
       if (proj.priceOffering) {
         if (projQuoteExports.length > 0) {
-          const latestVer = projQuoteExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.priceOffering) === getPoContentFingerprint(projQuoteExports[0].data);
           projQuoteStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer}`
-            : `Edited since v${latestVer}`;
+            ? 'Draft matches last export'
+            : 'Edited since last export';
         } else {
           projQuoteStatus.textContent = '';
         }
@@ -34953,10 +34939,10 @@ ${sectionsText}
             </div>
           `;
         }
-        const exportRowsHtml = projQuoteExports.map(exp => {
+        const exportRowsHtml = projQuoteExports.slice(0, 1).map(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
-          const verLabel = exp.label || `v${exp.version || 1} · Exported`;
+          const verLabel = 'Last Exported';
           const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
           const refText = exp.refNo || exp.docTitle || 'Price Quote';
           return `
@@ -35020,11 +35006,10 @@ ${sectionsText}
       const depositExports = Array.isArray(proj.depositProformaExports) ? proj.depositProformaExports : [];
       if (proj.depositProforma) {
         if (depositExports.length > 0) {
-          const latestVer = depositExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.depositProforma) === getPoContentFingerprint(depositExports[0].data);
           depositStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer}`
-            : `Edited since v${latestVer}`;
+            ? 'Draft matches last export'
+            : 'Edited since last export';
         } else {
           depositStatus.textContent = '';
         }
@@ -35075,10 +35060,10 @@ ${sectionsText}
             </div>
           `);
         }
-        depositExports.forEach(exp => {
+        depositExports.slice(0, 1).forEach(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
-          const vLabel = exp.label || `v${exp.version || exp.versionNumber || 1} · Exported`;
+          const vLabel = 'Last Exported';
           const dateStr = formatFollowupDocTimestamp(exp.exportedAt);
           const refLabel = exp.refNo || exp.docTitle || 'Deposit Proforma';
           rowsHtml.push(`
@@ -35150,11 +35135,10 @@ ${sectionsText}
       const proformaExports = Array.isArray(proj.proformaExports) ? proj.proformaExports : [];
       if (proj.proformaInvoice) {
         if (proformaExports.length > 0) {
-          const latestVer = proformaExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.proformaInvoice) === getPoContentFingerprint(proformaExports[0].data);
           proformaStatus.textContent = matchesLatest
-            ? `Draft matches v${latestVer}`
-            : `Edited since v${latestVer}`;
+            ? 'Draft matches last export'
+            : 'Edited since last export';
         } else {
           proformaStatus.textContent = '';
         }
@@ -35205,10 +35189,10 @@ ${sectionsText}
             </div>
           `);
         }
-        proformaExports.forEach(exp => {
+        proformaExports.slice(0, 1).forEach(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
-          const vLabel = exp.label || `v${exp.version || exp.versionNumber || 1} · Exported`;
+          const vLabel = 'Last Exported';
           const dateStr = formatFollowupDocTimestamp(exp.exportedAt);
           const refLabel = exp.refNo || exp.docTitle || 'Proforma Invoice';
           rowsHtml.push(`
