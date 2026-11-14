@@ -1247,50 +1247,86 @@ dialog::backdrop {
 }
 
 /* Quick Add Sheet */
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding-bottom: 4px;
 }
 
-.quick-action-card {
+.quick-action-row {
+  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 16px 10px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 6px;
+  gap: 13px;
+  text-align: left;
+  transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-action-row:active:not(:disabled) {
+  transform: scale(0.985);
+  background: var(--pill-active);
+  border-color: var(--border-strong);
 }
 
 .qa-icon {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 17px;
-  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.qa-icon svg {
+  width: 19px;
+  height: 19px;
 }
 
 .qa-green { background: #ecfdf5; color: #15803d; }
 .qa-blue { background: #f0f9ff; color: #0369a1; }
 .qa-amber { background: #fffbeb; color: #b45309; }
 
+.qa-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
 .qa-label {
-  font-size: 12.5px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--ink);
+  letter-spacing: -0.015em;
   white-space: nowrap;
 }
 
 .qa-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qa-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.qa-chevron svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Forms */
