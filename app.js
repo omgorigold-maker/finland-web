@@ -11859,12 +11859,7 @@ FOLDER CONTENTS:
         if (isDepositProforma && typeof openProjectDepositProformaDocPage === 'function') {
           openProjectDepositProformaDocPage(cleanProjId);
         } else if (isProforma && typeof openProjectProformaDocPage === 'function') {
-          const p = (state.budget?.projects || []).find(x => x.id === cleanProjId);
-          if (p && (p.depositProforma || !p.proformaInvoice)) {
-            openProjectDepositProformaDocPage(cleanProjId);
-          } else {
-            openProjectProformaDocPage(cleanProjId);
-          }
+          openProjectProformaDocPage(cleanProjId);
         } else if (isOffering && typeof openPriceOfferingDocPage === 'function') {
           openPriceOfferingDocPage(cleanProjId);
         }
@@ -31474,14 +31469,19 @@ function initSortableWidgets() {
 
     const isProformaDoc = getActiveDocType() === 'proforma';
     const targetEntity = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
-    const proj = (targetEntity && targetEntity._isProject) ? targetEntity : (state.budget?.projects || []).find(p => p.id === (state.activeProformaProjectId || state.activeFollowupProjectId));
+    const proj = (targetEntity && (targetEntity._projectRef || (targetEntity._isProject ? targetEntity : null)))
+      || (state.budget?.projects || []).find(p => p.id === (state.activeProformaProjectId || state.activeFollowupProjectId || targetEntity?.id));
     let depositAmt = 0;
     if (isProformaDoc && proj) {
-      if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total))) {
+      if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total)) && parseFloat(proj.depositProforma.total) > 0) {
         depositAmt = parseFloat(proj.depositProforma.total) || 0;
+      } else if (proj.depositProforma && Array.isArray(proj.depositProforma.items) && proj.depositProforma.items.length > 0) {
+        depositAmt = proj.depositProforma.items.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
       } else if (Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) {
         const exp = proj.depositProformaExports[0];
         if (exp && !isNaN(parseFloat(exp.total))) depositAmt = parseFloat(exp.total) || 0;
+      } else if (proj.proformaInvoice && !isNaN(parseFloat(proj.proformaInvoice.paidDeposit)) && parseFloat(proj.proformaInvoice.paidDeposit) > 0) {
+        depositAmt = parseFloat(proj.proformaInvoice.paidDeposit) || 0;
       }
     }
 
