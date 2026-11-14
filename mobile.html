@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f8fafc">
+  <title>Finland • Mobile</title>
+  <link rel="icon" type="image/png" href="AppIcon.iconset/sidebar_logo.png?v=sister7">
+  <link rel="apple-touch-icon" href="AppIcon.iconset/sidebar_logo.png?v=sister7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Minimal Top Header -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <img src="AppIcon.iconset/sidebar_logo.png?v=sister7" alt="Finland" class="brand-logo" onerror="this.style.display='none'">
+        <div>
+          <h1 id="headerTitle" class="header-title">Follow-Ups</h1>
+          <p id="headerSubtitle" class="header-subtitle">Projects &amp; Leads</p>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <button type="button" id="currencyBtn" class="pill-btn mono" aria-label="Switch display currency">EUR</button>
+        <button type="button" id="syncBtn" class="sync-pill" aria-label="Sync with vault">
+          <span id="syncDot" class="sync-dot"></span>
+          <span id="syncLabel">Synced</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Viewports -->
+    <main class="main-content" id="mainContent">
+      <!-- 1. FOLLOW-UPS -->
+      <section id="view-followups" class="tab-view active" aria-label="Project Follow-Ups">
+        <div class="segmented-row">
+          <div class="segmented" role="tablist" aria-label="Follow-Up Type">
+            <button type="button" class="seg-btn active" data-followup-tab="projects" role="tab" aria-selected="true">
+              Projects <span id="projectsCount" class="seg-count">0</span>
+            </button>
+            <button type="button" class="seg-btn" data-followup-tab="leads" role="tab" aria-selected="false">
+              Leads <span id="leadsCount" class="seg-count">0</span>
+            </button>
+          </div>
+        </div>
+        <div id="followupsList" class="card-stack"></div>
+      </section>
+
+      <!-- 2. CALENDAR -->
+      <section id="view-calendar" class="tab-view" aria-label="Calendar" hidden>
+        <div class="cal-card">
+          <div class="cal-header">
+            <button type="button" id="calPrevBtn" class="icon-btn" aria-label="Previous month">&#8249;</button>
+            <div class="cal-month-wrap">
+              <span id="calMonthLabel" class="cal-month-label"></span>
+              <button type="button" id="calTodayBtn" class="today-chip">Today</button>
+            </div>
+            <button type="button" id="calNextBtn" class="icon-btn" aria-label="Next month">&#8250;</button>
+          </div>
+          <div class="cal-weekdays" aria-hidden="true">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+          <div id="calGrid" class="cal-grid"></div>
+        </div>
+
+        <div class="agenda-header">
+          <h2 id="agendaDateTitle" class="agenda-title">Today</h2>
+          <span id="agendaCount" class="agenda-count">0 items</span>
+        </div>
+        <div id="agendaList" class="card-stack"></div>
+      </section>
+
+      <!-- 3. NOTES -->
+      <section id="view-notes" class="tab-view" aria-label="Notes" hidden>
+        <div class="search-wrap">
+          <input type="search" id="notesSearchInput" class="search-input" placeholder="Search notes..." aria-label="Search notes">
+        </div>
+        <div id="notesLabelsBar" class="chip-scroll" aria-label="Filter by label"></div>
+        <div id="notesList" class="card-stack"></div>
+      </section>
+
+      <!-- 4. TRANSACTIONS -->
+      <section id="view-money" class="tab-view" aria-label="Transactions" hidden>
+        <div class="money-summary-card">
+          <div class="money-month-row">
+            <button type="button" id="moneyPrevBtn" class="icon-btn-sm" aria-label="Previous month">&#8249;</button>
+            <span id="moneyMonthLabel" class="money-month-label"></span>
+            <button type="button" id="moneyNextBtn" class="icon-btn-sm" aria-label="Next month">&#8250;</button>
+          </div>
+          <div class="money-totals-grid">
+            <div class="money-stat">
+              <span class="money-stat-label">Spent</span>
+              <span id="moneySpentVal" class="money-stat-val mono">-</span>
+            </div>
+            <div class="money-stat">
+              <span class="money-stat-label">Income</span>
+              <span id="moneyIncomeVal" class="money-stat-val income mono">-</span>
+            </div>
+          </div>
+        </div>
+        <div id="transactionsList" class="card-stack"></div>
+      </section>
+    </main>
+
+    <!-- Thumb-Friendly Bottom Navigation -->
+    <nav class="bottom-nav" aria-label="Primary Navigation">
+      <button type="button" class="nav-btn active" data-tab="followups">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Follow-Ups</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendar</span>
+      </button>
+      <button type="button" id="quickAddBtn" class="fab-btn" aria-label="Quick Add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button type="button" class="nav-btn" data-tab="notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notes</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="money">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Money</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 1. Quick Add Action Sheet (Transaction / Calendar Item / Note) -->
+  <dialog id="quickAddDialog" class="sheet-dialog" closedby="any" aria-labelledby="quickAddTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="quickAddTitle" class="sheet-title">Quick Add</h2>
+      <button type="button" class="close-btn" data-close-dialog="quickAddDialog" aria-label="Close">&times;</button>
+    </div>
+    <div class="quick-actions-grid">
+      <button type="button" class="quick-action-card" data-open-form="transaction">
+        <span class="qa-icon qa-green">$</span>
+        <span class="qa-label">Transaction</span>
+        <span class="qa-sub">Expense or income</span>
+      </button>
+      <button type="button" class="quick-action-card" data-open-form="calendar">
+        <span class="qa-icon qa-blue">&#128197;</span>
+        <span class="qa-label">Calendar Item</span>
+        <span class="qa-sub">Plan or meeting</span>
+      </button>
+      <button type="button" class="quick-action-card" data-open-form="note">
+        <span class="qa-icon qa-amber">&#9998;</span>
+        <span class="qa-label">Note</span>
+        <span class="qa-sub">Quick note or task</span>
+      </button>
+    </div>
+  </dialog>
+
+  <!-- 2. Transaction Form Dialog -->
+  <dialog id="txDialog" class="sheet-dialog" closedby="any" aria-labelledby="txDialogTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="txDialogTitle" class="sheet-title">New Transaction</h2>
+      <button type="button" class="close-btn" data-close-dialog="txDialog" aria-label="Close">&times;</button>
+    </div>
+    <form id="txForm" class="sheet-form">
+      <input type="hidden" id="txIdInput">
+      <div class="type-toggle" role="group" aria-label="Transaction type">
+        <button type="button" class="type-btn active" data-tx-type="expense">Expense</button>
+        <button type="button" class="type-btn" data-tx-type="income">Income</button>
+      </div>
+      <div class="form-row-2">
+        <label class="field">
+          <span>Amount</span>
+          <input type="number" id="txAmountInput" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required autofocus>
+        </label>
+        <label class="field">
+          <span>Currency</span>
+          <select id="txCurrencyInput">
+            <option value="EUR">EUR (€)</option>
+            <option value="USD">USD ($)</option>
+            <option value="ILS">ILS (₪)</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>Title</span>
+        <input type="text" id="txTitleInput" placeholder="e.g. Coffee, Client payment..." required>
+      </label>
+      <div class="form-row-2">
+        <label class="field">
+          <span>Category</span>
+          <input type="text" id="txCategoryInput" placeholder="General" list="txCategoryDatalist">
+          <datalist id="txCategoryDatalist"></datalist>
+        </label>
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="txDateInput" required>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="txDeleteBtn" class="btn-danger" hidden>Delete</button>
+        <button type="submit" class="btn-primary">Save Transaction</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 3. Calendar Item Form Dialog -->
+  <dialog id="calItemDialog" class="sheet-dialog" closedby="any" aria-labelledby="calItemDialogTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="calItemDialogTitle" class="sheet-title">New Calendar Item</h2>
+      <button type="button" class="close-btn" data-close-dialog="calItemDialog" aria-label="Close">&times;</button>
+    </div>
+    <form id="calItemForm" class="sheet-form">
+      <input type="hidden" id="calItemIdInput">
+      <div class="type-toggle" role="group" aria-label="Calendar item type">
+        <button type="button" class="type-btn active" data-cal-kind="plan">Plan</button>
+        <button type="button" class="type-btn" data-cal-kind="meetings">Meeting</button>
+      </div>
+      <label class="field">
+        <span>Title</span>
+        <input type="text" id="calItemTitleInput" placeholder="What's happening?" required autofocus>
+      </label>
+      <div class="form-row-2">
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="calItemDateInput" required>
+        </label>
+        <label class="field">
+          <span>Time (optional)</span>
+          <input type="time" id="calItemTimeInput">
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="calItemDeleteBtn" class="btn-danger" hidden>Delete</button>
+        <button type="submit" class="btn-primary">Save to Calendar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 4. Note Editor Dialog -->
+  <dialog id="noteDialog" class="sheet-dialog" closedby="any" aria-labelledby="noteDialogTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 id="noteDialogTitle" class="sheet-title">New Note</h2>
+      <button type="button" class="close-btn" data-close-dialog="noteDialog" aria-label="Close">&times;</button>
+    </div>
+    <form id="noteForm" class="sheet-form">
+      <input type="hidden" id="noteIdInput">
+      <label class="field">
+        <span>Title</span>
+        <input type="text" id="noteTitleInput" placeholder="Note title" required autofocus>
+      </label>
+      <label class="field">
+        <span>Note</span>
+        <textarea id="noteBodyInput" rows="5" placeholder="Write your note..."></textarea>
+      </label>
+      <div class="form-row-2">
+        <label class="field">
+          <span>Label</span>
+          <input type="text" id="noteLabelInput" placeholder="General" list="noteLabelDatalist">
+          <datalist id="noteLabelDatalist"></datalist>
+        </label>
+        <label class="field">
+          <span>Due Date (optional)</span>
+          <input type="date" id="noteDueDateInput">
+        </label>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="notePinnedInput">
+        <span>Pin note to top</span>
+      </label>
+      <div class="form-actions">
+        <button type="button" id="noteDeleteBtn" class="btn-danger" hidden>Delete</button>
+        <button type="submit" class="btn-primary">Save Note</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 5. Follow-Up Detail Dialog (Project or Lead) -->
+  <dialog id="detailDialog" class="sheet-dialog" closedby="any" aria-labelledby="detailDialogTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <div>
+        <span id="detailBadge" class="detail-badge">Project</span>
+        <h2 id="detailDialogTitle" class="sheet-title">Details</h2>
+      </div>
+      <button type="button" class="close-btn" data-close-dialog="detailDialog" aria-label="Close">&times;</button>
+    </div>
+    <div id="detailBody" class="detail-body"></div>
+  </dialog>
+
+  <!-- 6. PIN Unlock Dialog (for remote phone access) -->
+  <dialog id="pinDialog" class="sheet-dialog" closedby="none" aria-labelledby="pinDialogTitle">
+    <div class="sheet-header">
+      <h2 id="pinDialogTitle" class="sheet-title">Unlock Finland Vault</h2>
+    </div>
+    <form id="pinForm" class="sheet-form">
+      <p class="pin-hint">Enter your Finland vault PIN or pairing token to sync.</p>
+      <label class="field">
+        <span>PIN / Token</span>
+        <input type="password" id="pinInput" placeholder="Enter PIN" required autofocus>
+      </label>
+      <p id="pinError" class="pin-error" hidden>Invalid PIN. Please try again.</p>
+      <button type="submit" class="btn-primary">Unlock</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="mobile.js"></script>
+</body>
+</html>
