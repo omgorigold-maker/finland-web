@@ -30052,6 +30052,11 @@ function initSortableWidgets() {
 
   function renderPoOverviewBlockHtml(ctx) {
     const { labels, client, clientEmail, clientAddress, refNo, cur, issueDate, validUntil } = ctx;
+    const isDeposit = getActiveDocType() === 'deposit_proforma';
+    const displayValidUntil = isDeposit
+      ? ((validUntil && !/^\d{4}-\d{2}-\d{2}$/.test(String(validUntil).trim()) && !/^\d{4}/.test(String(validUntil).trim())) ? validUntil : 'upon signing quote / agreement')
+      : validUntil;
+    const validUntilPh = isDeposit ? 'upon signing quote / agreement...' : 'Valid Until Date...';
     const labelInput = (elemId, name, val, ph) => `<input type="text" class="po-selectable po-meta-label text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full transition-colors" data-elem-id="${elemId}" data-elem-name="${name}" data-elem-type="text" value="${escapeHtml(val)}" placeholder="${ph}">`;
     return `
       <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" data-po-container="overview_grid">
@@ -30076,7 +30081,7 @@ function initSortableWidgets() {
           </div>
           <div class="po-meta-cell" data-po-unit-id="cell_valid_until" data-po-container="cell_valid_until">
             ${labelInput('label_valid_until', 'Valid Until Label', labels.validUntil, 'VALID UNTIL...')}
-            <input type="text" id="poValidUntil" class="po-selectable text-slate-700 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full text-xs font-medium transition-colors" data-elem-id="valid_until_val" data-elem-name="Valid Until Date" data-elem-type="text" value="${escapeHtml(validUntil)}" placeholder="Valid Until Date...">
+            <input type="text" id="poValidUntil" class="po-selectable text-slate-700 bg-transparent border-none outline-none rounded px-0 py-0.5 w-full text-xs font-medium transition-colors" data-elem-id="valid_until_val" data-elem-name="Valid Until Date" data-elem-type="text" value="${escapeHtml(displayValidUntil)}" placeholder="${validUntilPh}">
           </div>
         </div>
       </div>
@@ -32566,7 +32571,7 @@ function initSortableWidgets() {
       const depositRate = Math.round((fullProjAmount * 0.5) * 100) / 100;
       const projCur = proj.currency || (srcQuote && srcQuote.currency) || state.displayCurrency || 'EUR';
       const todayStr = new Date().toISOString().split('T')[0];
-      const dueStr = proj.paymentDueDate || proj.dueDate || todayStr;
+      const dueStr = 'upon signing quote / agreement';
 
       const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables';
       let initialItems = [
@@ -32693,6 +32698,9 @@ function initSortableWidgets() {
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
     po.docTitle = 'DEPOSIT PROFORMA INVOICE';
     po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    if (!po.validUntil || /^\d{4}-\d{2}-\d{2}$/.test(String(po.validUntil).trim()) || String(po.validUntil).trim().startsWith('2026')) {
+      po.validUntil = 'upon signing quote / agreement';
+    }
     if (!po.sender || !po.sender.name || po.sender.name === 'Your Name / Studio') {
       po.sender = {
         name: 'Ori Gold',
