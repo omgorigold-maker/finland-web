@@ -11744,7 +11744,7 @@ FOLDER CONTENTS:
     const tab = parts[0];
     const subId = parts[1];
     if (tab === 'project_followup' && subId) {
-      if (raw.includes('/offering') || raw.includes('/proforma')) {
+      if (raw.includes('/offering') || raw.includes('/proforma') || raw.includes('/deposit_proforma')) {
         return '#project_followup/' + subId;
       }
       return '#project_followup';
@@ -11785,6 +11785,7 @@ FOLDER CONTENTS:
 
     if (tab === 'project_followup' && subId) {
       if (raw.includes('/offering')) return 'Price Quote';
+      if (raw.includes('/deposit_proforma')) return 'Deposit Proforma';
       if (raw.includes('/proforma')) return 'Proforma Invoice';
       if (subId.startsWith('lead:') || subId.startsWith('lead_')) {
         const cleanLeadId = subId.replace(/^lead:/, '');
@@ -11930,7 +11931,8 @@ FOLDER CONTENTS:
         if (typeof window._ftSetActiveTab === 'function') {
           window._ftSetActiveTab('documents');
         }
-        if (typeof openStudioDocumentEditor === 'function') {
+        const poPageElAfter = document.getElementById('priceOfferingDocPage');
+        if ((!poPageElAfter || poPageElAfter.classList.contains('hidden')) && typeof openStudioDocumentEditor === 'function') {
           openStudioDocumentEditor(docId);
         }
       } else {
@@ -11958,7 +11960,8 @@ FOLDER CONTENTS:
         if (typeof window._ftSetActiveTab === 'function') {
           window._ftSetActiveTab('project_followup');
         }
-        if (isOffering && typeof openPriceOfferingDocPage === 'function') {
+        const poPageElAfter = document.getElementById('priceOfferingDocPage');
+        if (isOffering && (!poPageElAfter || poPageElAfter.classList.contains('hidden')) && typeof openPriceOfferingDocPage === 'function') {
           openPriceOfferingDocPage(cleanLeadId);
         }
       } else if (subId) {
@@ -11975,12 +11978,15 @@ FOLDER CONTENTS:
         if (typeof window._ftSetActiveTab === 'function') {
           window._ftSetActiveTab('project_followup');
         }
-        if (isDepositProforma && typeof openProjectDepositProformaDocPage === 'function') {
-          openProjectDepositProformaDocPage(cleanProjId);
-        } else if (isProforma && typeof openProjectProformaDocPage === 'function') {
-          openProjectProformaDocPage(cleanProjId);
-        } else if (isOffering && typeof openPriceOfferingDocPage === 'function') {
-          openPriceOfferingDocPage(cleanProjId);
+        const poPageElAfter = document.getElementById('priceOfferingDocPage');
+        if (!poPageElAfter || poPageElAfter.classList.contains('hidden')) {
+          if (isDepositProforma && typeof openProjectDepositProformaDocPage === 'function') {
+            openProjectDepositProformaDocPage(cleanProjId);
+          } else if (isProforma && typeof openProjectProformaDocPage === 'function') {
+            openProjectProformaDocPage(cleanProjId);
+          } else if (isOffering && typeof openPriceOfferingDocPage === 'function') {
+            openPriceOfferingDocPage(cleanProjId);
+          }
         }
       } else {
         state.activeFollowupLeadId = null;
@@ -12125,7 +12131,7 @@ FOLDER CONTENTS:
       const poPageOpen = document.getElementById('priceOfferingDocPage');
       if (poPageOpen && !poPageOpen.classList.contains('hidden')) {
         const keepStudioOpen = (tab === 'documents' && state.activeStudioDocId);
-        const keepLeadOfferingOpen = (tab === 'project_followup' && (state.activePriceOfferingLeadId || state.activeProformaProjectId));
+        const keepLeadOfferingOpen = (tab === 'project_followup' && (state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeDepositProformaProjectId));
         if (!keepStudioOpen && !keepLeadOfferingOpen) {
           if (poAutoSaveTimeout !== null) {
             try { savePriceOfferingDoc(false); } catch (e) {}
@@ -12134,6 +12140,7 @@ FOLDER CONTENTS:
           state.activeStudioDocId = null;
           state.activePriceOfferingLeadId = null;
           state.activeProformaProjectId = null;
+          state.activeDepositProformaProjectId = null;
           document.getElementById('poTemplatesSidebarSection')?.classList.remove('hidden');
           document.getElementById('poStudioDocFooterSection')?.classList.add('hidden');
         }
@@ -12145,7 +12152,11 @@ FOLDER CONTENTS:
           if (state.activeFollowupLeadId) {
             targetHash = '#project_followup/lead:' + state.activeFollowupLeadId + (state.activePriceOfferingLeadId ? '/offering' : '');
           } else if (state.activeFollowupProjectId) {
-            targetHash = '#project_followup/' + state.activeFollowupProjectId + (state.activeProformaProjectId ? '/proforma' : (state.activePriceOfferingLeadId === state.activeFollowupProjectId ? '/offering' : ''));
+            targetHash = '#project_followup/' + state.activeFollowupProjectId + (
+              state.activeDepositProformaProjectId ? '/deposit_proforma'
+                : (state.activeProformaProjectId ? '/proforma'
+                  : (state.activePriceOfferingLeadId === state.activeFollowupProjectId ? '/offering' : ''))
+            );
           }
         } else if (tab === 'documents' && state.activeStudioDocId) {
           targetHash = '#documents/studio:' + state.activeStudioDocId;
@@ -12309,7 +12320,7 @@ FOLDER CONTENTS:
     const sidebarTabDocumentsBtn = document.getElementById('sidebarTabDocuments');
     if (sidebarTabDocumentsBtn) {
       sidebarTabDocumentsBtn.addEventListener('click', () => {
-        if (state.activeStudioDocId || state.activePriceOfferingLeadId || state.activeProformaProjectId) {
+        if (state.activeStudioDocId || state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeDepositProformaProjectId) {
           const poPageOpen = document.getElementById('priceOfferingDocPage');
           if (poPageOpen && !poPageOpen.classList.contains('hidden')) {
             if (poAutoSaveTimeout !== null) {
@@ -12321,6 +12332,8 @@ FOLDER CONTENTS:
           poAutoSaveTimeout = null;
           state.activeStudioDocId = null;
           state.activePriceOfferingLeadId = null;
+          state.activeProformaProjectId = null;
+          state.activeDepositProformaProjectId = null;
           document.getElementById('poTemplatesSidebarSection')?.classList.remove('hidden');
           document.getElementById('poStudioDocFooterSection')?.classList.add('hidden');
           try { history.replaceState(null, '', '#documents'); } catch (e) {}
@@ -12331,7 +12344,7 @@ FOLDER CONTENTS:
     const sidebarTabProjectFollowupBtn = document.getElementById('sidebarTabProjectFollowup');
     if (sidebarTabProjectFollowupBtn) {
       sidebarTabProjectFollowupBtn.addEventListener('click', () => {
-        if (state.activeFollowupLeadId || state.activeFollowupProjectId || state.activePriceOfferingLeadId || state.activeProformaProjectId) {
+        if (state.activeFollowupLeadId || state.activeFollowupProjectId || state.activePriceOfferingLeadId || state.activeProformaProjectId || state.activeDepositProformaProjectId) {
           const poPageOpen = document.getElementById('priceOfferingDocPage');
           if (poPageOpen && !poPageOpen.classList.contains('hidden')) {
             try { savePriceOfferingDoc(false); } catch (e) {}
@@ -12341,6 +12354,7 @@ FOLDER CONTENTS:
           state.activeFollowupProjectId = null;
           state.activePriceOfferingLeadId = null;
           state.activeProformaProjectId = null;
+          state.activeDepositProformaProjectId = null;
           try {
             localStorage.removeItem('ft_active_followup_lead');
             localStorage.removeItem('ft_active_followup_project');
@@ -12369,7 +12383,8 @@ FOLDER CONTENTS:
       const h = hashSlugToTab(parts[0]);
       const subId = parts[1];
       const isOffering = raw.includes('/offering');
-      const isProforma = raw.includes('/proforma');
+      const isDepositProforma = raw.includes('/deposit_proforma');
+      const isProforma = !isDepositProforma && raw.includes('/proforma');
       const validTabs = ['expenses', 'reports', 'subscriptions', 'needs_to_pay', 'wishlist', 'budget', 'notes', 'calendar_plan', 'documents', 'project_followup'];
       if (validTabs.includes(h)) {
         if (h === 'project_followup') {
@@ -12380,15 +12395,17 @@ FOLDER CONTENTS:
               state.activeFollowupProjectId = null;
               state.activePriceOfferingLeadId = isOffering ? cleanLeadId : null;
               state.activeProformaProjectId = null;
+              state.activeDepositProformaProjectId = null;
               try {
                 localStorage.setItem('ft_active_followup_lead', state.activeFollowupLeadId);
                 localStorage.removeItem('ft_active_followup_project');
               } catch (e) {}
             } else {
-              const cleanProjId = subId.replace(/^proj:/, '').replace(/\/(proforma|offering)$/, '');
+              const cleanProjId = subId.replace(/^proj:/, '').replace(/\/(deposit_proforma|proforma|offering)$/, '');
               state.activeFollowupProjectId = cleanProjId;
               state.activeFollowupLeadId = null;
               state.activePriceOfferingLeadId = isOffering ? cleanProjId : null;
+              state.activeDepositProformaProjectId = isDepositProforma ? cleanProjId : null;
               state.activeProformaProjectId = isProforma ? cleanProjId : null;
               try {
                 localStorage.setItem('ft_active_followup_project', cleanProjId);
@@ -12400,6 +12417,7 @@ FOLDER CONTENTS:
             state.activeFollowupLeadId = null;
             state.activePriceOfferingLeadId = null;
             state.activeProformaProjectId = null;
+            state.activeDepositProformaProjectId = null;
             try {
               localStorage.removeItem('ft_active_followup_project');
               localStorage.removeItem('ft_active_followup_lead');
@@ -23200,6 +23218,7 @@ function initSortableWidgets() {
         try {
           localStorage.removeItem('ft_active_followup_project');
           history.replaceState(null, '', '#project_followup');
+          if (typeof recordFinlandRoute === 'function') recordFinlandRoute('#project_followup');
         } catch (e) {}
       }
     }
@@ -23222,6 +23241,7 @@ function initSortableWidgets() {
         try {
           localStorage.removeItem('ft_active_followup_lead');
           history.replaceState(null, '', '#project_followup');
+          if (typeof recordFinlandRoute === 'function') recordFinlandRoute('#project_followup');
         } catch (e) {}
       }
     }
@@ -23961,10 +23981,17 @@ function initSortableWidgets() {
   // LEAD DETAIL PAGE (Adjusted for Inquiries)
   // ==========================================
   function openLeadDetailPage(leadId) {
+    if (state.activeFollowupLeadId && state.activeFollowupLeadId !== leadId) {
+      try { flushLeadDetailChanges(); } catch (e) {}
+    }
+    if (state.activeFollowupProjectId) {
+      try { flushProjectDetailChanges(); } catch (e) {}
+    }
     state.activeFollowupLeadId = leadId;
     state.activeFollowupProjectId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
+    state.activeDepositProformaProjectId = null;
     try {
       localStorage.setItem('ft_active_followup_lead', leadId);
       localStorage.removeItem('ft_active_followup_project');
@@ -23972,10 +23999,11 @@ function initSortableWidgets() {
       recordFinlandRoute('#project_followup/lead:' + leadId);
     } catch (e) {}
     const view = document.getElementById('viewProjectFollowup');
-    if (view && view.classList.contains('hidden') && typeof switchTab === 'function') {
-      switchTab('project_followup');
+    if (view && view.classList.contains('hidden') && typeof window._ftSetActiveTab === 'function') {
+      window._ftSetActiveTab('project_followup');
+    } else {
+      renderProjectFollowupView();
     }
-    renderProjectFollowupView();
     if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -24071,9 +24099,6 @@ function initSortableWidgets() {
 
   function closeLeadDetailPage() {
     flushLeadDetailChanges();
-    if (typeof goBackInFinland === 'function' && currentNavRoute && currentNavRoute.startsWith('#project_followup/lead:')) {
-      if (goBackInFinland()) return;
-    }
     state.activeFollowupLeadId = null;
     try {
       localStorage.removeItem('ft_active_followup_lead');
@@ -34569,10 +34594,17 @@ ${sectionsText}
   }
 
   function openProjectDetailPage(projectId) {
+    if (state.activeFollowupProjectId && state.activeFollowupProjectId !== projectId) {
+      try { flushProjectDetailChanges(); } catch (e) {}
+    }
+    if (state.activeFollowupLeadId) {
+      try { flushLeadDetailChanges(); } catch (e) {}
+    }
     state.activeFollowupProjectId = projectId;
     state.activeFollowupLeadId = null;
     state.activePriceOfferingLeadId = null;
     state.activeProformaProjectId = null;
+    state.activeDepositProformaProjectId = null;
     try {
       localStorage.setItem('ft_active_followup_project', projectId);
       localStorage.removeItem('ft_active_followup_lead');
@@ -34580,10 +34612,11 @@ ${sectionsText}
       recordFinlandRoute('#project_followup/' + projectId);
     } catch (e) {}
     const view = document.getElementById('viewProjectFollowup');
-    if (view && view.classList.contains('hidden') && typeof switchTab === 'function') {
-      switchTab('project_followup');
+    if (view && view.classList.contains('hidden') && typeof window._ftSetActiveTab === 'function') {
+      window._ftSetActiveTab('project_followup');
+    } else {
+      renderProjectFollowupView();
     }
-    renderProjectFollowupView();
     if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -34700,9 +34733,6 @@ ${sectionsText}
 
   function closeProjectDetailPage() {
     flushProjectDetailChanges();
-    if (typeof goBackInFinland === 'function' && currentNavRoute && currentNavRoute.startsWith('#project_followup/')) {
-      if (goBackInFinland()) return;
-    }
     state.activeFollowupProjectId = null;
     try {
       localStorage.removeItem('ft_active_followup_project');
