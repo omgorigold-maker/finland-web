@@ -24651,30 +24651,22 @@ function initSortableWidgets() {
 
     if (quoteStatus && quoteActions) {
       if (lead.priceOffering) {
-        const poCur = lead.priceOffering.currency || leadCur;
-        const poTot = parseFloat(lead.priceOffering.total) || 0;
-        const poRef = lead.priceOffering.refNo ? ` · ${lead.priceOffering.refNo}` : '';
         if (quoteExports.length > 0) {
           const matchesLatest = getPoContentFingerprint(lead.priceOffering) === getPoContentFingerprint(quoteExports[0].data);
           quoteStatus.textContent = matchesLatest
-            ? `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Matches last export`
-            : `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Edited since last export`;
+            ? 'Draft matches last export'
+            : 'Edited since last export';
         } else {
-          quoteStatus.textContent = `Editable Doc (${formatMoney(poTot, poCur)}${poRef})`;
+          quoteStatus.textContent = '';
         }
         quoteActions.innerHTML = `
-          <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(lead.id)}">
-            Edit Doc
-          </button>
           <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" title="Attach external quote file">
             + Attach
           </button>
         `;
       } else {
         const savedCount = quoteExports.length + quoteAttachments.length;
-        quoteStatus.textContent = savedCount > 0
-          ? `${savedCount} saved ${savedCount === 1 ? 'file' : 'files'} below`
-          : 'Not created';
+        quoteStatus.textContent = savedCount > 0 ? '' : 'Not created';
         quoteActions.innerHTML = `
           <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(lead.id)}">
             + Generate Doc
@@ -24699,12 +24691,12 @@ function initSortableWidgets() {
           const poRef = lead.priceOffering.refNo || lead.priceOffering.docTitle || 'Price Quote';
           const dateLabel = formatFollowupDocTimestamp(lead.priceOffering.updatedAt || lead.createdAt);
           draftRowHtml = `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Generator Doc</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
-                  <div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable document')}</div>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -24729,12 +24721,12 @@ function initSortableWidgets() {
           const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
           const refText = exp.refNo || exp.docTitle || 'Price Quote';
           return `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
-                  <div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</div>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -24753,18 +24745,19 @@ function initSortableWidgets() {
         }).join('');
 
         const attRowsHtml = quoteAttachments.map(att => {
-          const dateLabel = formatFollowupDocTimestamp(att.attachedAt);
+          const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
+          const fileLabel = att.fileName || 'proposal.pdf';
           return `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(att.fileName || 'proposal.pdf')}</div>
-                  ${dateLabel ? `<div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</div>` : ''}
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
+                  ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" data-att-key="${escapeHtml(att.attKey || `${lead.id}_quote`)}" data-file-name="${escapeHtml(att.fileName || 'proposal.pdf')}">
+                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" data-att-key="${escapeHtml(att.attKey || `${lead.id}_quote`)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(lead.id)}" data-type="quote" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached document">
@@ -24781,24 +24774,47 @@ function initSortableWidgets() {
 
     const briefStatus = document.getElementById('leadDetailBriefStatusText');
     const briefActions = document.getElementById('leadDetailBriefActions');
+    const briefSavedList = document.getElementById('leadDetailBriefSavedList');
     if (briefStatus && briefActions) {
-      if (lead.hasBriefDoc) {
-        briefStatus.textContent = lead.briefDocName || 'brief.pdf';
-        briefActions.innerHTML = `
-          <button type="button" class="view-lead-brief-btn px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" data-att-key="${escapeHtml(lead.briefAttKey || `${lead.id}_brief`)}" data-file-name="${escapeHtml(lead.briefDocName || 'brief.pdf')}">
-            View
-          </button>
-          <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" data-id="${escapeHtml(lead.id)}" data-type="brief" title="Remove document">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      } else {
-        briefStatus.textContent = 'Not attached';
-        briefActions.innerHTML = `
-          <button type="button" class="direct-attach-lead-brief-btn px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-medium cursor-pointer" data-id="${escapeHtml(lead.id)}">
-            + Attach
-          </button>
-        `;
+      const briefAttachments = getProjectBriefAttachmentsList(lead);
+      briefStatus.textContent = briefAttachments.length > 0 ? '' : 'Not attached';
+      briefActions.innerHTML = `
+        <button type="button" class="direct-attach-lead-brief-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}">
+          + Attach
+        </button>
+      `;
+      if (briefSavedList) {
+        if (briefAttachments.length > 0) {
+          briefSavedList.innerHTML = briefAttachments.map(att => {
+            const dateVal = att.attachedAt || att.uploadedAt;
+            const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
+            const attKeyVal = att.attKey || att.attachmentKey || lead.briefAttKey || `${lead.id}_brief`;
+            const fileLabel = att.fileName || 'brief.pdf';
+            return `
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
+                  <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
+                    <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" class="view-lead-brief-btn px-1.5 py-0.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(lead.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
+                    View
+                  </button>
+                  <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(lead.id)}" data-type="brief" data-att-id="${escapeHtml(att.id || '')}" title="Remove document">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+          briefSavedList.classList.remove('hidden');
+        } else {
+          briefSavedList.innerHTML = '';
+          briefSavedList.classList.add('hidden');
+        }
       }
     }
 
