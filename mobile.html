@@ -27,9 +27,10 @@
       </div>
       <div class="top-bar-right">
         <button type="button" id="currencyBtn" class="pill-btn mono" aria-label="Switch display currency">EUR</button>
-        <button type="button" id="syncBtn" class="sync-pill" aria-label="Sync with vault">
-          <span id="syncDot" class="sync-dot"></span>
-          <span id="syncLabel">Synced</span>
+        <button type="button" id="mobileCustomBtn" class="palette-btn" aria-label="Customize mobile app">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
         </button>
       </div>
     </header>
@@ -372,6 +373,19 @@
       <input type="color" id="newNoteLabelColor" class="new-label-color" value="#3b82f6" aria-label="Category color">
       <button type="submit" class="btn-secondary">Add</button>
     </form>
+  </dialog>
+
+  <!-- 8. Mobile-Only Customization Dialog -->
+  <dialog id="mobileCustomDialog" class="sheet-dialog" closedby="any" tabindex="-1" aria-labelledby="mobileCustomTitle">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <div>
+        <h2 id="mobileCustomTitle" class="sheet-title">Mobile Look</h2>
+        <p class="sheet-sub">Saved on this phone only · won't affect web</p>
+      </div>
+      <button type="button" class="close-btn" data-close-dialog="mobileCustomDialog" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div id="mobileCustomBody" class="custom-sheet-body"></div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

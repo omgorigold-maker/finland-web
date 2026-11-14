@@ -58,6 +58,96 @@
     try { return JSON.parse(raw); } catch { return fallback; }
   }
 
+  const MOBILE_PREFS_KEY = 'finland_mobile_prefs_v1';
+  const MOBILE_NAV_COLORS = ['#0f172a', '#16a34a', '#0284c7', '#4f46e5', '#d97706', '#e11d48'];
+  const DEFAULT_MOBILE_PREFS = {
+    navColor: '#0f172a',
+    navLabels: true,
+    dockStyle: 'frosted',
+    weekStart: 'sunday',
+    startTab: 'followups',
+    density: 'comfortable',
+    tabIcons: {
+      followups: 'check',
+      calendar: 'calendar',
+      notes: 'file',
+      money: 'dollar'
+    }
+  };
+
+  const MOBILE_TAB_ICONS = {
+    followups: {
+      check: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+      briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+      layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+      target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+      zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'
+    },
+    calendar: {
+      calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      grid: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+      compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>'
+    },
+    notes: {
+      file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+      pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+      bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+      sticky: '<path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/>',
+      list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'
+    },
+    money: {
+      dollar: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+      wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+      card: '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+      trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+      pie: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>'
+    }
+  };
+
+  function loadMobilePrefs() {
+    try {
+      const raw = localStorage.getItem(MOBILE_PREFS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, parsed, {
+        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons, (parsed && parsed.tabIcons) || {})
+      });
+    } catch {
+      state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, {
+        tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons)
+      });
+    }
+  }
+
+  function saveMobilePrefs() {
+    try {
+      localStorage.setItem(MOBILE_PREFS_KEY, JSON.stringify(state.mobilePrefs));
+    } catch {}
+  }
+
+  function applyMobilePrefs() {
+    const mp = state.mobilePrefs || DEFAULT_MOBILE_PREFS;
+    if (document.documentElement && document.documentElement.style) {
+      document.documentElement.style.setProperty('--nav-accent', mp.navColor || '#0f172a');
+    }
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) {
+      nav.classList.toggle('nav-icons-only', mp.navLabels === false);
+      nav.classList.toggle('dock-solid', mp.dockStyle === 'solid');
+      nav.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+        const tab = btn.getAttribute('data-tab');
+        const svg = btn.querySelector('svg');
+        const iconKey = (mp.tabIcons && mp.tabIcons[tab]) || DEFAULT_MOBILE_PREFS.tabIcons[tab];
+        const markup = MOBILE_TAB_ICONS[tab] && MOBILE_TAB_ICONS[tab][iconKey];
+        if (svg && markup) svg.innerHTML = markup;
+      });
+    }
+    if (document.body) {
+      document.body.classList.toggle('density-compact', mp.density === 'compact');
+    }
+  }
+
   function uid(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   }
@@ -116,8 +206,8 @@
   function setSyncStatus(status, label) {
     const dot = document.getElementById('syncDot');
     const lbl = document.getElementById('syncLabel');
-    dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
-    lbl.textContent = label;
+    if (dot) dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
+    if (lbl) lbl.textContent = label;
   }
 
   // ---------- Dialog Helpers & Safari closedby Fallback ----------
@@ -995,7 +1085,7 @@
     const headerIconColor = prefs.calendarHeaderIconColor || '#9333ea';
     const adjacentDays = prefs.calendarAdjacentDays || 'faded';
     const summaryMode = prefs.calendarSummaryMode || 'count';
-    const weekStart = prefs.calendarWeekStart || 'sunday';
+    const weekStart = (state.mobilePrefs && state.mobilePrefs.weekStart) || prefs.calendarWeekStart || 'sunday';
     const dotColor = prefs.calendarDotColor || '#9333ea';
 
     document.getElementById('calMonthLabel').textContent = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -1784,6 +1874,145 @@
   }
 
   // ---------- Event Wiring ----------
+  function openMobileCustomDialog() {
+    renderMobileCustomSheet();
+    openDialog('mobileCustomDialog');
+  }
+
+  function renderMobileCustomSheet() {
+    const body = document.getElementById('mobileCustomBody');
+    if (!body) return;
+    const mp = state.mobilePrefs || DEFAULT_MOBILE_PREFS;
+
+    const makeSeg = (opts, current, onPick, cols4) => {
+      return el('div', { className: `custom-seg${cols4 ? ' cols-4' : ''}` }, opts.map(o =>
+        el('button', {
+          type: 'button',
+          className: `custom-seg-btn${current === o.val ? ' active' : ''}`,
+          textContent: o.label,
+          onClick: () => {
+            onPick(o.val);
+            saveMobilePrefs();
+            applyMobilePrefs();
+            renderCalendar();
+            renderMobileCustomSheet();
+          }
+        })
+      ));
+    };
+
+    const swatches = el('div', { className: 'custom-swatches' }, MOBILE_NAV_COLORS.map(hex =>
+      el('button', {
+        type: 'button',
+        className: `swatch-btn${(mp.navColor || '').toLowerCase() === hex ? ' active' : ''}`,
+        style: `background:${hex}`,
+        'aria-label': `Set dock color ${hex}`,
+        onClick: () => {
+          mp.navColor = hex;
+          saveMobilePrefs();
+          applyMobilePrefs();
+          renderMobileCustomSheet();
+        }
+      })
+    ));
+
+    const tabNames = [
+      { key: 'followups', label: 'Follow-Ups' },
+      { key: 'calendar', label: 'Calendar' },
+      { key: 'notes', label: 'Notes' },
+      { key: 'money', label: 'Money' }
+    ];
+
+    const iconRows = el('div', { className: 'icon-picker-rows' }, tabNames.map(t => {
+      const icons = MOBILE_TAB_ICONS[t.key] || {};
+      const currentIcon = (mp.tabIcons && mp.tabIcons[t.key]) || DEFAULT_MOBILE_PREFS.tabIcons[t.key];
+      return el('div', { className: 'icon-picker-row' }, [
+        el('span', { className: 'icon-picker-name', textContent: t.label }),
+        el('div', { className: 'icon-picker-opts' }, Object.keys(icons).map(iconKey => {
+          const btn = el('button', {
+            type: 'button',
+            className: `icon-opt-btn${currentIcon === iconKey ? ' active' : ''}`,
+            'aria-label': `${t.label} ${iconKey} icon`,
+            onClick: () => {
+              if (!mp.tabIcons) mp.tabIcons = {};
+              mp.tabIcons[t.key] = iconKey;
+              saveMobilePrefs();
+              applyMobilePrefs();
+              renderMobileCustomSheet();
+            }
+          });
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[iconKey]}</svg>`;
+          return btn;
+        }))
+      ]);
+    }));
+
+    const resetBtn = el('button', {
+      type: 'button',
+      className: 'btn-secondary',
+      textContent: 'Reset to Default',
+      onClick: () => {
+        state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, {
+          tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons)
+        });
+        saveMobilePrefs();
+        applyMobilePrefs();
+        renderCalendar();
+        renderMobileCustomSheet();
+        showToast('Mobile look reset');
+      }
+    });
+
+    body.replaceChildren(
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Bottom Bar Color' }),
+        swatches
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Bottom Bar Labels' }),
+        makeSeg([
+          { val: true, label: 'Icons + Labels' },
+          { val: false, label: 'Icons Only' }
+        ], mp.navLabels !== false, (v) => { mp.navLabels = v; })
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Dock Style' }),
+        makeSeg([
+          { val: 'frosted', label: 'Frosted' },
+          { val: 'solid', label: 'Solid' }
+        ], mp.dockStyle || 'frosted', (v) => { mp.dockStyle = v; })
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Tab Icons' }),
+        iconRows
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Calendar Week Start' }),
+        makeSeg([
+          { val: 'sunday', label: 'Sunday' },
+          { val: 'monday', label: 'Monday' }
+        ], mp.weekStart || 'sunday', (v) => { mp.weekStart = v; })
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Starting Tab' }),
+        makeSeg([
+          { val: 'followups', label: 'Follow' },
+          { val: 'calendar', label: 'Calendar' },
+          { val: 'notes', label: 'Notes' },
+          { val: 'money', label: 'Money' }
+        ], mp.startTab || 'followups', (v) => { mp.startTab = v; }, true)
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Card Density' }),
+        makeSeg([
+          { val: 'comfortable', label: 'Comfortable' },
+          { val: 'compact', label: 'Compact' }
+        ], mp.density || 'comfortable', (v) => { mp.density = v; })
+      ]),
+      resetBtn
+    );
+  }
+
   function bindEvents() {
     setupDialogFallbacks();
 
@@ -1811,7 +2040,10 @@
       renderAll();
     });
 
-    document.getElementById('syncBtn').addEventListener('click', () => pullVault(false));
+    const syncBtn = document.getElementById('syncBtn');
+    if (syncBtn) syncBtn.addEventListener('click', () => pullVault(false));
+    const customBtn = document.getElementById('mobileCustomBtn');
+    if (customBtn) customBtn.addEventListener('click', openMobileCustomDialog);
 
     // Calendar controls
     document.getElementById('calPrevBtn').addEventListener('click', () => {
@@ -2195,7 +2427,12 @@
 
   // ---------- Init ----------
   async function init() {
+    loadMobilePrefs();
     loadFromLocalStorage();
+    if (state.mobilePrefs && state.mobilePrefs.startTab) {
+      setActiveTab(state.mobilePrefs.startTab);
+    }
+    applyMobilePrefs();
     bindEvents();
     renderAll();
     const ok = await ensureAuth();

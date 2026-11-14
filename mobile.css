@@ -232,6 +232,27 @@ button {
 .sync-dot.syncing { background: #f59e0b; }
 .sync-dot.error { background: var(--danger); }
 
+.palette-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.palette-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
@@ -1161,21 +1182,41 @@ button {
 }
 
 .nav-btn.active {
-  background: var(--pill-active);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--nav-accent, #0f172a) 9%, transparent);
+  color: var(--nav-accent, var(--ink));
   font-weight: 700;
 }
 
 .nav-btn.active svg {
-  stroke: var(--ink);
+  stroke: var(--nav-accent, var(--ink));
   stroke-width: 2.15;
+}
+
+.bottom-nav.dock-solid {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.bottom-nav.nav-icons-only .nav-btn {
+  min-height: 44px;
+  justify-content: center;
+}
+
+.bottom-nav.nav-icons-only .nav-btn span {
+  display: none;
+}
+
+.bottom-nav.nav-icons-only .nav-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .fab-btn {
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--nav-accent, var(--ink));
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -1625,6 +1666,146 @@ dialog::backdrop {
   font-size: 13px;
   font-weight: 600;
   color: var(--danger);
+}
+
+/* Compact Density Mode */
+body.density-compact .card-stack {
+  gap: 7px;
+}
+
+body.density-compact .card {
+  padding: 10px 12px;
+  border-radius: 13px;
+}
+
+body.density-compact .card-sub {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+body.density-compact .card-meta {
+  margin-top: 6px;
+  font-size: 10.5px;
+}
+
+body.density-compact .agenda-item,
+body.density-compact .tx-row {
+  padding: 9px 11px;
+  border-radius: 12px;
+}
+
+/* Mobile Customization Sheet */
+.sheet-sub {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.custom-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.custom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.custom-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.custom-swatches {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-seg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  background: rgba(15, 23, 42, 0.045);
+  border-radius: 12px;
+}
+
+.custom-seg.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.custom-seg-btn {
+  min-height: 34px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  padding: 0 6px;
+}
+
+.custom-seg-btn.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-xs);
+}
+
+.icon-picker-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.icon-picker-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.icon-picker-opts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-opt-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+}
+
+.icon-opt-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-opt-btn.active {
+  border-color: var(--nav-accent, var(--ink));
+  color: var(--nav-accent, var(--ink));
+  background: color-mix(in srgb, var(--nav-accent, #0f172a) 10%, #ffffff);
 }
 
 /* Toast */
