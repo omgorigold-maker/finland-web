@@ -145,6 +145,23 @@
     window.print = function() {
       blockShowcaseExport('Printing & PDF export');
     };
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      const isProtectedShowcasePreview = (target) => {
+        if (!target || typeof target.closest !== 'function') return false;
+        return !!target.closest('#viewReceiptModal img, #quickViewContent img, #docViewerModal img, #slideViewModal img, #docScanViewerImg, .doc-scan-pdf-page-img, #viewReceiptModal iframe, #quickViewContent embed, #docViewerModal iframe');
+      };
+      document.addEventListener('contextmenu', (e) => {
+        if (isProtectedShowcasePreview(e.target)) {
+          e.preventDefault();
+          blockShowcaseExport('Saving previewed files');
+        }
+      });
+      document.addEventListener('dragstart', (e) => {
+        if (isProtectedShowcasePreview(e.target)) {
+          e.preventDefault();
+        }
+      });
+    }
   }
 
   const DEFAULT_NAV_CONFIG = {
@@ -2557,9 +2574,10 @@ Return a JSON object with this EXACT schema:
       }
     } else if (attachment.type === 'pdf') {
       const pdfBlobUrl = typeof dataUrlToBlobUrl === 'function' ? dataUrlToBlobUrl(attachment.data, 'application/pdf') : attachment.data;
+      const viewerPdfUrl = isDemoMode() && pdfBlobUrl ? `${pdfBlobUrl}#toolbar=0&navpanes=0` : pdfBlobUrl;
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
-          <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
+          <iframe src="${viewerPdfUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
           <div class="flex items-center gap-2 pt-1">
             <a href="${isDemoMode() ? '#' : pdfBlobUrl}" ${isDemoMode() ? '' : 'target="_blank" rel="noopener"'} class="receipt-open-tab-link text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
@@ -2668,9 +2686,10 @@ ${escapeHtml(attachment.data)}
       }
     } else if (type === 'pdf') {
       const pdfBlobUrl = typeof dataUrlToBlobUrl === 'function' ? dataUrlToBlobUrl(data, 'application/pdf') : data;
+      const viewerPdfUrl = isDemoMode() && pdfBlobUrl ? `${pdfBlobUrl}#toolbar=0&navpanes=0` : pdfBlobUrl;
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
-          <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
+          <iframe src="${viewerPdfUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
           <div class="flex items-center gap-2 pt-1">
             <a href="${isDemoMode() ? '#' : pdfBlobUrl}" ${isDemoMode() ? '' : 'target="_blank" rel="noopener"'} class="receipt-open-tab-link text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
@@ -21420,9 +21439,10 @@ function initSortableWidgets() {
           `;
         } else if (isPdf) {
           if (iconBox) iconBox.innerHTML = '<i data-lucide="file-text" class="w-5 h-5 text-rose-600"></i>';
+          const viewerPdfUrl = isDemoMode() && previewUrl ? `${previewUrl}#toolbar=0&navpanes=0` : previewUrl;
           contentEl.innerHTML = `
             <div class="w-full h-[70vh] rounded-2xl overflow-hidden border border-slate-200 bg-white">
-              <embed src="${previewUrl}" type="application/pdf" class="w-full h-full" />
+              <embed src="${viewerPdfUrl}" type="application/pdf" class="w-full h-full" />
             </div>
           `;
         } else {
@@ -39235,6 +39255,7 @@ ${sectionsText}
 
     // Global print listeners for Cmd+P or File > Print
     window.addEventListener('beforeprint', () => {
+      if (isDemoMode()) return;
       const poPage = document.getElementById('priceOfferingDocPage');
       if (poPage && !poPage.classList.contains('hidden')) {
         if (!poTitleBeforePrint) poTitleBeforePrint = document.title;
@@ -43550,8 +43571,9 @@ ${sectionsText}
         const rawPdfUrl = `/api/attachments/${encodeURIComponent('doc_vault_' + doc.id)}/raw`;
         activeViewerBlobUrl = dataUrlToBlobUrl(att.data, 'application/pdf');
         const iframeSrc = (activeViewerBlobUrl && activeViewerBlobUrl.startsWith('blob:')) ? activeViewerBlobUrl : rawPdfUrl;
+        const viewerPdfUrl = isDemoMode() && iframeSrc ? `${iframeSrc}#toolbar=0&navpanes=0` : iframeSrc;
         stageEl.innerHTML = `
-          <iframe src="${iframeSrc}" class="w-full h-[72vh] rounded-xl border border-stone-200 bg-white shadow-md"></iframe>
+          <iframe src="${viewerPdfUrl}" class="w-full h-[72vh] rounded-xl border border-stone-200 bg-white shadow-md"></iframe>
         `;
       }
     } else {
@@ -47030,6 +47052,7 @@ ${sectionsText}
     });
 
     document.getElementById('calPlanSaveGcalTokenBtn')?.addEventListener('click', () => {
+      if (blockShowcaseExport('Google Calendar sync')) return;
       const input = document.getElementById('calPlanGcalTokenInput');
       const val = input ? input.value.trim() : '';
       if (!state.calendarPlan) loadCalendarPlanData();
@@ -47042,7 +47065,17 @@ ${sectionsText}
       showToast('Google Token Saved', val ? 'Direct Google Calendar API push & pull active.' : 'Direct API token cleared.', 'success');
     });
 
+    document.getElementById('calPlanImportIcsInput')?.addEventListener('click', (e) => {
+      if (blockShowcaseExport('Calendar import')) {
+        e.preventDefault();
+      }
+    });
+
     document.getElementById('calPlanImportIcsInput')?.addEventListener('change', (e) => {
+      if (blockShowcaseExport('Calendar import')) {
+        e.target.value = '';
+        return;
+      }
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
