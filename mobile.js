@@ -2430,7 +2430,7 @@
     loadMobilePrefs();
     loadFromLocalStorage();
     if (state.mobilePrefs && state.mobilePrefs.startTab) {
-      setActiveTab(state.mobilePrefs.startTab);
+      setTab(state.mobilePrefs.startTab);
     }
     applyMobilePrefs();
     bindEvents();
