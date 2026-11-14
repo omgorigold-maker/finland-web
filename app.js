@@ -25856,7 +25856,6 @@ function initSortableWidgets() {
       { id: 'sec_header', type: 'header', title: 'Document Header' },
       { id: 'sec_overview', type: 'overview', title: 'Client & Project Details' },
       { id: 'sec_div_overview', type: 'divider', title: 'Divider Line', content: '' },
-      { id: 'sec_scope_quote', type: 'scope', title: 'SUMMARY', pageBreakBefore: false, content: '' },
       { id: 'sec_deliverables', type: 'deliverables', title: 'DELIVERABLES', pageBreakBefore: false },
       {
         id: 'sec_timeline_quote',
