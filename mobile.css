@@ -389,12 +389,33 @@ button:active:not(:disabled) {
   border-radius: 16px;
 }
 
-/* Calendar */
+/* Pull to Refresh */
+.ptr-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px auto 10px;
+  padding: 6px 14px;
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.ptr-indicator[hidden] {
+  display: none;
+}
+
+/* Calendar — Matches Desktop Sidebar Mini-Calendar */
 .cal-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 14px;
+  padding: 13px 14px;
   margin-bottom: 18px;
   box-shadow: var(--shadow-sm);
 }
@@ -403,13 +424,60 @@ button:active:not(:disabled) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--border);
 }
 
-.cal-month-wrap {
+.cal-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cal-header-icon {
+  width: 15px;
+  height: 15px;
+  color: #9333ea;
+  flex-shrink: 0;
+}
+
+.cal-nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 9px;
+  margin-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.cal-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-legend-sq {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  flex-shrink: 0;
+}
+
+.cal-sub-count {
+  font-weight: 700;
+  color: #7e22ce;
 }
 
 .cal-month-label {
@@ -725,9 +793,144 @@ button:active:not(:disabled) {
   flex-shrink: 0;
 }
 
-/* Notes */
-.search-wrap {
+/* Notes Toolbar & Color Customization */
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
+}
+
+.notes-toolbar .search-input {
+  flex: 1;
+}
+
+.customize-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.customize-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.label-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.note-card-colored {
+  border-left-width: 3.5px;
+  border-left-style: solid;
+}
+
+.labels-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 46dvh;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.label-mgr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.label-mgr-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-mgr-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.swatch-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  padding: 0;
+}
+
+.swatch-btn.active {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px #ffffff inset;
+}
+
+.new-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-label-input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.new-label-color {
+  width: 42px;
+  height: 42px;
+  padding: 3px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
 }
 
 .search-input {

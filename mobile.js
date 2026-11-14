@@ -320,6 +320,17 @@
       return list;
     }
 
+    if (key === KEYS.NOTE_LABELS) {
+      const list = Array.isArray(currentVal) ? [...currentVal] : [];
+      if (op.type === 'upsert_label' && op.label && op.label.name) {
+        const target = op.label.name.trim().toLowerCase();
+        const idx = list.findIndex(l => l && String(l.name || '').trim().toLowerCase() === target);
+        if (idx !== -1) list[idx] = Object.assign({}, list[idx], op.label);
+        else list.push(op.label);
+      }
+      return list;
+    }
+
     if (key === KEYS.CALENDAR_PLAN) {
       const cp = (currentVal && typeof currentVal === 'object') ? Object.assign({}, currentVal) : {};
       const items = Array.isArray(cp.items) ? [...cp.items] : [];
@@ -931,14 +942,26 @@
   // ---------- Rendering: Calendar ----------
   function getMiniCalSourceConfig(srcKey) {
     const defaults = {
-      my_plan: { showOnMiniCal: true, miniStyle: 'framed', color: '#16a34a', miniCalScope: 'week' },
-      meetings: { showOnMiniCal: true, miniStyle: 'side-pill', color: '#0ea5e9' },
-      projects: { showOnMiniCal: false, miniStyle: 'bold-number', color: '#0284c7', paymentShowOnMiniCal: false, paymentMiniStyle: 'bottom-arc', paymentColor: '#0284c7' },
-      leads: { showOnMiniCal: false, miniStyle: 'underline', color: '#d97706' },
+      my_plan: { showOnMiniCal: true, miniStyle: 'dashed', color: '#0d9488', miniCalScope: 'week' },
+      meetings: { showOnMiniCal: true, miniStyle: 'side-pill', color: '#2563eb' },
+      projects: { showOnMiniCal: true, miniStyle: 'bold-number', color: '#0284c7', paymentShowOnMiniCal: true, paymentMiniStyle: 'bottom-arc', paymentColor: '#0284c7', sharePaymentColor: true },
+      leads: { showOnMiniCal: true, miniStyle: 'star', color: '#d97706' },
       bills: { showOnMiniCal: true, miniStyle: 'highlight', color: '#9333ea' }
     };
     const cfg = state.calendarPlan && state.calendarPlan.sources && state.calendarPlan.sources[srcKey];
     return Object.assign({}, defaults[srcKey] || {}, cfg || {});
+  }
+
+  function createMiniSvg(paths, viewBox, styleStr) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', viewBox);
+    svg.setAttribute('style', styleStr);
+    paths.forEach(([tag, attrs]) => {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+      svg.appendChild(node);
+    });
+    return svg;
   }
 
   function renderCalendar() {
@@ -951,11 +974,15 @@
     const billingStyle = prefs.calendarBillingStyle || 'badge';
     const todayStyle = prefs.calendarTodayStyle || 'ring';
     const todayColor = prefs.calendarTodayColor || '#f97315';
+    const headerIconColor = prefs.calendarHeaderIconColor || '#9333ea';
     const adjacentDays = prefs.calendarAdjacentDays || 'faded';
+    const summaryMode = prefs.calendarSummaryMode || 'count';
     const weekStart = prefs.calendarWeekStart || 'sunday';
     const dotColor = prefs.calendarDotColor || '#9333ea';
 
     document.getElementById('calMonthLabel').textContent = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const headerIcon = document.getElementById('calHeaderIcon');
+    if (headerIcon) headerIcon.style.color = headerIconColor;
 
     const weekHeadersEl = document.getElementById('calWeekHeaders');
     if (weekHeadersEl) {
@@ -967,6 +994,8 @@
 
     // 1. Map active bills & notes by day (matching desktop mini-calendar)
     const billsByDay = {};
+    let totalSubsThisMonth = 0;
+    let totalSubsAmount = 0;
     (state.subscriptions || []).forEach(sub => {
       if (!sub || sub.isFrozen) return;
       const nameLower = (sub.name || '').toLowerCase();
@@ -979,6 +1008,8 @@
         }
         if (!billsByDay[bDay]) billsByDay[bDay] = [];
         billsByDay[bDay].push(sub);
+        totalSubsThisMonth++;
+        totalSubsAmount += convertCurrency(sub.amount, sub.currency, state.displayCurrency);
       }
     });
 
@@ -1002,10 +1033,36 @@
     const billMiniMode = billsMiniCfg.miniStyle || 'highlight';
     const activeBillColor = billsMiniCfg.color || dotColor || '#9333ea';
 
+    const legendSq = document.getElementById('calLegendSquare');
+    if (legendSq) {
+      legendSq.style.backgroundColor = `${activeBillColor}18`;
+      legendSq.style.borderColor = `${activeBillColor}38`;
+    }
+    const subCountEl = document.getElementById('calSubCount');
+    if (subCountEl) {
+      subCountEl.style.color = activeBillColor;
+      if (summaryMode === 'hidden') subCountEl.textContent = '';
+      else if (summaryMode === 'amount') subCountEl.textContent = formatMoney(totalSubsAmount, state.displayCurrency);
+      else subCountEl.textContent = `${totalSubsThisMonth} bill${totalSubsThisMonth === 1 ? '' : 's'}`;
+    }
+
     const myPlanCfg = getMiniCalSourceConfig('my_plan');
     const meetingsCfg = getMiniCalSourceConfig('meetings');
     const projCfg = getMiniCalSourceConfig('projects');
     const leadCfg = getMiniCalSourceConfig('leads');
+
+    // Week boundary for my_plan miniCalScope === 'week'
+    let weekStartYmd = '';
+    let weekEndYmd = '';
+    if (myPlanCfg.showOnMiniCal !== false && (myPlanCfg.miniCalScope || 'week') === 'week') {
+      const now = new Date();
+      const refD = (now.getFullYear() === year && now.getMonth() === month) ? now : new Date(year, month, 1);
+      const dayOfWeek = weekStart === 'monday' ? (refD.getDay() + 6) % 7 : refD.getDay();
+      const ws = new Date(refD.getFullYear(), refD.getMonth(), refD.getDate() - dayOfWeek);
+      const we = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 6);
+      weekStartYmd = toYMD(ws);
+      weekEndYmd = toYMD(we);
+    }
 
     const dayNodes = [];
 
@@ -1048,21 +1105,23 @@
           const isMtg = e.badge === 'Meeting';
           const cfg = isMtg ? meetingsCfg : myPlanCfg;
           if (cfg.showOnMiniCal !== false) {
-            extraDayItems.push({ miniStyle: cfg.miniStyle || (isMtg ? 'side-pill' : 'framed'), color: e.color || cfg.color });
+            if (!isMtg && weekStartYmd && (ymd < weekStartYmd || ymd > weekEndYmd)) return;
+            extraDayItems.push({ miniStyle: cfg.miniStyle || (isMtg ? 'side-pill' : 'dashed'), color: e.color || cfg.color });
           }
         } else if (e.kind === 'project') {
           const isPay = e.badge === 'Payment Due';
-          const show = isPay ? (projCfg.paymentShowOnMiniCal !== false && !!projCfg.showOnMiniCal) : !!projCfg.showOnMiniCal;
+          const show = isPay ? (projCfg.paymentShowOnMiniCal !== false && projCfg.showOnMiniCal !== false) : (projCfg.showOnMiniCal !== false);
           if (show) {
+            const payClr = projCfg.sharePaymentColor === false ? (projCfg.paymentColor || projCfg.color) : projCfg.color;
             extraDayItems.push({
               miniStyle: isPay ? (projCfg.paymentMiniStyle || 'bottom-arc') : (projCfg.miniStyle || 'bold-number'),
-              color: isPay ? (projCfg.paymentColor || projCfg.color) : projCfg.color
+              color: isPay ? payClr : projCfg.color
             });
           }
-        } else if (e.kind === 'project_step' && projCfg.showOnMiniCal) {
+        } else if (e.kind === 'project_step' && projCfg.showOnMiniCal !== false) {
           extraDayItems.push({ miniStyle: projCfg.miniStyle || 'bold-number', color: projCfg.color });
-        } else if ((e.kind === 'lead' || e.kind === 'lead_step') && leadCfg.showOnMiniCal) {
-          extraDayItems.push({ miniStyle: leadCfg.miniStyle || 'underline', color: leadCfg.color });
+        } else if ((e.kind === 'lead' || e.kind === 'lead_step') && leadCfg.showOnMiniCal !== false) {
+          extraDayItems.push({ miniStyle: leadCfg.miniStyle || 'star', color: leadCfg.color });
         }
       });
 
@@ -1156,9 +1215,20 @@
             el('span', { style: `position:absolute;top:0;left:0;width:6px;height:6px;border-top:1.5px solid ${mColor};border-left:1.5px solid ${mColor};border-top-left-radius:3px` }),
             el('span', { style: `position:absolute;bottom:0;right:0;width:6px;height:6px;border-bottom:1.5px solid ${mColor};border-right:1.5px solid ${mColor};border-bottom-right-radius:3px` })
           ]));
+        } else if (mStyle === 'star' || mStyle === 'triangle') {
+          hasTopRight = true;
+          children.push(createMiniSvg([
+            ['path', { d: 'M164.9 24.6c-7.7-18.6-28-28.5-47.4-23.2l-88 24C12.1 30.2 0 46 0 64C0 311.4 200.6 512 448 512c18 0 33.8-12.1 38.6-29.5l24-88c5.3-19.4-4.6-39.7-23.2-47.4l-96-40c-16.3-6.8-35.2-2.1-46.3 11.6L304.7 368C234.3 334.7 177.3 277.7 144 207.3L193.3 167c13.7-11.2 18.4-30 11.6-46.3l-40-96z', fill: mColor }]
+          ], '0 0 512 512', 'position:absolute;top:2px;right:2px;width:7px;height:7px;display:block;pointer-events:none;z-index:2'));
+        } else if (mStyle === 'bottom-arc' || mStyle === 'star-bg') {
+          children.push(createMiniSvg([
+            ['polygon', { points: '12,1.5 15.3,7.9 22.3,9 17.2,14.1 18.4,21.2 12,17.8 5.6,21.2 6.8,14.1 1.7,9 8.7,7.9', fill: mColor }]
+          ], '0 0 24 24', 'position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);width:105%;height:105%;pointer-events:none;z-index:0;opacity:0.55'));
         } else if (mStyle === 'side-pill' || mStyle === 'fold') {
-          children.push(el('span', { style: `position:absolute;top:0;left:0;width:0;height:0;border-style:solid;border-width:8px 8px 0 0;border-color:${mColor} transparent transparent transparent;border-top-left-radius:8px;pointer-events:none;z-index:2` }));
-        } else if (mStyle === 'corner-pip' || mStyle === 'star' || mStyle === 'triangle') {
+          children.push(createMiniSvg([
+            ['polygon', { points: '0,0 8,0 0,8', fill: mColor }]
+          ], '0 0 8 8', 'position:absolute;top:0;left:0;width:9px;height:9px;display:block;pointer-events:none;z-index:2'));
+        } else if (mStyle === 'corner-pip') {
           const pos = hasTopRight ? 'top:3px;left:3px;' : 'top:3px;right:3px;';
           hasTopRight = true;
           children.push(el('span', { style: `position:absolute;${pos}width:5px;height:5px;border-radius:9999px;background-color:${mColor};box-shadow:0 0 0 1px #ffffff;pointer-events:none;z-index:2` }));
@@ -1300,28 +1370,53 @@
   }
 
   // ---------- Rendering: Notes ----------
+  const NOTE_SWATCHES = ['#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#16a34a', '#64748b'];
+
+  function getLabelColorByName(name) {
+    return getNoteColor({ label: name });
+  }
+
+  function getAllKnownLabels() {
+    const map = new Map();
+    (state.noteLabels || []).forEach(l => {
+      if (!l || !l.name) return;
+      const clean = String(l.name).trim();
+      if (clean) map.set(clean.toLowerCase(), { name: clean, color: l.color || getLabelColorByName(clean) });
+    });
+    (state.notes || []).forEach(n => {
+      if (!n || !n.label) return;
+      const clean = String(n.label).trim();
+      if (clean && !map.has(clean.toLowerCase())) {
+        map.set(clean.toLowerCase(), { name: clean, color: n.color || getLabelColorByName(clean) });
+      }
+    });
+    return [...map.values()];
+  }
+
   function renderNotes() {
     const notes = Array.isArray(state.notes) ? state.notes : [];
-    const labels = new Set(['ALL']);
-    notes.forEach(n => { if (n && n.label) labels.add(n.label); });
+    const knownLabels = getAllKnownLabels();
+    const labelItems = [{ name: 'ALL', color: '' }, ...knownLabels];
 
     const bar = document.getElementById('notesLabelsBar');
-    bar.replaceChildren(...[...labels].map(lbl =>
+    bar.replaceChildren(...labelItems.map(item =>
       el('button', {
         type: 'button',
-        className: `filter-chip${state.notesLabelFilter === lbl ? ' active' : ''}`,
-        textContent: lbl === 'ALL' ? 'All' : lbl,
+        className: `filter-chip${state.notesLabelFilter === item.name ? ' active' : ''}`,
         onClick: () => {
-          state.notesLabelFilter = lbl;
+          state.notesLabelFilter = item.name;
           renderNotes();
         }
-      })
+      }, [
+        item.name !== 'ALL' ? el('span', { className: 'label-dot', style: `background:${item.color}` }) : null,
+        el('span', { textContent: item.name === 'ALL' ? 'All' : item.name })
+      ])
     ));
 
     const q = state.notesSearch.trim().toLowerCase();
     const filtered = notes.filter(n => {
       if (!n) return false;
-      if (state.notesLabelFilter !== 'ALL' && (n.label || '') !== state.notesLabelFilter) return false;
+      if (state.notesLabelFilter !== 'ALL' && (n.label || '').toLowerCase() !== state.notesLabelFilter.toLowerCase()) return false;
       if (q) {
         const text = `${n.title || ''} ${n.body || ''} ${n.content || ''}`.toLowerCase();
         if (!text.includes(q)) return false;
@@ -1341,14 +1436,20 @@
     const buildNoteCard = (n) => {
       const bodyStr = n.body || (Array.isArray(n.bodyBlocks) ? n.bodyBlocks.filter(Boolean).join(' ') : '') || n.content || '';
       const preview = bodyStr.length > 110 ? bodyStr.slice(0, 110) + '...' : bodyStr;
+      const nColor = getNoteColor(n);
       return el('button', {
         type: 'button',
-        className: 'card',
+        className: 'card note-card-colored',
+        style: `border-left-color:${nColor}`,
         onClick: () => openNoteForm(n)
       }, [
         el('div', { className: 'card-top' }, [
           el('h3', { className: 'card-title', textContent: n.title || 'Untitled Note' }),
-          n.label ? el('span', { className: 'badge', textContent: n.label }) : null
+          n.label ? el('span', {
+            className: 'badge',
+            style: `background:${nColor}18;color:${nColor}`,
+            textContent: n.label
+          }) : null
         ]),
         preview ? el('p', { className: 'card-sub', textContent: preview }) : null,
         n.dueDate ? el('div', { className: 'card-meta' }, [
@@ -1462,9 +1563,63 @@
     document.getElementById('notePinnedInput').checked = isEdit ? !!(existing.isPinned || existing.pinned) : false;
     document.getElementById('noteDeleteBtn').hidden = !isEdit;
 
-    const lbls = [...new Set((state.notes || []).map(n => n && n.label).filter(Boolean))];
-    document.getElementById('noteLabelDatalist').replaceChildren(...lbls.map(l => el('option', { value: l })));
+    const known = getAllKnownLabels();
+    document.getElementById('noteLabelDatalist').replaceChildren(...known.map(l => el('option', { value: l.name })));
+    const picker = document.getElementById('noteLabelPicker');
+    if (picker) {
+      picker.replaceChildren(...known.map(l =>
+        el('button', {
+          type: 'button',
+          className: `filter-chip${(document.getElementById('noteLabelInput').value || '').toLowerCase() === l.name.toLowerCase() ? ' active' : ''}`,
+          onClick: () => {
+            document.getElementById('noteLabelInput').value = l.name;
+            picker.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            // Mark clicked chip active
+            const idx = known.findIndex(k => k.name === l.name);
+            if (picker.children[idx]) picker.children[idx].classList.add('active');
+          }
+        }, [
+          el('span', { className: 'label-dot', style: `background:${l.color}` }),
+          el('span', { textContent: l.name })
+        ])
+      ));
+    }
     openDialog('noteDialog');
+  }
+
+  function renderNoteLabelsManager() {
+    const listEl = document.getElementById('noteLabelsManagerList');
+    if (!listEl) return;
+    const known = getAllKnownLabels();
+    if (!known.length) {
+      listEl.replaceChildren(el('div', { className: 'empty-state', textContent: 'No categories yet. Add one below.' }));
+      return;
+    }
+    const rows = known.map(lbl => {
+      const swatches = NOTE_SWATCHES.map(hex =>
+        el('button', {
+          type: 'button',
+          className: `swatch-btn${lbl.color.toLowerCase() === hex ? ' active' : ''}`,
+          style: `background:${hex}`,
+          'aria-label': `Set ${lbl.name} color`,
+          onClick: async () => {
+            await smartMutateAndPush(KEYS.NOTE_LABELS, { type: 'upsert_label', label: { name: lbl.name, color: hex } });
+            renderNoteLabelsManager();
+            renderNotes();
+          }
+        })
+      );
+      return el('div', { className: 'label-mgr-row' }, [
+        el('div', { className: 'label-mgr-top' }, [
+          el('span', { className: 'label-mgr-name' }, [
+            el('span', { className: 'label-dot', style: `background:${lbl.color}` }),
+            el('span', { textContent: lbl.name })
+          ])
+        ]),
+        el('div', { className: 'swatch-row' }, swatches)
+      ]);
+    });
+    listEl.replaceChildren(...rows);
   }
 
   // ---------- Tab Navigation & Render ----------
@@ -1727,6 +1882,71 @@
         err.hidden = false;
       }
     });
+
+    // Notes Categories & Colors Customize Sheet
+    const custBtn = document.getElementById('notesCustomizeBtn');
+    if (custBtn) {
+      custBtn.addEventListener('click', () => {
+        renderNoteLabelsManager();
+        openDialog('noteLabelsDialog');
+      });
+    }
+    const newLblForm = document.getElementById('newNoteLabelForm');
+    if (newLblForm) {
+      newLblForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameEl = document.getElementById('newNoteLabelName');
+        const colorEl = document.getElementById('newNoteLabelColor');
+        const name = (nameEl.value || '').trim();
+        if (!name) return;
+        await smartMutateAndPush(KEYS.NOTE_LABELS, { type: 'upsert_label', label: { name, color: colorEl.value || '#3b82f6' } });
+        nameEl.value = '';
+        renderNoteLabelsManager();
+        renderNotes();
+        showToast('Category saved');
+      });
+    }
+
+    // Pull-to-refresh on mainContent
+    const mainEl = document.getElementById('mainContent');
+    const ptrEl = document.getElementById('ptrIndicator');
+    const ptrText = document.getElementById('ptrText');
+    if (mainEl && ptrEl && ptrText) {
+      let startY = 0;
+      let pulling = false;
+      let pullDist = 0;
+      mainEl.addEventListener('touchstart', (e) => {
+        if (mainEl.scrollTop <= 0 && e.touches.length === 1) {
+          startY = e.touches[0].clientY;
+          pulling = true;
+          pullDist = 0;
+        }
+      }, { passive: true });
+      mainEl.addEventListener('touchmove', (e) => {
+        if (!pulling || mainEl.scrollTop > 0) {
+          pulling = false;
+          ptrEl.hidden = true;
+          return;
+        }
+        const dy = e.touches[0].clientY - startY;
+        if (dy > 14) {
+          pullDist = dy;
+          ptrEl.hidden = false;
+          ptrText.textContent = dy >= 68 ? 'Release to refresh' : 'Pull to refresh';
+        }
+      }, { passive: true });
+      mainEl.addEventListener('touchend', async () => {
+        if (!pulling) return;
+        pulling = false;
+        if (pullDist >= 68) {
+          ptrText.textContent = 'Syncing...';
+          await pullVault(false);
+          showToast('Synced');
+        }
+        ptrEl.hidden = true;
+        pullDist = 0;
+      });
+    }
 
     // Gentle background sync on focus / visibility / interval
     window.addEventListener('focus', () => pullVault(true));
