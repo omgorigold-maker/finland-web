@@ -1164,10 +1164,10 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   min-height: 46px;
   min-width: 0;
-  padding: 2px;
+  padding: 0 2px;
   border-radius: 14px;
   background: transparent;
   color: var(--ink-muted);
@@ -1177,14 +1177,11 @@ button {
 }
 
 .nav-btn svg {
-  width: 30px;
-  height: 30px;
-  padding: 5.5px;
-  border-radius: 999px;
+  width: 19px;
+  height: 19px;
   stroke: var(--tab-accent, var(--ink));
   stroke-width: 1.85;
-  background: transparent;
-  transition: background-color 0.16s ease, stroke-width 0.14s ease, transform 0.14s ease;
+  transition: stroke-width 0.14s ease, transform 0.14s ease;
 }
 
 .nav-btn.active {
@@ -1196,7 +1193,6 @@ button {
 .nav-btn.active svg {
   stroke: var(--tab-accent, var(--ink));
   stroke-width: 2.35;
-  background: color-mix(in srgb, var(--tab-accent, #0f172a) 13%, transparent);
 }
 
 .bottom-nav.dock-solid {
@@ -1216,9 +1212,8 @@ button {
 }
 
 .bottom-nav.nav-icons-only .nav-btn svg {
-  width: 36px;
-  height: 36px;
-  padding: 8px;
+  width: 21px;
+  height: 21px;
 }
 
 .fab-btn {
