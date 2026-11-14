@@ -2442,8 +2442,16 @@
   }
 
   // ---------- Init ----------
+  function hideSplash() {
+    const splash = document.getElementById('appSplash');
+    if (splash && !splash.classList.contains('is-hidden')) {
+      splash.classList.add('is-hidden');
+    }
+  }
+
   async function init() {
     loadMobilePrefs();
+    const hasCachedData = !!localStorage.getItem(CACHE_PREFIX + KEYS.BUDGET) || !!localStorage.getItem(CACHE_PREFIX + KEYS.NOTES);
     loadFromLocalStorage();
     if (state.mobilePrefs && state.mobilePrefs.startTab) {
       setTab(state.mobilePrefs.startTab);
@@ -2451,8 +2459,14 @@
     applyMobilePrefs();
     bindEvents();
     renderAll();
+    if (hasCachedData) {
+      setTimeout(hideSplash, 120);
+    }
+    const safetyTimer = setTimeout(hideSplash, 3200);
     const ok = await ensureAuth();
-    if (ok) await pullVault(false);
+    if (ok) await pullVault(hasCachedData);
+    clearTimeout(safetyTimer);
+    hideSplash();
   }
 
   if (document.readyState === 'loading') {
