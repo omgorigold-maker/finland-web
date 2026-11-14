@@ -25498,6 +25498,15 @@ function initSortableWidgets() {
   let poSelectedElementId = null;
   let poSelectedElementMeta = null;
   let poElementStyles = {}; // { [elemId]: { offsetY, fontFamily, fontSize, fontWeight, letterSpacing, color, textAlign, lineStyle, lineThickness } }
+  let poIncludePaidDeposit = null; // null = auto, true = included, false = removed
+
+  function hasProjectDepositPayment(proj) {
+    if (!proj) return false;
+    if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total)) && parseFloat(proj.depositProforma.total) > 0) return true;
+    if (proj.depositProforma && Array.isArray(proj.depositProforma.items) && proj.depositProforma.items.length > 0) return true;
+    if (Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) return true;
+    return false;
+  }
 
   // Undo / Redo History Stack Engine
   let poUndoStack = [];
@@ -27496,7 +27505,8 @@ function initSortableWidgets() {
       richText: JSON.parse(JSON.stringify(poRichText || {})),
       typography: JSON.parse(JSON.stringify(activePoTypography || {})),
       selectedElementId: poSelectedElementId,
-      selectedSectionIndex: selectedPoSectionIndex
+      selectedSectionIndex: selectedPoSectionIndex,
+      includePaidDeposit: poIncludePaidDeposit
     };
   }
 
@@ -27598,6 +27608,10 @@ function initSortableWidgets() {
         lead.priceOffering.projectTitle = snap.projectTitle;
         lead.priceOffering.discountPercent = parseFloat(snap.discountPercent) || 0;
         lead.priceOffering.taxPercent = parseFloat(snap.taxPercent) || 0;
+        if (snap.includePaidDeposit !== undefined) {
+          poIncludePaidDeposit = snap.includePaidDeposit;
+          lead.priceOffering.hasPaidDeposit = snap.includePaidDeposit;
+        }
         if (snap.labels) lead.priceOffering.labels = JSON.parse(JSON.stringify(snap.labels));
         lead.priceOffering.sections = currentPoSections;
         lead.priceOffering.items = currentPoItems;
@@ -30514,6 +30528,7 @@ function initSortableWidgets() {
             <div id="poAddDiscountTaxBar" class="flex items-center gap-1.5 text-[11px]">
               <button type="button" id="poAddDiscountTriggerBtn" class="cursor-pointer inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200/70 text-emerald-700 font-semibold transition-colors">+ Discount</button>
               <button type="button" id="poAddTaxTriggerBtn" class="cursor-pointer inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/70 text-slate-600 font-semibold transition-colors">+ Tax</button>
+              <button type="button" id="poAddPaidDepositTriggerBtn" class="cursor-pointer inline-flex items-center px-2 py-1 rounded-lg bg-indigo-50/80 hover:bg-indigo-100/80 border border-indigo-200/70 text-indigo-700 font-semibold transition-colors hidden">+ Deposit</button>
             </div>
           </div>
         </div>
@@ -30558,7 +30573,12 @@ function initSortableWidgets() {
 
             <!-- Paid Deposit Row (Proforma Only — pulled & calculated from Deposit Doc if it exists) -->
             <div id="poPaidDepositRow" class="po-total-row hidden items-center justify-between py-1 text-slate-600" data-po-unit-id="row_paid_deposit">
-              <input type="text" class="po-selectable po-total-label font-medium text-xs text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 w-auto transition-colors" data-elem-id="label_paid_deposit" data-elem-name="Paid Deposit Label" data-elem-type="text" value="${escapeHtml(labels.paidDeposit || 'Paid Deposit')}" placeholder="Paid Deposit...">
+              <div class="flex items-center gap-1.5">
+                <input type="text" class="po-selectable po-total-label font-medium text-xs text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 w-auto transition-colors" data-elem-id="label_paid_deposit" data-elem-name="Paid Deposit Label" data-elem-type="text" value="${escapeHtml(labels.paidDeposit || 'Paid Deposit')}" placeholder="Paid Deposit...">
+                <button type="button" id="poRemovePaidDepositBtn" class="no-print ml-1 text-slate-300 hover:text-rose-500 cursor-pointer p-0.5 self-center" title="Remove paid deposit">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
               <span id="poPaidDepositAmountDisplay" class="po-selectable font-mono font-semibold text-slate-900 rounded px-0.5 cursor-pointer" data-elem-id="paid_deposit_val" data-elem-name="Paid Deposit Amount" data-elem-type="text">-${formatMoney(0, cur)}</span>
             </div>
 
@@ -31835,17 +31855,34 @@ function initSortableWidgets() {
     const targetEntity = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
     const proj = (targetEntity && (targetEntity._projectRef || (targetEntity._isProject ? targetEntity : null)))
       || (state.budget?.projects || []).find(p => p.id === (state.activeProformaProjectId || state.activeFollowupProjectId || targetEntity?.id));
+
+    let isPaidDepositActive = false;
     let depositAmt = 0;
     if (isProformaDoc && proj) {
-      if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total)) && parseFloat(proj.depositProforma.total) > 0) {
-        depositAmt = parseFloat(proj.depositProforma.total) || 0;
-      } else if (proj.depositProforma && Array.isArray(proj.depositProforma.items) && proj.depositProforma.items.length > 0) {
-        depositAmt = proj.depositProforma.items.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
-      } else if (Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) {
-        const exp = proj.depositProformaExports[0];
-        if (exp && !isNaN(parseFloat(exp.total))) depositAmt = parseFloat(exp.total) || 0;
-      } else if (proj.proformaInvoice && !isNaN(parseFloat(proj.proformaInvoice.paidDeposit)) && parseFloat(proj.proformaInvoice.paidDeposit) > 0) {
-        depositAmt = parseFloat(proj.proformaInvoice.paidDeposit) || 0;
+      const docHasExplicit = targetEntity?.priceOffering?.hasPaidDeposit !== undefined
+        ? targetEntity.priceOffering.hasPaidDeposit
+        : (proj.proformaInvoice?.hasPaidDeposit !== undefined ? proj.proformaInvoice.hasPaidDeposit : null);
+      if (poIncludePaidDeposit !== null) {
+        isPaidDepositActive = !!poIncludePaidDeposit;
+      } else if (docHasExplicit !== null) {
+        isPaidDepositActive = !!docHasExplicit;
+      } else {
+        isPaidDepositActive = hasProjectDepositPayment(proj);
+      }
+
+      if (isPaidDepositActive) {
+        if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total)) && parseFloat(proj.depositProforma.total) > 0) {
+          depositAmt = parseFloat(proj.depositProforma.total) || 0;
+        } else if (proj.depositProforma && Array.isArray(proj.depositProforma.items) && proj.depositProforma.items.length > 0) {
+          depositAmt = proj.depositProforma.items.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
+        } else if (Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) {
+          const exp = proj.depositProformaExports[0];
+          if (exp && !isNaN(parseFloat(exp.total))) depositAmt = parseFloat(exp.total) || 0;
+        } else if (proj.proformaInvoice && !isNaN(parseFloat(proj.proformaInvoice.paidDeposit)) && parseFloat(proj.proformaInvoice.paidDeposit) > 0) {
+          depositAmt = parseFloat(proj.proformaInvoice.paidDeposit) || 0;
+        } else {
+          depositAmt = Math.round(afterDisc * 0.5 * 100) / 100;
+        }
       }
     }
 
@@ -31901,32 +31938,55 @@ function initSortableWidgets() {
       }
     }
 
-    // Hide or format paid deposit row (proforma only — pulled from deposit document)
+    // Hide or format paid deposit row (proforma only — pulled from deposit document or 50% milestone)
     const paidDepRow = document.getElementById('poPaidDepositRow');
     const paidDepAmtEl = document.getElementById('poPaidDepositAmountDisplay');
-    if (paidDepRow) {
-      if (isProformaDoc && depositAmt > 0) {
-        paidDepRow.classList.remove('hidden');
-        paidDepRow.classList.add('flex');
+    const addPaidDepTrigger = document.getElementById('poAddPaidDepositTriggerBtn');
+
+    if (isProformaDoc) {
+      if (isPaidDepositActive && depositAmt > 0) {
+        if (paidDepRow) {
+          paidDepRow.classList.remove('hidden');
+          paidDepRow.classList.add('flex');
+        }
         if (paidDepAmtEl) paidDepAmtEl.textContent = `-${formatMoney(depositAmt, cur)}`;
+        if (addPaidDepTrigger) addPaidDepTrigger.classList.add('hidden');
       } else {
+        if (paidDepRow) {
+          paidDepRow.classList.add('hidden');
+          paidDepRow.classList.remove('flex');
+        }
+        if (paidDepAmtEl) paidDepAmtEl.textContent = `-${formatMoney(0, cur)}`;
+        if (addPaidDepTrigger) addPaidDepTrigger.classList.remove('hidden');
+      }
+    } else {
+      if (paidDepRow) {
         paidDepRow.classList.add('hidden');
         paidDepRow.classList.remove('flex');
-        if (paidDepAmtEl) paidDepAmtEl.textContent = `-${formatMoney(0, cur)}`;
       }
+      if (addPaidDepTrigger) addPaidDepTrigger.classList.add('hidden');
     }
 
     if (addDiscTaxBar) {
-      if (discPercent > 0 && taxPercent > 0) {
-        addDiscTaxBar.classList.add('hidden');
+      if (isProformaDoc) {
+        const allAdded = discPercent > 0 && taxPercent > 0 && (isPaidDepositActive && depositAmt > 0);
+        if (allAdded) {
+          addDiscTaxBar.classList.add('hidden');
+        } else {
+          addDiscTaxBar.classList.remove('hidden');
+        }
       } else {
-        addDiscTaxBar.classList.remove('hidden');
+        if (discPercent > 0 && taxPercent > 0) {
+          addDiscTaxBar.classList.add('hidden');
+        } else {
+          addDiscTaxBar.classList.remove('hidden');
+        }
       }
     }
 
     syncPriceOfferingTableMirrors();
 
-    return { subtotal, discPercent, discAmt, taxPercent, taxAmt, depositAmt, total, currency: cur };
+    return { subtotal, discPercent, discAmt, taxPercent, taxAmt, depositAmt, hasPaidDeposit: isPaidDepositActive, total, currency: cur };
   }
 
   function triggerPriceOfferingAutoSave(immediate = false) {
@@ -32622,6 +32682,9 @@ function initSortableWidgets() {
     state.activeDepositProformaProjectId = null;
     state.activeProformaProjectId = projectId;
     state.activeFollowupProjectId = projectId;
+    poIncludePaidDeposit = (proj.proformaInvoice && proj.proformaInvoice.hasPaidDeposit !== undefined)
+      ? proj.proformaInvoice.hasPaidDeposit
+      : hasProjectDepositPayment(proj);
     poEditingTemplateDesignId = null;
     poTemplateDesignEditBackup = null;
     poEditingTemplateNameId = null;
@@ -33186,6 +33249,7 @@ function initSortableWidgets() {
   }
 
   function closePriceOfferingDocPage() {
+    poIncludePaidDeposit = null;
     const studioDoc = resolveActiveStudioDoc();
     clearTimeout(poAutoSaveTimeout);
     poAutoSaveTimeout = null;
@@ -40329,6 +40393,31 @@ ${sectionsText}
       if (e.target.closest('#poRemoveTaxBtn')) {
         const taxInput = document.getElementById('poTaxPercentInput');
         if (taxInput) taxInput.value = 0;
+        recalculatePriceOfferingTotals();
+        triggerPriceOfferingAutoSave(true);
+        pushPoUndoSnapshot();
+        return;
+      }
+
+      // Paid Deposit Trigger / Remove Buttons (Proforma Only)
+      if (e.target.closest('#poAddPaidDepositTriggerBtn')) {
+        poIncludePaidDeposit = true;
+        const targetEntity = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
+        if (targetEntity && targetEntity.priceOffering) {
+          targetEntity.priceOffering.hasPaidDeposit = true;
+        }
+        recalculatePriceOfferingTotals();
+        triggerPriceOfferingAutoSave(true);
+        pushPoUndoSnapshot();
+        return;
+      }
+
+      if (e.target.closest('#poRemovePaidDepositBtn')) {
+        poIncludePaidDeposit = false;
+        const targetEntity = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
+        if (targetEntity && targetEntity.priceOffering) {
+          targetEntity.priceOffering.hasPaidDeposit = false;
+        }
         recalculatePriceOfferingTotals();
         triggerPriceOfferingAutoSave(true);
         pushPoUndoSnapshot();
