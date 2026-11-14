@@ -34771,7 +34771,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
                 </div>
               </div>
@@ -34800,7 +34800,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
                 </div>
               </div>
@@ -34827,7 +34827,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                   ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
                 </div>
               </div>
@@ -34899,7 +34899,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(dpRef)}">${escapeHtml(dpRef)} <span class="font-bold text-slate-900">(${formatMoney(dpTot, dpCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable')}</span>
                 </div>
               </div>
@@ -34928,7 +34928,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(refLabel)}">${escapeHtml(refLabel)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</span>
                 </div>
               </div>
@@ -34957,7 +34957,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                 </div>
               </div>
@@ -35035,7 +35035,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(piRef)}">${escapeHtml(piRef)} <span class="font-bold text-slate-900">(${formatMoney(piTot, piCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable')}</span>
                 </div>
               </div>
@@ -35064,7 +35064,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(refLabel)}">${escapeHtml(refLabel)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</span>
                 </div>
               </div>
@@ -35093,7 +35093,7 @@ ${sectionsText}
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
                 <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                  <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                   <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                 </div>
               </div>
@@ -35144,7 +35144,7 @@ ${sectionsText}
                 <div class="min-w-0 flex-1">
                   <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
                   <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                    <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                    <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                     <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                   </div>
                 </div>
@@ -35192,7 +35192,7 @@ ${sectionsText}
                 <div class="min-w-0 flex-1">
                   <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
                   <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                    <span class="px-1 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                    <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
                     <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                   </div>
                 </div>
