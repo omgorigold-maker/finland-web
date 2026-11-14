@@ -2499,7 +2499,7 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5">
                   <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-700 shrink-0"></i>
-                  <h3 id="poSidebarHeaderTitle" class="font-bold text-xs uppercase tracking-wider text-slate-800 truncate">Page &amp; Template</h3>
+                  <h3 id="poSidebarHeaderTitle" class="font-bold text-xs uppercase tracking-wider text-slate-800 truncate">Page &amp; Layout</h3>
                 </div>
                 <p id="poSidebarHeaderSubtitle" class="text-[10px] text-slate-400 mt-0.5 truncate">Document rhythm, margins &amp; sections</p>
               </div>
@@ -2822,73 +2822,8 @@
                 </button>
               </div>
 
-              <!-- SAVED TEMPLATES & PRESET GALLERY (Hidden — no templates UI) -->
+              <!-- LAYOUT ACTIONS FOOTER -->
               <div id="poTemplatesSidebarSection" class="pt-4 border-t border-slate-100 space-y-2.5">
-                <div class="hidden">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Templates</span>
-                  <span id="poSavedTemplatesCountLabel" class="text-[10px] font-medium text-slate-400">Hover to preview</span>
-                </div>
-
-                <!-- Editing Scope Indicator (Distinguishes "Document Only" vs "Editing Template") -->
-                <div id="poTemplateScopeBanner" class="bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-2 transition-all">
-                  <div class="flex items-center justify-between gap-1.5">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
-                      <span class="text-[11px] font-semibold text-slate-700 truncate">Working on: This Document Only</span>
-                    </div>
-                  </div>
-                  <p class="text-[10px] text-slate-500 mt-0.5 leading-snug">Page tweaks stay on this quote — saved templates are untouched.</p>
-                </div>
-
-                <!-- Primary Save Template Button & Smart Save/Override Chooser -->
-                <div class="space-y-2">
-                  <button type="button" id="poSaveTemplateBtn" class="w-full py-2 px-3 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.99] rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer" title="Save as a new template or override an existing template">
-                    <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i>
-                    <span>Save Template</span>
-                  </button>
-
-                  <!-- Smart Save Drawer: Choose between "+ Save as New" or "↻ Override Existing" -->
-                  <div id="poSaveTemplateNameForm" class="hidden bg-slate-50 border border-slate-200/90 rounded-xl p-2 space-y-2">
-                    <div class="flex items-center justify-between gap-1">
-                      <div class="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-lg flex-1">
-                        <button type="button" id="poSaveModeNewTab" data-save-mode="new" class="po-save-mode-tab py-1 px-2 rounded-md text-[10px] font-bold bg-white text-slate-900 shadow-2xs cursor-pointer transition-all">+ Save as New</button>
-                        <button type="button" id="poSaveModeOverrideTab" data-save-mode="override" class="po-save-mode-tab py-1 px-2 rounded-md text-[10px] font-semibold text-slate-600 hover:text-slate-900 cursor-pointer transition-all">↻ Override Existing</button>
-                      </div>
-                      <button type="button" id="poCancelSaveTemplateBtn" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 cursor-pointer shrink-0" title="Close">
-                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                      </button>
-                    </div>
-
-                    <!-- Mode 1: Save as New Template -->
-                    <div id="poSaveTemplateNewPane" class="space-y-2">
-                      <div class="flex items-center gap-1.5">
-                        <input type="text" id="poNewTemplateNameInput" placeholder="New template name..." class="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900">
-                        <button type="button" id="poConfirmSaveTemplateBtn" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shrink-0">Save New</button>
-                      </div>
-                      <label class="flex items-center gap-1.5 text-[10px] font-medium text-slate-600 cursor-pointer select-none px-0.5">
-                        <input type="checkbox" id="poSaveTemplateMakeDefaultCheck" class="rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer">
-                        <span>Also set as Default Template for all leads</span>
-                      </label>
-                    </div>
-
-                    <!-- Mode 2: Override Existing Template -->
-                    <div id="poSaveTemplateOverridePane" class="hidden space-y-1.5">
-                      <div class="text-[10px] font-medium text-slate-500 px-0.5">Replace a saved template with current page design:</div>
-                      <div class="flex items-center gap-1.5">
-                        <select id="poOverrideTemplateSelect" class="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900 cursor-pointer"></select>
-                        <button type="button" id="poConfirmOverrideTemplateBtn" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shrink-0">Override</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Saved Templates Button List -->
-                <div id="poSavedTemplatesGrid" class="space-y-1.5">
-                  <!-- Populated dynamically by renderPoSavedTemplatesGallery() in app.js -->
-                </div>
-                </div>
-
                 <button type="button" id="poRestoreHiddenFieldsBtn" class="hidden w-full py-1.5 px-2.5 rounded-lg border border-amber-200 bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-semibold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer transition-all" title="Restore any individual fields you deleted without losing your fonts or layout">
                   <i data-lucide="eye" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
                   <span id="poRestoreHiddenFieldsBtnText">Restore Hidden Fields</span>
