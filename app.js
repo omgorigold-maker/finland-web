@@ -2529,12 +2529,18 @@ Return a JSON object with this EXACT schema:
       return;
     }
 
+    dlBtn.classList.remove('hidden');
     if (isDemoMode()) {
-      dlBtn.classList.add('hidden');
-      dlBtn.removeAttribute('href');
+      dlBtn.href = '#';
       dlBtn.removeAttribute('download');
+      dlBtn.removeAttribute('target');
+      dlBtn.onclick = (e) => {
+        e.preventDefault();
+        blockShowcaseExport('File download');
+        return false;
+      };
     } else {
-      dlBtn.classList.remove('hidden');
+      dlBtn.onclick = null;
     }
     metaEl.textContent = `File: ${attachment.fileName || (isProject ? 'invoice.pdf' : 'receipt')}`;
 
@@ -2554,16 +2560,24 @@ Return a JSON object with this EXACT schema:
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
           <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
-          ${isDemoMode() ? '' : `
           <div class="flex items-center gap-2 pt-1">
-            <a href="${pdfBlobUrl}" target="_blank" rel="noopener" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+            <a href="${isDemoMode() ? '#' : pdfBlobUrl}" ${isDemoMode() ? '' : 'target="_blank" rel="noopener"'} class="receipt-open-tab-link text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
               <span>Open in new tab</span>
             </a>
-          </div>`}
+          </div>
         </div>
       `;
-      if (!isDemoMode()) {
+      if (isDemoMode()) {
+        const openTabLink = contentEl.querySelector('.receipt-open-tab-link');
+        if (openTabLink) {
+          openTabLink.onclick = (e) => {
+            e.preventDefault();
+            blockShowcaseExport('Opening PDF in new tab');
+            return false;
+          };
+        }
+      } else {
         dlBtn.href = pdfBlobUrl;
         dlBtn.download = attachment.fileName || 'invoice.pdf';
       }
@@ -2605,12 +2619,18 @@ ${escapeHtml(attachment.data)}
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
+    dlBtn.classList.remove('hidden');
     if (isDemoMode()) {
-      dlBtn.classList.add('hidden');
-      dlBtn.removeAttribute('href');
+      dlBtn.href = '#';
       dlBtn.removeAttribute('download');
+      dlBtn.removeAttribute('target');
+      dlBtn.onclick = (e) => {
+        e.preventDefault();
+        blockShowcaseExport('File download');
+        return false;
+      };
     } else {
-      dlBtn.classList.remove('hidden');
+      dlBtn.onclick = null;
     }
     metaEl.textContent = `File: ${fileName || 'receipt'}`;
 
@@ -2651,16 +2671,24 @@ ${escapeHtml(attachment.data)}
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
           <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
-          ${isDemoMode() ? '' : `
           <div class="flex items-center gap-2 pt-1">
-            <a href="${pdfBlobUrl}" target="_blank" rel="noopener" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+            <a href="${isDemoMode() ? '#' : pdfBlobUrl}" ${isDemoMode() ? '' : 'target="_blank" rel="noopener"'} class="receipt-open-tab-link text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
               <span>Open in new tab</span>
             </a>
-          </div>`}
+          </div>
         </div>
       `;
-      if (!isDemoMode()) {
+      if (isDemoMode()) {
+        const openTabLink = contentEl.querySelector('.receipt-open-tab-link');
+        if (openTabLink) {
+          openTabLink.onclick = (e) => {
+            e.preventDefault();
+            blockShowcaseExport('Opening PDF in new tab');
+            return false;
+          };
+        }
+      } else {
         dlBtn.href = pdfBlobUrl;
         dlBtn.download = fileName || 'invoice.pdf';
       }
@@ -21328,15 +21356,22 @@ function initSortableWidgets() {
 
       if (dlBtn) {
         if (isDemoMode()) {
-          dlBtn.removeAttribute('href');
+          dlBtn.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+          dlBtn.href = '#';
           dlBtn.removeAttribute('download');
-          dlBtn.classList.add('hidden');
+          dlBtn.onclick = (e) => {
+            e.preventDefault();
+            blockShowcaseExport('File download');
+            return false;
+          };
         } else if (previewUrl) {
+          dlBtn.onclick = null;
           dlBtn.classList.remove('hidden');
           dlBtn.href = previewUrl;
           dlBtn.download = attMeta.name || 'attachment';
           dlBtn.classList.remove('opacity-50', 'pointer-events-none');
         } else {
+          dlBtn.onclick = null;
           dlBtn.classList.remove('hidden');
           dlBtn.removeAttribute('href');
           dlBtn.classList.add('opacity-50', 'pointer-events-none');
@@ -21381,12 +21416,22 @@ function initSortableWidgets() {
               </div>
               <h4 class="font-bold text-slate-800 text-sm truncate">${escapeHtml(attMeta.name)}</h4>
               <p class="text-xs text-slate-500 font-mono">${formatFileSize(attMeta.size)} document</p>
-              ${isDemoMode() ? '<p class="text-xs text-slate-400">File downloads are disabled in showcase mode.</p>' : `<a href="${previewUrl}" download="${escapeHtml(attMeta.name)}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-xs transition-all">
+              <a href="${isDemoMode() ? '#' : previewUrl}" ${isDemoMode() ? '' : `download="${escapeHtml(attMeta.name)}"`} class="quickview-inline-dl-link inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-xs transition-all">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span>Download Document</span>
-              </a>`}
+              </a>
             </div>
           `;
+          if (isDemoMode()) {
+            const inlineDl = contentEl.querySelector('.quickview-inline-dl-link');
+            if (inlineDl) {
+              inlineDl.onclick = (e) => {
+                e.preventDefault();
+                blockShowcaseExport('File download');
+                return false;
+              };
+            }
+          }
         }
       }
 
@@ -35698,12 +35743,17 @@ ${sectionsText}
       captionInput.value = current.caption || '';
     }
     if (downloadBtn) {
+      downloadBtn.classList.remove('hidden');
       if (isDemoMode()) {
-        downloadBtn.classList.add('hidden');
-        downloadBtn.removeAttribute('href');
+        downloadBtn.href = '#';
         downloadBtn.removeAttribute('download');
+        downloadBtn.onclick = (e) => {
+          e.preventDefault();
+          blockShowcaseExport('Image download');
+          return false;
+        };
       } else {
-        downloadBtn.classList.remove('hidden');
+        downloadBtn.onclick = null;
         downloadBtn.href = current.data;
         downloadBtn.download = current.fileName || `project-image-${activeSlideIndex + 1}.jpg`;
       }
