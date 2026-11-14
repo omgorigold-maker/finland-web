@@ -25457,7 +25457,7 @@ function initSortableWidgets() {
     },
     richText: {},
     labels: {
-      client: 'Bill To / Client',
+      client: 'Client / Recipient',
       reference: 'Reference',
       currency: 'Currency',
       issueDate: 'Date Issued',
@@ -25905,16 +25905,30 @@ function initSortableWidgets() {
     } catch (e) {}
     const vaultTpl = (state.budget && state.budget.poDefaultTemplate) ? state.budget.poDefaultTemplate : null;
     const customTpl = sanitizePoTemplateData(JSON.parse(JSON.stringify(vaultTpl || localTpl || {})));
+    const leakedProformaSubs = ['PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST', 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST', 'Preliminary Invoice / Advance Payment Request'];
+    const cleanSubtitle = (customTpl.docSubtitle !== undefined && !leakedProformaSubs.includes(customTpl.docSubtitle))
+      ? customTpl.docSubtitle
+      : DEFAULT_PO_TEMPLATE.docSubtitle;
+    const cleanLabels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {});
+    if (cleanLabels.thDesc === 'Milestone / Deliverable') cleanLabels.thDesc = DEFAULT_PO_TEMPLATE.labels.thDesc;
+    if (cleanLabels.thRate === 'Total') cleanLabels.thRate = DEFAULT_PO_TEMPLATE.labels.thRate;
+    if (cleanLabels.thAmount === 'Deposit (50%)') cleanLabels.thAmount = DEFAULT_PO_TEMPLATE.labels.thAmount;
+    if (cleanLabels.subtotal === 'Deposit Subtotal (50%)') cleanLabels.subtotal = DEFAULT_PO_TEMPLATE.labels.subtotal;
+    if (cleanLabels.totalInvestment === 'Deposit Due') cleanLabels.totalInvestment = DEFAULT_PO_TEMPLATE.labels.totalInvestment;
+    if (cleanLabels.reference === 'Deposit Invoice #' || cleanLabels.reference === 'Proforma Invoice #') cleanLabels.reference = DEFAULT_PO_TEMPLATE.labels.reference;
+    if (cleanLabels.validUntil === 'Payment Due') cleanLabels.validUntil = DEFAULT_PO_TEMPLATE.labels.validUntil;
+    if (cleanLabels.issueDate === 'Invoice Date') cleanLabels.issueDate = DEFAULT_PO_TEMPLATE.labels.issueDate;
+    if (!cleanLabels.discount || cleanLabels.discount === 'Discount') cleanLabels.discount = 'Bundle Discount';
     return {
       id: customTpl.id || 'tpl_price_quote_master',
       docType: 'price_quote',
       name: customTpl.name || 'Price Quote / Proposal Template',
       docTitle: 'Price Quote / Proposal',
-      docSubtitle: customTpl.docSubtitle !== undefined ? customTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle,
+      docSubtitle: cleanSubtitle,
       sender: Object.assign({}, DEFAULT_PO_TEMPLATE.sender, customTpl.sender || {}),
       typography: Object.assign({}, DEFAULT_PO_TEMPLATE.typography, customTpl.typography || {}),
       elementStyles: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_PO_TEMPLATE.elementStyles)), JSON.parse(JSON.stringify(customTpl.elementStyles || {}))),
-      labels: Object.assign({}, DEFAULT_PO_TEMPLATE.labels, customTpl.labels || {}),
+      labels: cleanLabels,
       sections: Array.isArray(customTpl.sections) && customTpl.sections.length > 0 ? JSON.parse(JSON.stringify(customTpl.sections)) : getDefaultPoQuoteSections(),
       richText: Object.assign({}, DEFAULT_PO_TEMPLATE.richText || {}, customTpl.richText || {})
     };
@@ -31787,7 +31801,7 @@ function initSortableWidgets() {
   }
 
   const PO_LABEL_ELEM_MAP = {
-    client: ['label_client', 'Bill To / Client'],
+    client: ['label_client', 'Client / Recipient'],
     reference: ['label_ref', 'Reference'],
     currency: ['label_cur', 'Currency'],
     issueDate: ['label_issue_date', 'Date Issued'],
@@ -31798,7 +31812,7 @@ function initSortableWidgets() {
     thRate: ['th_rate', 'Rate'],
     thAmount: ['th_amount', 'Amount'],
     subtotal: ['label_subtotal', 'Subtotal'],
-    discount: ['label_discount', 'Discount'],
+    discount: ['label_discount', 'Bundle Discount'],
     tax: ['label_tax', 'VAT / Tax'],
     paidDeposit: ['label_paid_deposit', 'Paid Deposit'],
     totalInvestment: ['label_total_investment', 'Total Investment']
@@ -32373,6 +32387,13 @@ function initSortableWidgets() {
     if (po.docSubtitle === 'Print & Merch Design Bundle' && lead.title !== 'Print & Merch Design Bundle' && !isBuzzerClient) {
       po.docSubtitle = '';
       if (po.richText) delete po.richText.doc_subtitle;
+    }
+    if (po.docSubtitle === 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST' || po.docSubtitle === 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST' || po.docSubtitle === 'Preliminary Invoice / Advance Payment Request') {
+      po.docSubtitle = '';
+      if (po.richText) delete po.richText.doc_subtitle;
+    }
+    if (po.labels && (!po.labels.discount || po.labels.discount === 'Discount')) {
+      po.labels.discount = 'Bundle Discount';
     }
     if (po.docSubtitle === undefined) {
       po.docSubtitle = masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle;
