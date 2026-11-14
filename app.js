@@ -29354,7 +29354,7 @@ function initSortableWidgets() {
     if (masterTpl && Array.isArray(masterTpl.sections) && masterTpl.sections.length > 0) {
       const clonedSecs = JSON.parse(JSON.stringify(masterTpl.sections));
       const scopeSec = clonedSecs.find(s => s && (s.type === 'scope' || (s.type === 'custom' && (s.title || '').toLowerCase() === 'summary')));
-      const leadNoteText = po?.scope !== undefined ? po.scope : (lead?.notes ? String(lead.notes).split('\n\n---\n\n')[0] : '');
+      const leadNoteText = po?.scope !== undefined ? po.scope : '';
       if (scopeSec) {
         if (typeof scopeSec.content === 'string' && (scopeSec.content.includes('Project scope...') || scopeSec.content.includes('Project scope…'))) {
           scopeSec.content = '';
@@ -32533,7 +32533,7 @@ function initSortableWidgets() {
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : (proj.title || '')));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : '');
 
       proj.proformaInvoice = {
         _isProforma: true,
@@ -32802,7 +32802,7 @@ function initSortableWidgets() {
       const srcScopeSec = srcQuote && Array.isArray(srcQuote.sections) ? srcQuote.sections.find(s => s && s.type === 'scope') : null;
       const initScopeContent = (srcScopeSec && srcScopeSec.content)
         ? srcScopeSec.content
-        : (srcQuote && srcQuote.scope ? srcQuote.scope : (proj.notes ? proj.notes.split('\n\n---\n\n')[0] : 'As agreed upon signing quote / proposal'));
+        : (srcQuote && srcQuote.scope ? srcQuote.scope : '');
 
       const baseSender = (srcQuote && srcQuote.sender && srcQuote.sender.name && srcQuote.sender.name !== 'Your Name / Studio')
         ? Object.assign({}, srcQuote.sender)
