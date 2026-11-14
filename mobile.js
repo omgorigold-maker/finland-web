@@ -74,10 +74,10 @@
       money: 'dollar'
     },
     tabColors: {
-      followups: '#0f172a',
-      calendar: '#0f172a',
-      notes: '#0f172a',
-      money: '#0f172a'
+      followups: '#0284c7',
+      calendar: '#e11d48',
+      notes: '#d97706',
+      money: '#16a34a'
     }
   };
 
