@@ -30919,8 +30919,8 @@ function initSortableWidgets() {
     if (!modal || modal._poSigInitialized) return;
     modal._poSigInitialized = true;
 
-    document.getElementById('poCloseSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
-    document.getElementById('poCancelSignatureModalBtn')?.addEventListener('click', closePoSignatureModal);
+    (document.getElementById('poCloseSigModalBtn') || document.getElementById('poCloseSignatureModalBtn'))?.addEventListener('click', closePoSignatureModal);
+    (document.getElementById('poCancelSigModalBtn') || document.getElementById('poCancelSignatureModalBtn'))?.addEventListener('click', closePoSignatureModal);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closePoSignatureModal();
     });
@@ -30928,7 +30928,7 @@ function initSortableWidgets() {
     document.getElementById('poSigTabDrawBtn')?.addEventListener('click', () => switchPoSigModalTab('draw'));
     document.getElementById('poSigTabUploadBtn')?.addEventListener('click', () => switchPoSigModalTab('upload'));
 
-    document.getElementById('poInsertSavedSignatureBtn')?.addEventListener('click', () => {
+    (document.getElementById('poInsertSavedSigQuickBtn') || document.getElementById('poInsertSavedSignatureBtn'))?.addEventListener('click', () => {
       const saved = getSavedPoSignaturePreset();
       if (saved) placePoSignatureDataOnDocument(saved);
     });
@@ -30981,12 +30981,12 @@ function initSortableWidgets() {
       svgPad.addEventListener('pointercancel', finishStroke);
     }
 
-    document.getElementById('poSigUndoStrokeBtn')?.addEventListener('click', () => {
+    (document.getElementById('poSigPadUndoBtn') || document.getElementById('poSigUndoStrokeBtn'))?.addEventListener('click', () => {
       poSigPadStrokes.pop();
       renderPoSigPadStrokes();
     });
 
-    document.getElementById('poSigClearPadBtn')?.addEventListener('click', () => {
+    (document.getElementById('poSigPadClearBtn') || document.getElementById('poSigClearPadBtn'))?.addEventListener('click', () => {
       poSigPadStrokes = [];
       poSigCurrentStroke = null;
       renderPoSigPadStrokes();
@@ -31070,7 +31070,7 @@ function initSortableWidgets() {
     });
 
     // Place Signature onto Document Button
-    document.getElementById('poPlaceSignatureBtn')?.addEventListener('click', () => {
+    (document.getElementById('poInsertSignatureBtn') || document.getElementById('poPlaceSignatureBtn'))?.addEventListener('click', () => {
       if (poSigModalActiveTab === 'draw') {
         const vecData = computeCroppedPoVectorSignature();
         if (!vecData) {
