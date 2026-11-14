@@ -34745,22 +34745,35 @@ ${sectionsText}
           } else if (projCur !== cur && payAmt > 0) {
             payEquiv = ` <span class="text-[10px] text-slate-400 font-mono font-normal">(≈ ${formatMoney(convertCurrency(payAmt, projCur, cur), cur)})</span>`;
           }
+          let formattedPayDate = pay.date || 'Set date';
+          if (pay.date && /^\d{4}-\d{2}-\d{2}$/.test(pay.date)) {
+            const pdObj = new Date(pay.date + 'T00:00:00');
+            if (!isNaN(pdObj.getTime())) {
+              formattedPayDate = pdObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+          }
+          const payLabel = pay.notes || pay.method || 'Payment';
           return `
-            <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/60 text-xs group/pay">
-              <div>
-                <div class="font-semibold text-slate-800 font-mono">+${formatMoney(payAmt, payCur)}${payEquiv}</div>
-                <div class="text-[10px] text-slate-400 flex items-center gap-1 flex-wrap mt-0.5">
-                  <button type="button" class="edit-detail-payment-date-btn inline-flex items-center gap-1 text-slate-500 hover:text-emerald-700 hover:underline cursor-pointer transition-colors" data-payment-id="${escapeHtml(pay.id)}" title="Click to change payment date">
-                    <span>${escapeHtml(pay.date || 'Set date')}</span>
-                    <i data-lucide="pencil" class="w-2.5 h-2.5 opacity-0 group-hover/pay:opacity-100 transition-opacity"></i>
+            <div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-white hover:bg-slate-50/60 rounded-xl border border-slate-200/60 text-xs transition-colors group/pay">
+              <div class="min-w-0">
+                <div class="flex items-baseline gap-2 flex-wrap">
+                  <span class="font-semibold text-slate-900 font-mono text-[13px]">+${formatMoney(payAmt, payCur)}${payEquiv}</span>
+                  <span class="text-[11px] font-medium text-slate-400 truncate">${escapeHtml(payLabel)}</span>
+                </div>
+                <div class="relative inline-flex items-center mt-0.5">
+                  <button type="button" class="edit-detail-payment-date-btn group/date inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-emerald-700 cursor-pointer transition-colors" data-payment-id="${escapeHtml(pay.id)}" title="Click to change payment date">
+                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400 group-hover/date:text-emerald-600 transition-colors"></i>
+                    <span>${escapeHtml(formattedPayDate)}</span>
                   </button>
-                  <input type="date" class="detail-payment-date-input hidden text-[10px] font-semibold text-slate-800 bg-white border border-emerald-400 rounded px-1 py-0.2 focus:outline-none" data-payment-id="${escapeHtml(pay.id)}" value="${escapeHtml(pay.date || '')}">
-                  <span>• ${escapeHtml(pay.notes || pay.method || 'Payment')}</span>
+                  <input type="date" class="detail-payment-date-input opacity-0 pointer-events-none absolute left-0 top-full w-px h-px" data-payment-id="${escapeHtml(pay.id)}" value="${escapeHtml(pay.date || '')}" tabindex="-1">
                 </div>
               </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">Deposited</span>
-                <button type="button" class="delete-detail-payment-btn text-slate-300 hover:text-rose-600 p-1 rounded-lg opacity-0 group-hover/pay:opacity-100 transition-opacity cursor-pointer" data-payment-id="${escapeHtml(pay.id)}" title="Delete payment record">
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700/90 bg-emerald-50/50 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Deposited</span>
+                </span>
+                <button type="button" class="delete-detail-payment-btn text-slate-300 hover:text-rose-500 hover:bg-rose-50/70 p-1 rounded-lg transition-colors cursor-pointer" data-payment-id="${escapeHtml(pay.id)}" title="Delete payment record">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -36892,15 +36905,19 @@ ${sectionsText}
       paymentsList.addEventListener('click', async (e) => {
         const editDateBtn = e.target.closest('.edit-detail-payment-date-btn');
         if (editDateBtn) {
+          e.stopPropagation();
           const row = editDateBtn.closest('.group\\/pay');
           const dateInp = row ? row.querySelector('.detail-payment-date-input') : null;
           if (dateInp) {
-            editDateBtn.classList.add('hidden');
-            dateInp.classList.remove('hidden');
-            dateInp.focus();
             if (typeof dateInp.showPicker === 'function') {
-              try { dateInp.showPicker(); } catch (err) {}
+              try {
+                dateInp.showPicker();
+                return;
+              } catch (err) {}
             }
+            editDateBtn.classList.add('hidden');
+            dateInp.className = 'detail-payment-date-input text-[11px] font-medium text-slate-800 bg-white border border-emerald-400 rounded-md px-1.5 py-0.5 focus:outline-none';
+            dateInp.focus();
           }
           return;
         }
@@ -36940,6 +36957,15 @@ ${sectionsText}
         const dateInp = e.target.closest('.detail-payment-date-input');
         if (dateInp) {
           saveInlinePaymentDate(dateInp.getAttribute('data-payment-id'), dateInp.value);
+        }
+      });
+      paymentsList.addEventListener('focusout', (e) => {
+        const dateInp = e.target.closest('.detail-payment-date-input');
+        if (dateInp && !dateInp.classList.contains('opacity-0')) {
+          const row = dateInp.closest('.group\\/pay');
+          const editBtn = row ? row.querySelector('.edit-detail-payment-date-btn') : null;
+          if (editBtn) editBtn.classList.remove('hidden');
+          dateInp.className = 'detail-payment-date-input opacity-0 pointer-events-none absolute left-0 top-full w-px h-px';
         }
       });
       paymentsList.addEventListener('keydown', (e) => {
