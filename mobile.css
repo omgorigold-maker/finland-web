@@ -323,6 +323,15 @@ button {
   background: var(--surface-hover);
 }
 
+.card.is-done {
+  opacity: 0.62;
+}
+
+.card.is-done .card-title {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+
 .card-top {
   display: flex;
   align-items: center;

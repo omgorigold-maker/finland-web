@@ -559,12 +559,24 @@
   }
 
   // ---------- Domain Helpers (Matching Desktop App) ----------
+  function isStepDone(s) {
+    return !!(s && (s.completed || s.done || s.isDone));
+  }
+
+  function isNoteDone(n) {
+    return !!(n && (n.isDone || n.completed || n.done));
+  }
+
+  function isLeadDone(l) {
+    return !!(l && (l.status === 'won' || l.status === 'done' || l.status === 'completed' || l.isDone || l.completed || l.done));
+  }
+
   function isProjectDone(p) {
     if (!p) return false;
-    if (p.isDone === true || p.status === 'completed' || p.status === 'done') return true;
+    if (p.isDone === true || p.completed === true || p.done === true || p.status === 'completed' || p.status === 'done') return true;
     if (p.isDone === false) return false;
     if (p.status === 'paid') {
-      if (Array.isArray(p.steps) && p.steps.length > 0) return p.steps.every(s => s.completed);
+      if (Array.isArray(p.steps) && p.steps.length > 0) return p.steps.every(isStepDone);
       return true;
     }
     return false;
@@ -622,7 +634,7 @@
         time: item.time || '',
         badge: isMeeting ? 'Meeting' : 'Plan',
         color: item.customColor || (isMeeting ? '#0ea5e9' : '#16a34a'),
-        completed: !!item.completed,
+        completed: !!(item.completed || item.isDone || item.done),
         toggleable: true
       });
     });
@@ -678,7 +690,7 @@
               time: name,
               badge: 'Project Step',
               color: '#0284c7',
-              completed: !!(step.completed || step.done),
+              completed: isStepDone(step),
               toggleable: true
             });
           }
@@ -701,7 +713,7 @@
           time: lead.client || '',
           badge: 'Lead Follow-Up',
           color: '#d97706',
-          completed: lead.status === 'won',
+          completed: isLeadDone(lead),
           toggleable: false
         });
       }
@@ -719,7 +731,7 @@
               time: leadTitle,
               badge: 'Lead Step',
               color: '#d97706',
-              completed: !!(step.completed || step.done),
+              completed: isStepDone(step),
               toggleable: true
             });
           }
@@ -738,7 +750,7 @@
         time: note.label || 'Note',
         badge: note.label || 'Note',
         color: getNoteColor(note),
-        completed: !!(note.isDone || note.completed),
+        completed: isNoteDone(note),
         toggleable: true
       });
     });
@@ -779,7 +791,7 @@
     const leads = (state.budget.leads || []).filter(l => l && l.status !== 'archived' && l.status !== 'lost');
 
     document.getElementById('projectsCount').textContent = String(projects.filter(p => !isProjectDone(p)).length);
-    document.getElementById('leadsCount').textContent = String(leads.length);
+    document.getElementById('leadsCount').textContent = String(leads.filter(l => !isLeadDone(l)).length);
 
     const listEl = document.getElementById('followupsList');
     const nodes = [];
@@ -793,13 +805,13 @@
       sorted.forEach(p => {
         const done = isProjectDone(p);
         const steps = Array.isArray(p.steps) ? p.steps : [];
-        const doneSteps = steps.filter(s => s && (s.completed || s.done)).length;
+        const doneSteps = steps.filter(isStepDone).length;
         const due = p.dueDate || p.expectedDate || '';
         const fee = p.amount !== undefined ? p.amount : p.fee;
 
         nodes.push(el('button', {
           type: 'button',
-          className: 'card',
+          className: `card${done ? ' is-done' : ''}`,
           onClick: () => openProjectDetail(p.id)
         }, [
           el('div', { className: 'card-top' }, [
@@ -815,23 +827,25 @@
         ]));
       });
     } else {
-      if (leads.length === 0) {
+      const sortedLeads = [...leads].sort((a, b) => Number(isLeadDone(a)) - Number(isLeadDone(b)));
+      if (sortedLeads.length === 0) {
         listEl.replaceChildren(el('div', { className: 'empty-state', textContent: 'No active leads.' }));
         return;
       }
-      leads.forEach(l => {
+      sortedLeads.forEach(l => {
+        const done = isLeadDone(l);
         const steps = Array.isArray(l.steps) ? l.steps : [];
-        const doneSteps = steps.filter(s => s && (s.completed || s.done)).length;
+        const doneSteps = steps.filter(isStepDone).length;
         const due = l.targetDate || l.followUpDate || l.dueDate || '';
 
         nodes.push(el('button', {
           type: 'button',
-          className: 'card',
+          className: `card${done ? ' is-done' : ''}`,
           onClick: () => openLeadDetail(l.id)
         }, [
           el('div', { className: 'card-top' }, [
             el('h3', { className: 'card-title', textContent: l.title || l.name || l.client || 'Untitled Lead' }),
-            el('span', { className: 'badge amber', textContent: l.status || 'Lead' })
+            el('span', { className: `badge ${done ? 'green' : 'amber'}`, textContent: done ? (l.status === 'won' ? 'Won' : 'Done') : (l.status || 'Lead') })
           ]),
           l.client ? el('p', { className: 'card-sub', textContent: l.client }) : null,
           el('div', { className: 'card-meta' }, [
@@ -1015,7 +1029,7 @@
 
     const notesByDay = {};
     (state.notes || []).forEach(note => {
-      if (!note || note.isDone || note.completed || !note.dueDate) return;
+      if (!note || isNoteDone(note) || !note.dueDate) return;
       const parts = note.dueDate.split('-');
       if (parts.length === 3 && parseInt(parts[0], 10) === year && (parseInt(parts[1], 10) - 1) === month) {
         const dNum = parseInt(parts[2], 10);
@@ -1430,8 +1444,10 @@
       return;
     }
 
-    const pinned = filtered.filter(n => n.isPinned || n.pinned);
-    const others = filtered.filter(n => !(n.isPinned || n.pinned));
+    const activeNotes = filtered.filter(n => !isNoteDone(n));
+    const doneNotes = filtered.filter(n => isNoteDone(n));
+    const pinned = activeNotes.filter(n => n.isPinned || n.pinned);
+    const others = activeNotes.filter(n => !(n.isPinned || n.pinned));
 
     const now = new Date();
     const todayYMD = toYMD(now);
@@ -1454,22 +1470,25 @@
     };
 
     const buildNoteCard = (n) => {
+      const done = isNoteDone(n);
       const bodyStr = n.body || (Array.isArray(n.bodyBlocks) ? n.bodyBlocks.filter(Boolean).join(' ') : '') || n.content || '';
       const preview = bodyStr.length > 110 ? bodyStr.slice(0, 110) + '...' : bodyStr;
       const nColor = getNoteColor(n);
       return el('button', {
         type: 'button',
-        className: 'card note-card-colored',
+        className: `card note-card-colored${done ? ' is-done' : ''}`,
         style: `border-left-color:${nColor}`,
         onClick: () => openNoteForm(n)
       }, [
         el('div', { className: 'card-top' }, [
           el('h3', { className: 'card-title', textContent: n.title || 'Untitled Note' }),
-          n.label ? el('span', {
-            className: 'badge',
-            style: `background:${nColor}18;color:${nColor}`,
-            textContent: n.label
-          }) : null
+          done
+            ? el('span', { className: 'badge green', textContent: 'Done' })
+            : (n.label ? el('span', {
+                className: 'badge',
+                style: `background:${nColor}18;color:${nColor}`,
+                textContent: n.label
+              }) : null)
         ]),
         preview ? el('p', { className: 'card-sub', textContent: preview }) : null,
         n.dueDate ? el('div', { className: 'card-meta' }, [
@@ -1538,6 +1557,11 @@
     if (undatedNotes.length) {
       out.push(el('div', { className: 'section-label', textContent: 'No Date' }));
       sortWithinBatch(undatedNotes).forEach(n => out.push(buildNoteCard(n)));
+    }
+
+    if (doneNotes.length) {
+      out.push(el('div', { className: 'section-label', textContent: 'Done' }));
+      sortWithinBatch(doneNotes).forEach(n => out.push(buildNoteCard(n)));
     }
 
     listEl.replaceChildren(...out);
@@ -1634,6 +1658,7 @@
     document.getElementById('noteLabelInput').value = isEdit ? (existing.label || '') : '';
     document.getElementById('noteDueDateInput').value = isEdit ? (existing.dueDate || '') : '';
     document.getElementById('notePinnedInput').checked = isEdit ? !!(existing.isPinned || existing.pinned) : false;
+    document.getElementById('noteDoneInput').checked = isEdit ? isNoteDone(existing) : false;
     document.getElementById('noteDeleteBtn').hidden = !isEdit;
 
     const known = getAllKnownLabels();
@@ -1888,6 +1913,7 @@
       e.preventDefault();
       const id = document.getElementById('noteIdInput').value;
       const bodyText = document.getElementById('noteBodyInput').value;
+      const isDone = document.getElementById('noteDoneInput').checked;
       const note = {
         id: id || uid('note'),
         title: document.getElementById('noteTitleInput').value.trim(),
@@ -1897,6 +1923,9 @@
         dueDate: document.getElementById('noteDueDateInput').value || '',
         isPinned: document.getElementById('notePinnedInput').checked,
         pinned: document.getElementById('notePinnedInput').checked,
+        isDone: isDone,
+        completed: isDone,
+        done: isDone,
         updatedAt: new Date().toISOString()
       };
 
