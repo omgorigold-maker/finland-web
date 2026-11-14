@@ -1075,6 +1075,8 @@ select:not(.hidden):focus {
   display: block;
 }
 #followupSnapshotSheetContainer .price-offering-sheet {
+  width: 210mm !important;
+  min-width: 210mm !important;
   margin: 0 auto !important;
   height: auto !important;
   min-height: 297mm;
