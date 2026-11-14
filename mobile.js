@@ -154,7 +154,63 @@
     if (dlg && dlg.open) dlg.close();
   }
 
-  // ---------- Vault Auth & Sync ----------
+  // ---------- Vault Auth & Sync (Local Server + Cloud Vault) ----------
+  const CLOUD_VAULT_API = 'https://api.github.com/repos/omgorigold-maker/finland-vault/contents/vault_data.json';
+  const CLOUD_TOKEN_KEY = 'vault_cloud_gh_token';
+  let cloudVaultSha = '';
+
+  function extractCloudKeyFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      let key = url.searchParams.get('cloud_key') || '';
+      if (!key && window.location.hash && window.location.hash.includes('cloud_key=')) {
+        const m = window.location.hash.match(/cloud_key=([^&]+)/);
+        if (m) key = decodeURIComponent(m[1]);
+      }
+      key = key.trim();
+      if (key) {
+        localStorage.setItem(CLOUD_TOKEN_KEY, key);
+        url.searchParams.delete('cloud_key');
+        const cleanHash = (window.location.hash || '').replace(/([?#&]?)cloud_key=[^&]+&?/, '$1').replace(/[?&]$/, '');
+        history.replaceState(null, '', url.pathname + url.search + (cleanHash === '#' ? '' : cleanHash));
+        return key;
+      }
+    } catch { /* ignore */ }
+    return localStorage.getItem(CLOUD_TOKEN_KEY) || '';
+  }
+
+  function isCloudMode() {
+    const h = (window.location && window.location.hostname) || '';
+    if (h.endsWith('github.io')) return true;
+    return !!(extractCloudKeyFromUrl() && h !== 'localhost' && h !== '127.0.0.1');
+  }
+
+  function utf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  }
+
+  function base64ToUtf8(b64) {
+    const clean = String(b64 || '').replace(/\s+/g, '');
+    const bin = atob(clean);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function cloudHeaders(extra) {
+    const token = extractCloudKeyFromUrl();
+    return Object.assign({
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }, extra || {});
+  }
+
   function apiHeaders(extra) {
     const h = Object.assign({}, extra || {});
     if (state.authToken) h['Authorization'] = `Bearer ${state.authToken}`;
@@ -162,6 +218,13 @@
   }
 
   async function ensureAuth() {
+    if (isCloudMode()) {
+      const key = extractCloudKeyFromUrl();
+      if (key) return true;
+      openDialog('pinDialog');
+      return false;
+    }
+
     try {
       const res = await fetch('/api/auth/status', { headers: apiHeaders() });
       const data = await res.json();
@@ -319,7 +382,63 @@
     loadFromLocalStorage();
   }
 
-  async function postVaultKeys(payloadObj) {
+  async function fetchRemoteVault() {
+    if (isCloudMode()) {
+      const token = extractCloudKeyFromUrl();
+      if (!token) return { status: 401, data: null };
+      const res = await fetch(`${CLOUD_VAULT_API}?_t=${Date.now()}`, { headers: cloudHeaders(), cache: 'no-store' });
+      if (res.status === 401 || res.status === 403) return { status: 401, data: null };
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const meta = await res.json();
+      cloudVaultSha = (meta && meta.sha) || '';
+      let rawText = '';
+      if (meta && meta.content) {
+        rawText = base64ToUtf8(meta.content);
+      } else {
+        const rawRes = await fetch(`${CLOUD_VAULT_API}?_t=${Date.now()}`, {
+          headers: cloudHeaders({ 'Accept': 'application/vnd.github.v3.raw' }),
+          cache: 'no-store'
+        });
+        if (!rawRes.ok) throw new Error('HTTP ' + rawRes.status);
+        rawText = await rawRes.text();
+      }
+      return { status: 200, data: JSON.parse(rawText || '{}') };
+    }
+
+    const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
+    if (res.status === 401) return { status: 401, data: null };
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return { status: 200, data: await res.json() };
+  }
+
+  async function postVaultKeys(payloadObj, mergedFullVault) {
+    if (isCloudMode()) {
+      const outVault = Object.assign({}, mergedFullVault || {});
+      outVault._last_synced = new Date().toISOString();
+      const bodyObj = {
+        message: 'sync(mobile): update vault_data.json',
+        content: utf8ToBase64(JSON.stringify(outVault, null, 2))
+      };
+      if (cloudVaultSha) bodyObj.sha = cloudVaultSha;
+      const res = await fetch(CLOUD_VAULT_API, {
+        method: 'PUT',
+        headers: cloudHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(bodyObj)
+      });
+      if (res.status === 401 || res.status === 403) {
+        setSyncStatus('error', 'Locked');
+        openDialog('pinDialog');
+        return { ok: false, locked: true };
+      }
+      if (res.status === 409 || res.status === 422) {
+        return { ok: false, conflict: true };
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const putOut = await res.json().catch(() => ({}));
+      if (putOut && putOut.content && putOut.content.sha) cloudVaultSha = putOut.content.sha;
+      return { ok: true, out: putOut };
+    }
+
     const payload = Object.assign({}, payloadObj);
     if (state.restoreEpoch) payload._restore_epoch = state.restoreEpoch;
     const res = await fetch('/api/vault', {
@@ -354,7 +473,14 @@
       updatedKeys[key] = serialized;
     });
 
-    const res = await postVaultKeys(updatedKeys);
+    const res = await postVaultKeys(updatedKeys, mergedRemote);
+    if (res.conflict) {
+      // SHA conflict on Cloud Vault: re-pull latest and retry once
+      const fresh = await fetchRemoteVault();
+      if (fresh.status === 200 && fresh.data) {
+        return flushPendingOpsOnRemote(fresh.data);
+      }
+    }
     if (res.ok && (!res.out || res.out.status !== 'ignored_stale_epoch')) {
       setPendingOps([]);
     }
@@ -372,14 +498,13 @@
     return runSerializedSync(async () => {
       if (!silent) setSyncStatus('syncing', 'Syncing...');
       try {
-        const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
-        if (res.status === 401) {
+        const fetched = await fetchRemoteVault();
+        if (fetched.status === 401) {
           setSyncStatus('error', 'Locked');
           openDialog('pinDialog');
           return false;
         }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        let data = await res.json();
+        let data = fetched.data;
         if (data && data._restore_epoch) state.restoreEpoch = String(data._restore_epoch);
         if (getPendingOps().length > 0) {
           data = await flushPendingOpsOnRemote(data);
@@ -404,14 +529,13 @@
     return runSerializedSync(async () => {
       setSyncStatus('syncing', 'Saving...');
       try {
-        const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
-        if (res.status === 401) {
+        const fetched = await fetchRemoteVault();
+        if (fetched.status === 401) {
           setSyncStatus('error', 'Locked');
           openDialog('pinDialog');
           return;
         }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const remote = await res.json();
+        const remote = fetched.data;
         if (remote && remote._restore_epoch) state.restoreEpoch = String(remote._restore_epoch);
 
         const mergedRemote = await flushPendingOpsOnRemote(remote);
@@ -1310,17 +1434,31 @@
       showToast('Note deleted');
     });
 
-    // PIN Form
+    // PIN / Cloud Key Form
     document.getElementById('pinForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const pin = document.getElementById('pinInput').value.trim();
+      const val = document.getElementById('pinInput').value.trim();
       const err = document.getElementById('pinError');
       err.hidden = true;
+      if (!val) return;
+
+      if (isCloudMode()) {
+        localStorage.setItem(CLOUD_TOKEN_KEY, val);
+        const ok = await pullVault(false);
+        if (ok) {
+          closeDialog('pinDialog');
+        } else {
+          localStorage.removeItem(CLOUD_TOKEN_KEY);
+          err.hidden = false;
+        }
+        return;
+      }
+
       try {
         const res = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin, token: pin })
+          body: JSON.stringify({ pin: val, token: val })
         });
         if (!res.ok) throw new Error('Unauthorized');
         const data = await res.json();
