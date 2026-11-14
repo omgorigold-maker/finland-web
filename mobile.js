@@ -1929,12 +1929,18 @@
           return;
         }
         const dy = e.touches[0].clientY - startY;
+        if (dy <= 0) {
+          pulling = false;
+          ptrEl.hidden = true;
+          return;
+        }
+        if (e.cancelable) e.preventDefault();
         if (dy > 14) {
           pullDist = dy;
           ptrEl.hidden = false;
           ptrText.textContent = dy >= 68 ? 'Release to refresh' : 'Pull to refresh';
         }
-      }, { passive: true });
+      }, { passive: false });
       mainEl.addEventListener('touchend', async () => {
         if (!pulling) return;
         pulling = false;
