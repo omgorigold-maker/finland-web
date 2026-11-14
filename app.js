@@ -133,6 +133,20 @@
     );
   }
 
+  function blockShowcaseExport(label) {
+    if (!isDemoMode()) return false;
+    if (typeof showToast === 'function') {
+      showToast('Export Disabled in Showcase', `${label || 'Exporting and downloading'} is disabled in the public showcase.`, 'info');
+    }
+    return true;
+  }
+
+  if (isDemoMode() && typeof window !== 'undefined') {
+    window.print = function() {
+      blockShowcaseExport('Printing & PDF export');
+    };
+  }
+
   const DEFAULT_NAV_CONFIG = {
     expenses: {
       id: 'expenses',
@@ -2515,7 +2529,13 @@ Return a JSON object with this EXACT schema:
       return;
     }
 
-    dlBtn.classList.remove('hidden');
+    if (isDemoMode()) {
+      dlBtn.classList.add('hidden');
+      dlBtn.removeAttribute('href');
+      dlBtn.removeAttribute('download');
+    } else {
+      dlBtn.classList.remove('hidden');
+    }
     metaEl.textContent = `File: ${attachment.fileName || (isProject ? 'invoice.pdf' : 'receipt')}`;
 
     if (attachment.type === 'image' || attachment.type === 'image_url') {
@@ -2524,24 +2544,29 @@ Return a JSON object with this EXACT schema:
           <img src="${attachment.data}" class="max-h-[50vh] max-w-full rounded-xl border border-slate-700 shadow-2xl object-contain" alt="Receipt Photo" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'p-4 text-xs text-slate-400 font-mono break-all\\'>Gmail Protected Attachment Link:<br><br><a href=\\''+this.src+'\\' target=\\'_blank\\' class=\\'text-blue-400 underline\\'>Open Receipt in Gmail</a></div>';">
         </div>
       `;
-      dlBtn.href = attachment.data;
-      dlBtn.download = attachment.fileName || 'receipt.png';
-      dlBtn.target = '_blank';
+      if (!isDemoMode()) {
+        dlBtn.href = attachment.data;
+        dlBtn.download = attachment.fileName || 'receipt.png';
+        dlBtn.target = '_blank';
+      }
     } else if (attachment.type === 'pdf') {
       const pdfBlobUrl = typeof dataUrlToBlobUrl === 'function' ? dataUrlToBlobUrl(attachment.data, 'application/pdf') : attachment.data;
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
           <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
+          ${isDemoMode() ? '' : `
           <div class="flex items-center gap-2 pt-1">
             <a href="${pdfBlobUrl}" target="_blank" rel="noopener" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
               <span>Open in new tab</span>
             </a>
-          </div>
+          </div>`}
         </div>
       `;
-      dlBtn.href = pdfBlobUrl;
-      dlBtn.download = attachment.fileName || 'invoice.pdf';
+      if (!isDemoMode()) {
+        dlBtn.href = pdfBlobUrl;
+        dlBtn.download = attachment.fileName || 'invoice.pdf';
+      }
     } else {
       // EML or Text
       contentEl.innerHTML = `
@@ -2549,9 +2574,11 @@ Return a JSON object with this EXACT schema:
 ${escapeHtml(attachment.data)}
         </div>
       `;
-      const blob = new Blob([attachment.data], { type: 'text/plain' });
-      dlBtn.href = URL.createObjectURL(blob);
-      dlBtn.download = attachment.fileName || 'email_receipt.txt';
+      if (!isDemoMode()) {
+        const blob = new Blob([attachment.data], { type: 'text/plain' });
+        dlBtn.href = URL.createObjectURL(blob);
+        dlBtn.download = attachment.fileName || 'email_receipt.txt';
+      }
     }
 
     lucide.createIcons();
@@ -2578,7 +2605,13 @@ ${escapeHtml(attachment.data)}
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    dlBtn.classList.remove('hidden');
+    if (isDemoMode()) {
+      dlBtn.classList.add('hidden');
+      dlBtn.removeAttribute('href');
+      dlBtn.removeAttribute('download');
+    } else {
+      dlBtn.classList.remove('hidden');
+    }
     metaEl.textContent = `File: ${fileName || 'receipt'}`;
 
     let manageBtn = document.getElementById('receiptViewerManageBtn');
@@ -2608,33 +2641,40 @@ ${escapeHtml(attachment.data)}
           <img src="${data}" class="max-h-[50vh] max-w-full rounded-xl border border-slate-700 shadow-2xl object-contain" alt="Receipt Photo">
         </div>
       `;
-      dlBtn.href = data;
-      dlBtn.download = fileName || 'receipt.png';
-      dlBtn.target = '_blank';
+      if (!isDemoMode()) {
+        dlBtn.href = data;
+        dlBtn.download = fileName || 'receipt.png';
+        dlBtn.target = '_blank';
+      }
     } else if (type === 'pdf') {
       const pdfBlobUrl = typeof dataUrlToBlobUrl === 'function' ? dataUrlToBlobUrl(data, 'application/pdf') : data;
       contentEl.innerHTML = `
         <div class="w-full h-full flex flex-col items-center justify-center p-2 space-y-2">
           <iframe src="${pdfBlobUrl}" class="w-full h-[52vh] rounded-xl border border-slate-200 bg-white shadow-xs"></iframe>
+          ${isDemoMode() ? '' : `
           <div class="flex items-center gap-2 pt-1">
             <a href="${pdfBlobUrl}" target="_blank" rel="noopener" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
               <span>Open in new tab</span>
             </a>
-          </div>
+          </div>`}
         </div>
       `;
-      dlBtn.href = pdfBlobUrl;
-      dlBtn.download = fileName || 'invoice.pdf';
+      if (!isDemoMode()) {
+        dlBtn.href = pdfBlobUrl;
+        dlBtn.download = fileName || 'invoice.pdf';
+      }
     } else {
       contentEl.innerHTML = `
         <div class="w-full text-left bg-slate-900 rounded-xl p-4 border border-slate-800 text-xs font-mono text-slate-300 whitespace-pre-wrap select-text max-h-[50vh] overflow-y-auto">
 ${escapeHtml(data || '')}
         </div>
       `;
-      const blob = new Blob([data || ''], { type: 'text/plain' });
-      dlBtn.href = URL.createObjectURL(blob);
-      dlBtn.download = fileName || 'email_receipt.txt';
+      if (!isDemoMode()) {
+        const blob = new Blob([data || ''], { type: 'text/plain' });
+        dlBtn.href = URL.createObjectURL(blob);
+        dlBtn.download = fileName || 'email_receipt.txt';
+      }
     }
 
     lucide.createIcons();
@@ -8476,6 +8516,7 @@ ${escapeHtml(data || '')}
   }
 
   function exportReportsCsv() {
+    if (blockShowcaseExport('CSV export')) return;
     const periodExpenses = getReportPeriodExpenses();
     if (periodExpenses.length === 0) {
       alert('No expenses found for this period to export.');
@@ -8538,6 +8579,7 @@ ${escapeHtml(data || '')}
   }
 
   async function exportReportsAccountingZip() {
+    if (blockShowcaseExport('Accounting bundle export')) return;
     if (typeof reconcileSubscriptionReceiptsWithExpenses === 'function') {
       try { reconcileSubscriptionReceiptsWithExpenses(); } catch (e) {}
     }
@@ -10988,7 +11030,7 @@ FOLDER CONTENTS:
   }
 
   function exportToCsv() {
-    if (isDemoMode()) return;
+    if (blockShowcaseExport('CSV export')) return;
     const filtered = getFilteredExpenses();
     if (filtered.length === 0) {
       alert('No expenses found to export.');
@@ -11061,6 +11103,7 @@ FOLDER CONTENTS:
   }
 
   async function exportBusinessAccountingPackage() {
+    if (blockShowcaseExport('Accounting bundle export')) return;
     // Only business expenses are ever included in the accounting bundle
     const bizExpenses = state.expenses.filter(e => !!e.isBusiness);
 
@@ -21284,11 +21327,17 @@ function initSortableWidgets() {
       }
 
       if (dlBtn) {
-        if (previewUrl) {
+        if (isDemoMode()) {
+          dlBtn.removeAttribute('href');
+          dlBtn.removeAttribute('download');
+          dlBtn.classList.add('hidden');
+        } else if (previewUrl) {
+          dlBtn.classList.remove('hidden');
           dlBtn.href = previewUrl;
           dlBtn.download = attMeta.name || 'attachment';
           dlBtn.classList.remove('opacity-50', 'pointer-events-none');
         } else {
+          dlBtn.classList.remove('hidden');
           dlBtn.removeAttribute('href');
           dlBtn.classList.add('opacity-50', 'pointer-events-none');
         }
@@ -21332,10 +21381,10 @@ function initSortableWidgets() {
               </div>
               <h4 class="font-bold text-slate-800 text-sm truncate">${escapeHtml(attMeta.name)}</h4>
               <p class="text-xs text-slate-500 font-mono">${formatFileSize(attMeta.size)} document</p>
-              <a href="${previewUrl}" download="${escapeHtml(attMeta.name)}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-xs transition-all">
+              ${isDemoMode() ? '<p class="text-xs text-slate-400">File downloads are disabled in showcase mode.</p>' : `<a href="${previewUrl}" download="${escapeHtml(attMeta.name)}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl shadow-xs transition-all">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span>Download Document</span>
-              </a>
+              </a>`}
             </div>
           `;
         }
@@ -34002,6 +34051,7 @@ function initSortableWidgets() {
   }
 
   function printFollowupSnapshotDirectly() {
+    if (blockShowcaseExport('PDF export')) return;
     const modal = document.getElementById('followupExportSnapshotModal');
     if (!modal || modal.classList.contains('hidden')) return;
     const titleEl = document.getElementById('followupSnapshotModalTitle');
@@ -34145,6 +34195,7 @@ function initSortableWidgets() {
   let poAfterPrintRestoreFn = null;
 
   function exportPriceOfferingPdf() {
+    if (blockShowcaseExport('PDF export')) return;
     try {
       if (!poSkipSnapshotOnPrint) {
         savePriceOfferingDoc(false);
@@ -34231,6 +34282,7 @@ function initSortableWidgets() {
   }
 
   function copyPriceOfferingSummary() {
+    if (blockShowcaseExport('Copying document summary')) return;
     const studioDoc = resolveActiveStudioDoc();
     if (studioDoc) {
       flushLivePoDomToState();
@@ -35637,8 +35689,15 @@ ${sectionsText}
       captionInput.value = current.caption || '';
     }
     if (downloadBtn) {
-      downloadBtn.href = current.data;
-      downloadBtn.download = current.fileName || `project-image-${activeSlideIndex + 1}.jpg`;
+      if (isDemoMode()) {
+        downloadBtn.classList.add('hidden');
+        downloadBtn.removeAttribute('href');
+        downloadBtn.removeAttribute('download');
+      } else {
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.href = current.data;
+        downloadBtn.download = current.fileName || `project-image-${activeSlideIndex + 1}.jpg`;
+      }
     }
 
     if (prevBtn) {
@@ -38699,6 +38758,7 @@ ${sectionsText}
 
       const exportPoFromLeadBtn = e.target.closest('.export-lead-price-offering-btn');
       if (exportPoFromLeadBtn) {
+        if (blockShowcaseExport('PDF export')) return;
         const id = exportPoFromLeadBtn.getAttribute('data-id');
         if (id) {
           poCloseToDocsAfterPrint = true;
@@ -38753,6 +38813,7 @@ ${sectionsText}
 
       const exportProformaFromProjBtn = e.target.closest('.export-project-proforma-btn');
       if (exportProformaFromProjBtn) {
+        if (blockShowcaseExport('PDF export')) return;
         const id = exportProformaFromProjBtn.getAttribute('data-id');
         if (id) {
           poCloseToDocsAfterPrint = true;
@@ -42195,6 +42256,7 @@ ${sectionsText}
   }
 
   function exportStudioDocumentPdfQuick(docId) {
+    if (blockShowcaseExport('PDF export')) return;
     poCloseToDocsAfterPrint = true;
     openStudioDocumentEditor(docId);
     setTimeout(() => {
@@ -43221,6 +43283,7 @@ ${sectionsText}
   }
 
   async function downloadVaultDocument(docId) {
+    if (blockShowcaseExport('Document download')) return;
     const doc = (state.documents || []).find(d => d.id === docId);
     if (!doc) return;
     const att = (activeViewerDocId === docId && activeViewerAttachment)
@@ -43268,6 +43331,7 @@ ${sectionsText}
   }
 
   async function printScanAsA4Pdf() {
+    if (blockShowcaseExport('PDF export')) return;
     const doc = (state.documents || []).find(d => d.id === activeViewerDocId);
     if (!doc || !activeViewerAttachment || !activeViewerAttachment.data) return;
 
@@ -44152,6 +44216,7 @@ ${sectionsText}
       printScanAsA4Pdf();
     });
     document.getElementById('docViewerCopyImgBtn')?.addEventListener('click', async () => {
+      if (blockShowcaseExport('Copying documents')) return;
       if (!activeViewerAttachment || !activeViewerAttachment.data) return;
       try {
         const srcImg = document.getElementById('docScanViewerImg') || document.querySelector('#docScanViewerPdfPages .doc-scan-pdf-page-img');
@@ -46368,6 +46433,7 @@ ${sectionsText}
   }
 
   function exportCalendarPlanToIcs() {
+    if (blockShowcaseExport('Calendar export')) return;
     if (!state.calendarPlan) loadCalendarPlanData();
     const lines = [
       'BEGIN:VCALENDAR',
