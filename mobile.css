@@ -854,6 +854,16 @@ button {
   flex-direction: column;
 }
 
+.main-content:has(#view-notes:not([hidden])) .ptr-indicator {
+  border-width: 0;
+  flex-shrink: 0;
+}
+
+.main-content:has(#view-notes:not([hidden])) .ptr-indicator.is-visible {
+  border-width: 1px;
+  margin: 10px auto 0;
+}
+
 #view-notes:not([hidden]) {
   flex: 1;
   min-height: 0;

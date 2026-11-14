@@ -2337,13 +2337,21 @@
       let startY = 0;
       let pulling = false;
       let pullDist = 0;
+      const getPtrScrollTop = () => {
+        const notesView = document.getElementById('view-notes');
+        const notesList = document.getElementById('notesList');
+        if (notesView && !notesView.hidden && notesList) {
+          return notesList.scrollTop;
+        }
+        return mainEl.scrollTop;
+      };
       const resetPtr = () => {
         pulling = false;
         pullDist = 0;
         ptrEl.classList.remove('is-visible');
       };
       mainEl.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1 || mainEl.scrollTop > 0) {
+        if (e.touches.length !== 1 || getPtrScrollTop() > 0) {
           resetPtr();
           return;
         }
@@ -2357,7 +2365,7 @@
         pullDist = 0;
       }, { passive: true });
       mainEl.addEventListener('touchmove', (e) => {
-        if (!pulling || mainEl.scrollTop > 0 || e.touches.length !== 1) {
+        if (!pulling || getPtrScrollTop() > 0 || e.touches.length !== 1) {
           resetPtr();
           return;
         }
