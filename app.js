@@ -21805,7 +21805,7 @@ function initSortableWidgets() {
       }
       if (Array.isArray(docObj.items) && docObj.items.length === 1) {
         const it = docObj.items[0];
-        if (!it.description || it.description === prevTitleTrim || it.description === 'Project Scope & Deliverables') {
+        if (!it.description || it.description === 'Project Scope & Deliverables') {
           it.description = nextTitle;
           if (docObj.richText && docObj.richText.item_desc_0) {
             docObj.richText.item_desc_0 = poWrapTextWithRichStyle(docObj.richText.item_desc_0, nextTitle, true);
@@ -21814,7 +21814,7 @@ function initSortableWidgets() {
       }
     }
     const nextDue = entity.paymentDueDate || entity.dueDate || entity.targetDate || '';
-    if (nextDue && (!docObj.validUntil || (syncDates && docObj.validUntil !== nextDue))) {
+    if (nextDue && (!docObj.validUntil || (syncDates && docObj._isProforma && !docObj._isDepositProforma && docObj.validUntil !== nextDue))) {
       docObj.validUntil = nextDue;
       if (docObj.richText && docObj.richText.valid_until_val) {
         docObj.richText.valid_until_val = poWrapTextWithRichStyle(docObj.richText.valid_until_val, nextDue, false);
@@ -22833,7 +22833,7 @@ function initSortableWidgets() {
             }
           }
           const leadAmt = parseFloat(lead.amount) || 0;
-          if (Array.isArray(po.items) && po.items.length === 1 && leadAmt > 0 && Number(po.items[0].rate) !== leadAmt) {
+          if (Array.isArray(po.items) && po.items.length === 1 && leadAmt > 0 && (parseFloat(po.items[0].rate) || 0) === 0) {
             syncDraftSingleItemAmount(po, leadAmt, lead.currency);
           }
           if (!po.client || !po.projectTitle) {
@@ -22994,22 +22994,19 @@ function initSortableWidgets() {
             pi.docSubtitle = 'Preliminary Invoice / Advance Payment Request';
             if (pi.richText) delete pi.richText.doc_subtitle;
           }
-          if (!pi.labels || pi.labels.reference === 'Reference #' || pi.labels.validUntil === 'Valid Until' || pi.labels.totalEstimate === 'Total Estimate' || !pi.labels.issueDate) {
+          if (!pi.labels) {
             pi.labels = Object.assign({}, PROFORMA_DEFAULT_LABELS);
-            if (pi.richText) {
-              ['label_preparedFor', 'label_reference', 'label_issueDate', 'label_validUntil', 'label_totalEstimate', 'label_client', 'label_ref', 'label_issue_date', 'label_valid_until', 'label_total_investment'].forEach(k => delete pi.richText[k]);
-            }
+          } else {
+            Object.keys(PROFORMA_DEFAULT_LABELS).forEach(k => {
+              if (pi.labels[k] === undefined || pi.labels[k] === null) {
+                pi.labels[k] = PROFORMA_DEFAULT_LABELS[k];
+              }
+            });
           }
           if (Array.isArray(pi.sections)) {
-            const needsProformaSectionHeal =
-              pi.sections.some(s => s && s.type === 'text' && (!s.title || s.title.trim() === '*') && (!s.content || !s.content.trim())) ||
-              !pi.sections.some(s => s && s.type === 'terms' && (s.content || '').includes('IBAN:')) ||
-              pi.sections.some(s => s && (s.type === 'overview' || s.type === 'scope') && !(s.content || '').trim());
-            if (needsProformaSectionHeal) {
-              pi.sections = buildProformaSectionsFromTemplate(pi.sections, pi.sections, proj);
-            }
+            pi.sections = pi.sections.filter(s => !(s && s.type === 'text' && (!s.title || s.title.trim() === '*') && (!s.content || !s.content.trim())));
           }
-          if (Array.isArray(pi.items) && pi.items.length === 1 && projFee > 0 && Number(pi.items[0].rate) !== projFee) {
+          if (Array.isArray(pi.items) && pi.items.length === 1 && projFee > 0 && (parseFloat(pi.items[0].rate) || 0) === 0) {
             syncDraftSingleItemAmount(pi, projFee, proj.currency);
           }
           if (!pi.client || !pi.projectTitle) {
@@ -26641,24 +26638,35 @@ function initSortableWidgets() {
 
   function setPoDefaultTemplateAcrossSite(tplId) {
     restorePoTemplateHoverPreview();
-    const list = getPoSavedTemplates();
+    const curDocType = getActiveDocType();
+    const list = getPoSavedTemplates(curDocType);
     const tpl = list.find(t => t.id === tplId);
     if (!tpl) return;
 
     list.forEach(t => { t.isDefault = (t.id === tpl.id); });
-    savePoSavedTemplates(list);
+    savePoSavedTemplates(list, curDocType);
 
+    const docType = tpl.docType || curDocType || 'price_quote';
+    const lsKey = docType === 'deposit_proforma'
+      ? 'ft_po_default_deposit_proforma_template'
+      : (docType === 'proforma' ? 'ft_po_default_proforma_template' : 'ft_po_default_template');
     try {
-      localStorage.setItem('ft_po_default_template', JSON.stringify(tpl));
+      localStorage.setItem(lsKey, JSON.stringify(tpl));
     } catch (e) {}
 
     if (state.budget) {
-      state.budget.poDefaultTemplate = JSON.parse(JSON.stringify(tpl));
+      if (docType === 'deposit_proforma') {
+        state.budget.poDefaultDepositProformaTemplate = JSON.parse(JSON.stringify(tpl));
+      } else if (docType === 'proforma') {
+        state.budget.poDefaultProformaTemplate = JSON.parse(JSON.stringify(tpl));
+      } else {
+        state.budget.poDefaultTemplate = JSON.parse(JSON.stringify(tpl));
+      }
       saveBudget();
     }
 
     renderPoSavedTemplatesGallery();
-    showToast(`Default Template Set ★`, `"${tpl.name}" is now the default template for new quote & proposal documents.`, 'success');
+    showToast(`Default Template Set ★`, `"${tpl.name}" is now the default template for this document type.`, 'success');
   }
 
   function isCurrentDocModifiedFromTemplate(tpl) {
@@ -26921,9 +26929,18 @@ function initSortableWidgets() {
     if (poTemplateDesignEditBackup && poTemplateDesignEditBackup.tplId === tplId && poTemplateDesignEditBackup.originalTpl) {
       poTemplateDesignEditBackup.originalTpl.name = trimmed;
     }
-    if (tpl.isDefault && state.budget?.poDefaultTemplate) {
-      state.budget.poDefaultTemplate.name = trimmed;
-      try { localStorage.setItem('ft_po_default_template', JSON.stringify(tpl)); } catch (e) {}
+    if (tpl.isDefault) {
+      const dt = tpl.docType || getActiveDocType();
+      if (dt === 'deposit_proforma') {
+        if (state.budget?.poDefaultDepositProformaTemplate) state.budget.poDefaultDepositProformaTemplate.name = trimmed;
+        try { localStorage.setItem('ft_po_default_deposit_proforma_template', JSON.stringify(tpl)); } catch (e) {}
+      } else if (dt === 'proforma') {
+        if (state.budget?.poDefaultProformaTemplate) state.budget.poDefaultProformaTemplate.name = trimmed;
+        try { localStorage.setItem('ft_po_default_proforma_template', JSON.stringify(tpl)); } catch (e) {}
+      } else {
+        if (state.budget?.poDefaultTemplate) state.budget.poDefaultTemplate.name = trimmed;
+        try { localStorage.setItem('ft_po_default_template', JSON.stringify(tpl)); } catch (e) {}
+      }
     }
     savePoSavedTemplates(list);
     renderPoSavedTemplatesGallery();
@@ -26959,8 +26976,17 @@ function initSortableWidgets() {
     }
     if (target.isDefault && list.length > 0) {
       list[0].isDefault = true;
-      if (state.budget) state.budget.poDefaultTemplate = JSON.parse(JSON.stringify(list[0]));
-      try { localStorage.setItem('ft_po_default_template', JSON.stringify(list[0])); } catch (e) {}
+      const dt = target.docType || getActiveDocType();
+      if (dt === 'deposit_proforma') {
+        if (state.budget) state.budget.poDefaultDepositProformaTemplate = JSON.parse(JSON.stringify(list[0]));
+        try { localStorage.setItem('ft_po_default_deposit_proforma_template', JSON.stringify(list[0])); } catch (e) {}
+      } else if (dt === 'proforma') {
+        if (state.budget) state.budget.poDefaultProformaTemplate = JSON.parse(JSON.stringify(list[0]));
+        try { localStorage.setItem('ft_po_default_proforma_template', JSON.stringify(list[0])); } catch (e) {}
+      } else {
+        if (state.budget) state.budget.poDefaultTemplate = JSON.parse(JSON.stringify(list[0]));
+        try { localStorage.setItem('ft_po_default_template', JSON.stringify(list[0])); } catch (e) {}
+      }
     }
     if (activePoTemplateId === tplId) {
       activePoTemplateId = list[0]?.id || null;
@@ -31117,10 +31143,10 @@ function initSortableWidgets() {
       } catch (e) {}
     }
 
-    const hasCustomSender = po.sender && (po.sender.name || po.sender.title || po.sender.contact || po.sender.location) && po.sender.name !== 'Your Name / Studio';
+    const hasSavedSenderObj = po.sender && typeof po.sender === 'object' && po.sender.name !== 'Your Name / Studio';
     const baseSender = isStudioDoc
       ? (po.sender || masterTpl.sender)
-      : (hasCustomSender ? po.sender : (savedSender && savedSender.name !== 'Your Name / Studio' ? savedSender : masterTpl.sender));
+      : (hasSavedSenderObj ? po.sender : (savedSender && savedSender.name !== 'Your Name / Studio' ? savedSender : masterTpl.sender));
     const sender = {
       name: live('poSenderName', baseSender.name !== undefined ? baseSender.name : masterTpl.sender.name),
       title: live('poSenderTitle', baseSender.title !== undefined ? baseSender.title : masterTpl.sender.title),
@@ -31143,28 +31169,13 @@ function initSortableWidgets() {
 
     let defaultDocTitle = defaultHeading;
     if (isStudioDoc) {
-      defaultDocTitle = po.docTitle || '';
-    } else if (isDepositProforma) {
-      defaultDocTitle = (po.docTitle && !po.docTitle.includes('Price Quote') && !po.docTitle.includes('Proposal') && po.docTitle !== 'PROFORMA INVOICE') ? po.docTitle : 'DEPOSIT PROFORMA INVOICE';
-    } else if (isProforma) {
-      defaultDocTitle = (po.docTitle && !po.docTitle.includes('Price Quote') && !po.docTitle.includes('Proposal') && !po.docTitle.includes('DEPOSIT')) ? po.docTitle : 'PROFORMA INVOICE';
+      defaultDocTitle = po.docTitle !== undefined ? po.docTitle : '';
     } else {
-      defaultDocTitle = (po.docTitle && !po.docTitle.includes('PROFORMA')) ? po.docTitle : 'Price Quote / Proposal';
+      defaultDocTitle = (po.docTitle !== undefined && po.docTitle !== '') ? po.docTitle : defaultHeading;
     }
 
     const rawLiveHeading = live('poDocHeading', defaultDocTitle);
-    let docTitle = defaultDocTitle;
-    if (rawLiveHeading) {
-      if (isDepositProforma) {
-        docTitle = (!rawLiveHeading.includes('Price Quote') && !rawLiveHeading.includes('Proposal') && rawLiveHeading !== 'PROFORMA INVOICE') ? rawLiveHeading : 'DEPOSIT PROFORMA INVOICE';
-      } else if (isProforma) {
-        docTitle = (!rawLiveHeading.includes('Price Quote') && !rawLiveHeading.includes('Proposal') && !rawLiveHeading.includes('DEPOSIT')) ? rawLiveHeading : 'PROFORMA INVOICE';
-      } else if (isStudioDoc) {
-        docTitle = rawLiveHeading;
-      } else {
-        docTitle = (!rawLiveHeading.includes('PROFORMA')) ? rawLiveHeading : 'Price Quote / Proposal';
-      }
-    }
+    const docTitle = rawLiveHeading !== undefined && rawLiveHeading !== '' ? rawLiveHeading : defaultDocTitle;
 
     const docSubtitle = live('poDocSubtitle', po.docSubtitle !== undefined ? po.docSubtitle : defaultSub);
 
@@ -31952,17 +31963,13 @@ function initSortableWidgets() {
       } catch (e) {}
     }
 
-    let finalDocTitle = document.getElementById('poDocHeading')?.value || '';
-    if (lead._isDepositProforma || state.activeDepositProformaProjectId) {
-      if (!finalDocTitle || finalDocTitle.includes('Price Quote') || finalDocTitle.includes('Proposal') || finalDocTitle === 'PROFORMA INVOICE') {
+    let finalDocTitle = document.getElementById('poDocHeading')?.value ?? '';
+    if (!finalDocTitle.trim() && !lead._isStudioDoc) {
+      if (lead._isDepositProforma || state.activeDepositProformaProjectId) {
         finalDocTitle = 'DEPOSIT PROFORMA INVOICE';
-      }
-    } else if (lead._isProforma || state.activeProformaProjectId) {
-      if (!finalDocTitle || finalDocTitle.includes('Price Quote') || finalDocTitle.includes('Proposal') || finalDocTitle.includes('DEPOSIT')) {
+      } else if (lead._isProforma || state.activeProformaProjectId) {
         finalDocTitle = 'PROFORMA INVOICE';
-      }
-    } else if (!lead._isStudioDoc) {
-      if (!finalDocTitle || finalDocTitle.includes('PROFORMA')) {
+      } else {
         finalDocTitle = 'Price Quote / Proposal';
       }
     }
@@ -32087,9 +32094,7 @@ function initSortableWidgets() {
         proj.title = offeringData.projectTitle.trim();
         proj.description = proj.title;
       }
-      if (offeringData.validUntil) {
-        proj.paymentDueDate = offeringData.validUntil;
-      }
+      // Deposit Proforma validUntil is independent and must not overwrite proj.paymentDueDate / Proforma Invoice
 
       saveBudget();
 
@@ -32133,9 +32138,7 @@ function initSortableWidgets() {
         proj.title = offeringData.projectTitle.trim();
         proj.description = proj.title;
       }
-      if (offeringData.validUntil) {
-        proj.paymentDueDate = offeringData.validUntil;
-      }
+      // Deposit Proforma validUntil is independent and must not overwrite proj.paymentDueDate / Proforma Invoice
       const hasQuoteTotal = proj.priceOffering && !isNaN(parseFloat(proj.priceOffering.total)) && parseFloat(proj.priceOffering.total) > 0;
       const isPlaceholderItem = currentPoItems.some(it =>
         it && it.description && /\[PROJECT TITLE|COMPLETED CREATIVE SCOPE|DPI REFERENCE\]/i.test(it.description)
@@ -32649,12 +32652,12 @@ function initSortableWidgets() {
 
     const po = proj.proformaInvoice;
     po._isProforma = true;
+    po._isDepositProforma = false;
 
-    // Ensure Proforma sections have Payment Terms & Bank Details, Notice & Invoicing Notes, and no quote-only blocks
+    // Only replace literal unfilled bank placeholder if present; never overwrite user-edited sections
     if (Array.isArray(po.sections) && po.sections.length > 0) {
-      po.sections = buildProformaSectionsFromTemplate(po.sections, po.sections, proj);
       const termsSec = po.sections.find(s => s && s.type === 'terms');
-      if (termsSec && (termsSec.content.includes('[Your Bank Name]') || termsSec.content.includes('within 14 days') || termsSec.content.includes('Address: Wise'))) {
+      if (termsSec && typeof termsSec.content === 'string' && termsSec.content.includes('[Your Bank Name]')) {
         termsSec.content = getProformaDefaultTerms();
       }
     }
@@ -32929,10 +32932,9 @@ function initSortableWidgets() {
     if (!poElementStyles.doc_subtitle.color || poElementStyles.doc_subtitle.color === '#db2777') {
       poElementStyles.doc_subtitle.color = '#64748b';
     }
-    poElementStyles.doc_subtitle.fontWeight = '700';
-    poElementStyles.doc_subtitle.letterSpacing = '0.05em';
-    if (po.elementStyles && po.elementStyles.doc_subtitle && po.elementStyles.doc_subtitle.color === '#db2777') {
-      po.elementStyles.doc_subtitle.color = '#64748b';
+    if (!hadExistingDepositProforma) {
+      if (!poElementStyles.doc_subtitle.fontWeight) poElementStyles.doc_subtitle.fontWeight = '700';
+      if (!poElementStyles.doc_subtitle.letterSpacing) poElementStyles.doc_subtitle.letterSpacing = '0.05em';
     }
 
     poRichText = Object.assign(
@@ -32947,8 +32949,12 @@ function initSortableWidgets() {
     const initialTypography = po.typography ? Object.assign({}, defaultTypography, po.typography) : defaultTypography;
 
     po.labels = Object.assign({}, DEFAULT_PO_TEMPLATE.labels, masterTpl.labels || {}, DEPOSIT_PROFORMA_DEFAULT_LABELS, po.labels || {});
-    po.docTitle = 'DEPOSIT PROFORMA INVOICE';
-    po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    if (po.docTitle === undefined || po.docTitle === '') {
+      po.docTitle = 'DEPOSIT PROFORMA INVOICE';
+    }
+    if (po.docSubtitle === undefined) {
+      po.docSubtitle = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
+    }
     if (!po.validUntil || po.validUntil === 'upon signing quote / agreement') {
       po.validUntil = new Date().toISOString().split('T')[0];
     }
@@ -32963,9 +32969,9 @@ function initSortableWidgets() {
 
     applyPriceOfferingTypography(initialTypography, false);
 
-    // Sections
+    // Sections (preserve saved sections verbatim; only generate defaults if missing)
     currentPoSections = Array.isArray(po.sections) && po.sections.length > 0
-      ? buildProformaSectionsFromTemplate(po.sections, po.sections, proj, true)
+      ? JSON.parse(JSON.stringify(po.sections))
       : getDefaultPoSections(po, proj);
     po.sections = JSON.parse(JSON.stringify(currentPoSections));
 
