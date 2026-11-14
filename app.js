@@ -31116,7 +31116,7 @@ function initSortableWidgets() {
     };
 
     let defaultHeading = 'Price Quote / Proposal';
-    let defaultSub = '';
+    let defaultSub = (lead && (lead.title || lead.description)) ? (lead.title || lead.description) : '';
     if (isDepositProforma) {
       defaultHeading = 'DEPOSIT PROFORMA INVOICE';
       defaultSub = 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST';
@@ -32388,14 +32388,14 @@ function initSortableWidgets() {
       if (po.richText) delete po.richText.doc_subtitle;
     }
     if (po.docSubtitle === 'PRELIMINARY DEPOSIT / ADVANCE PAYMENT REQUEST' || po.docSubtitle === 'OFFICIAL PROFORMA INVOICE / FINAL PAYMENT REQUEST' || po.docSubtitle === 'Preliminary Invoice / Advance Payment Request') {
-      po.docSubtitle = '';
+      po.docSubtitle = lead.title || lead.description || '';
       if (po.richText) delete po.richText.doc_subtitle;
     }
     if (po.labels && (!po.labels.discount || po.labels.discount === 'Discount')) {
       po.labels.discount = 'Bundle Discount';
     }
     if (po.docSubtitle === undefined) {
-      po.docSubtitle = masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle;
+      po.docSubtitle = lead.title || lead.description || (masterTpl.docSubtitle !== undefined ? masterTpl.docSubtitle : DEFAULT_PO_TEMPLATE.docSubtitle);
     }
     if (!po.sender || po.sender.name === 'Your Name / Studio') {
       po.sender = Object.assign({}, masterTpl.sender || DEFAULT_PO_TEMPLATE.sender);
@@ -32422,7 +32422,7 @@ function initSortableWidgets() {
       currentPoItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: lead.title || 'Project Scope & Deliverables',
+          description: '',
           qty: 1,
           rate: initLeadAmount,
           amount: initLeadAmount
@@ -32518,7 +32518,7 @@ function initSortableWidgets() {
       let initialItems = [
         {
           id: 'po_item_' + Date.now(),
-          description: proj.title || 'Project Scope & Deliverables',
+          description: '',
           qty: 1,
           rate: projAmount,
           amount: projAmount
@@ -32811,11 +32811,11 @@ function initSortableWidgets() {
       const todayStr = new Date().toISOString().split('T')[0];
       const dueStr = todayStr;
 
-      const projItemName = proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || 'Project Scope & Deliverables';
+      const projItemName = (srcQuote && srcQuote.docSubtitle) || proj.title || proj.description || (srcQuote && srcQuote.projectTitle) || '';
       let initialItems = [
         {
           id: 'po_item_dep_' + Date.now(),
-          description: `50% Project Commencement Deposit — \n${projItemName}`,
+          description: projItemName ? `50% Project Commencement Deposit — \n${projItemName}` : '50% Project Commencement Deposit',
           qty: 1,
           rate: fullProjAmount,
           amount: depositRate
