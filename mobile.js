@@ -187,19 +187,27 @@
     return false;
   }
 
+  const MOBILE_CACHE_PREFIX = 'finland_mobile_cache_';
+  function mCacheGet(k) {
+    return localStorage.getItem(MOBILE_CACHE_PREFIX + k);
+  }
+  function mCacheSet(k, val) {
+    localStorage.setItem(MOBILE_CACHE_PREFIX + k, val);
+  }
+
   function loadFromLocalStorage() {
-    state.displayCurrency = localStorage.getItem(KEYS.DISPLAY_CURRENCY) || 'EUR';
+    state.displayCurrency = mCacheGet(KEYS.DISPLAY_CURRENCY) || 'EUR';
     if (!CURRENCIES.includes(state.displayCurrency)) state.displayCurrency = 'EUR';
-    state.rates = parseJSON(localStorage.getItem(KEYS.RATES_CACHE), { EUR: 1, USD: 1.08, ILS: 3.95 });
-    state.appPrefs = parseJSON(localStorage.getItem(KEYS.APP_PREFS), {});
-    state.expenses = parseJSON(localStorage.getItem(KEYS.EXPENSES), []);
-    state.subscriptions = parseJSON(localStorage.getItem(KEYS.SUBSCRIPTIONS), []);
-    state.budget = parseJSON(localStorage.getItem(KEYS.BUDGET), { projects: [], leads: [] });
+    state.rates = parseJSON(mCacheGet(KEYS.RATES_CACHE), { EUR: 1, USD: 1.08, ILS: 3.95 });
+    state.appPrefs = parseJSON(mCacheGet(KEYS.APP_PREFS), {});
+    state.expenses = parseJSON(mCacheGet(KEYS.EXPENSES), []);
+    state.subscriptions = parseJSON(mCacheGet(KEYS.SUBSCRIPTIONS), []);
+    state.budget = parseJSON(mCacheGet(KEYS.BUDGET), { projects: [], leads: [] });
     if (!Array.isArray(state.budget.projects)) state.budget.projects = [];
     if (!Array.isArray(state.budget.leads)) state.budget.leads = [];
-    state.notes = parseJSON(localStorage.getItem(KEYS.NOTES), []);
-    state.noteLabels = parseJSON(localStorage.getItem(KEYS.NOTE_LABELS), []);
-    state.calendarPlan = parseJSON(localStorage.getItem(KEYS.CALENDAR_PLAN), { items: [], sources: {} });
+    state.notes = parseJSON(mCacheGet(KEYS.NOTES), []);
+    state.noteLabels = parseJSON(mCacheGet(KEYS.NOTE_LABELS), []);
+    state.calendarPlan = parseJSON(mCacheGet(KEYS.CALENDAR_PLAN), { items: [], sources: {} });
     if (!Array.isArray(state.calendarPlan.items)) state.calendarPlan.items = [];
     document.getElementById('currencyBtn').textContent = state.displayCurrency;
   }
@@ -210,7 +218,7 @@
     Object.values(KEYS).forEach(k => {
       if (remote[k] !== undefined && remote[k] !== null) {
         const str = typeof remote[k] === 'string' ? remote[k] : JSON.stringify(remote[k]);
-        localStorage.setItem(k, str);
+        mCacheSet(k, str);
       }
     });
     loadFromLocalStorage();
@@ -304,10 +312,10 @@
 
   function applyOpLocally(key, op) {
     const fallback = (key === KEYS.EXPENSES || key === KEYS.NOTES) ? [] : (key === KEYS.DISPLAY_CURRENCY ? 'EUR' : {});
-    const cur = key === KEYS.DISPLAY_CURRENCY ? (localStorage.getItem(key) || 'EUR') : parseJSON(localStorage.getItem(key), fallback);
+    const cur = key === KEYS.DISPLAY_CURRENCY ? (mCacheGet(key) || 'EUR') : parseJSON(mCacheGet(key), fallback);
     const next = applyOpToValue(key, cur, op);
     const serialized = typeof next === 'string' ? next : JSON.stringify(next);
-    localStorage.setItem(key, serialized);
+    mCacheSet(key, serialized);
     loadFromLocalStorage();
   }
 
@@ -353,64 +361,66 @@
     return mergedRemote;
   }
 
+  let syncQueue = Promise.resolve();
+  function runSerializedSync(fn) {
+    const next = syncQueue.then(fn, fn);
+    syncQueue = next.catch(() => {});
+    return next;
+  }
+
   async function pullVault(silent) {
-    if (!silent) setSyncStatus('syncing', 'Syncing...');
-    try {
-      const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
-      if (res.status === 401) {
-        setSyncStatus('error', 'Locked');
-        openDialog('pinDialog');
+    return runSerializedSync(async () => {
+      if (!silent) setSyncStatus('syncing', 'Syncing...');
+      try {
+        const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
+        if (res.status === 401) {
+          setSyncStatus('error', 'Locked');
+          openDialog('pinDialog');
+          return false;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        let data = await res.json();
+        if (data && data._restore_epoch) state.restoreEpoch = String(data._restore_epoch);
+        if (getPendingOps().length > 0) {
+          data = await flushPendingOpsOnRemote(data);
+        }
+        applyVaultPayload(data);
+        setSyncStatus('ok', 'Synced');
+        return true;
+      } catch {
+        setSyncStatus('error', 'Offline');
         return false;
       }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      let data = await res.json();
-      if (data && data._restore_epoch) state.restoreEpoch = String(data._restore_epoch);
-      if (getPendingOps().length > 0) {
-        data = await flushPendingOpsOnRemote(data);
-      }
-      applyVaultPayload(data);
-      setSyncStatus('ok', 'Synced');
-      return true;
-    } catch {
-      setSyncStatus('error', 'Offline');
-      return false;
-    }
+    });
   }
 
   async function smartMutateAndPush(key, op) {
-    // 1. Update local immediately for instant UI responsiveness
+    // 1. Update isolated mobile cache immediately + queue op once (no duplicate on retry)
     applyOpLocally(key, op);
-    setSyncStatus('syncing', 'Saving...');
+    const queued = getPendingOps();
+    queued.push({ key, op });
+    setPendingOps(queued);
 
-    try {
-      // 2. Pull latest server vault first so we never clobber desktop edits
-      const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
-      if (res.status === 401) {
-        const ops = getPendingOps();
-        ops.push({ key, op });
-        setPendingOps(ops);
-        setSyncStatus('error', 'Locked');
-        openDialog('pinDialog');
-        return;
+    return runSerializedSync(async () => {
+      setSyncStatus('syncing', 'Saving...');
+      try {
+        const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
+        if (res.status === 401) {
+          setSyncStatus('error', 'Locked');
+          openDialog('pinDialog');
+          return;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const remote = await res.json();
+        if (remote && remote._restore_epoch) state.restoreEpoch = String(remote._restore_epoch);
+
+        const mergedRemote = await flushPendingOpsOnRemote(remote);
+        applyVaultPayload(mergedRemote);
+        setSyncStatus('ok', 'Synced');
+      } catch {
+        setSyncStatus('error', 'Offline');
       }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const remote = await res.json();
-      if (remote && remote._restore_epoch) state.restoreEpoch = String(remote._restore_epoch);
-
-      // 3. Replay any queued ops + this new op on top of the latest remote data
-      const ops = getPendingOps();
-      ops.push({ key, op });
-      setPendingOps(ops);
-      const mergedRemote = await flushPendingOpsOnRemote(remote);
-      applyVaultPayload(mergedRemote);
-      setSyncStatus('ok', 'Synced');
-    } catch {
-      // Offline: keep surgical op queued so it merges cleanly on reconnect
-      const ops = getPendingOps();
-      ops.push({ key, op });
-      setPendingOps(ops);
-      setSyncStatus('error', 'Offline');
-    }
+    });
   }
 
   // ---------- Domain Helpers (Matching Desktop App) ----------
