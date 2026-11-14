@@ -32470,7 +32470,7 @@ function initSortableWidgets() {
       po.docSubtitle = lead.title || lead.description || '';
       if (po.richText) delete po.richText.doc_subtitle;
     }
-    if (po.labels && (!po.labels.discount || po.labels.discount === 'Discount')) {
+    if (po.labels && !po.labels.discount) {
       po.labels.discount = 'Bundle Discount';
     }
     if (po.docSubtitle === undefined) {
@@ -33406,279 +33406,6 @@ function initSortableWidgets() {
     }
   }
 
-  function buildRealPoSheetHtml(snap, entity = null, isProforma = false) {
-    const d = (snap && snap.data) ? snap.data : (snap || {});
-    if (!entity) {
-      const targetId = (snap && snap.ownerId) || (d && d.ownerId) || state.activeFollowupProjectId || state.activeFollowupLeadId || state.activePriceOfferingLeadId || state.activeProformaProjectId;
-      if (targetId) {
-        entity = (state.budget?.projects || []).find(p => p.id === targetId) || (state.budget?.leads || []).find(l => l.id === targetId);
-      }
-    }
-    if (d && d._isProforma === true) {
-      isProforma = true;
-    } else if (d && (d._isProforma === false || d._isDepositProforma === true)) {
-      isProforma = false;
-    } else if (entity && !isProforma && !d.refNo?.startsWith('PO-') && !d.refNo?.startsWith('DPI-')) {
-      isProforma = (state.budget?.projects || []).some(p => p.id === entity.id) && !!entity.proformaInvoice && !entity.priceOffering;
-    }
-    const cur = d.currency || (entity && entity.currency) || state.displayCurrency || 'EUR';
-
-    const masterTpl = typeof getMasterPoTemplate === 'function' ? getMasterPoTemplate() : (typeof DEFAULT_PO_TEMPLATE !== 'undefined' ? DEFAULT_PO_TEMPLATE : {});
-    const snapTypo = Object.assign({}, (DEFAULT_PO_TEMPLATE && DEFAULT_PO_TEMPLATE.typography) || {}, masterTpl.typography || {}, d.typography || {});
-    const fontFamily = snapTypo.fontFamily || 'Inter, sans-serif';
-    const fontSize = snapTypo.fontSize || 13;
-    const lineHeight = snapTypo.lineHeight || 1.6;
-    const sectionGap = snapTypo.sectionGap !== undefined ? snapTypo.sectionGap : 22;
-    const titleGap = snapTypo.titleGap !== undefined ? snapTypo.titleGap : 8;
-    const titleSize = snapTypo.titleSize || 12;
-    const sheetPadding = snapTypo.sheetPadding || '36px 40px';
-
-    const elStyles = d.elementStyles || {};
-    const rich = d.richText || {};
-    const labels = typeof readPoLabels === 'function' ? readPoLabels(d.labels) : {};
-    const sender = d.sender || masterTpl.sender || { name: '', title: '', contact: '', location: '' };
-
-    const headingSt = Object.assign({ fontSize: 24, fontWeight: '800', letterSpacing: '-0.02em', color: '#0f172a' }, elStyles.doc_heading || {});
-    const subSt = Object.assign({ fontSize: 11, fontWeight: '700', letterSpacing: '0.08em', color: '#475569' }, elStyles.doc_subtitle || {});
-    const docTitle = d.docTitle || snap.docTitle || (isProforma ? 'PROFORMA INVOICE' : 'Price Quote / Proposal');
-    const docSubtitle = d.docSubtitle !== undefined ? d.docSubtitle : (snap.docSubtitle || '');
-    const headingHtml = rich.doc_heading || escapeHtml(docTitle);
-    const subtitleHtml = rich.doc_subtitle || escapeHtml(docSubtitle);
-
-    const clientName = d.client || (entity && entity.client) || '';
-    const clientEmail = d.clientEmail || '';
-    const clientAddress = d.clientAddress || '';
-    const refNo = d.refNo || snap.refNo || (isProforma ? 'PI' : 'PO');
-    const issueDate = d.issueDate || '';
-    const validUntil = d.validUntil || '';
-
-    const items = Array.isArray(d.items) ? d.items : [];
-    const subtotal = items.reduce((acc, it) => acc + (parseFloat(it.amount) || ((parseFloat(it.qty) || 1) * (parseFloat(it.rate) || 0))), 0);
-    const discountPct = parseFloat(d.discountPercent) || 0;
-    const taxPct = parseFloat(d.taxPercent) || 0;
-    const discountAmt = discountPct > 0 ? (subtotal * discountPct / 100) : 0;
-    const afterDiscount = subtotal - discountAmt;
-    const taxAmt = taxPct > 0 ? (afterDiscount * taxPct / 100) : 0;
-    const computedTotal = afterDiscount + taxAmt;
-    const finalTotal = (d.total !== undefined && d.total !== null && d.total !== '') ? (parseFloat(d.total) || 0) : computedTotal;
-
-    const thDesc = labels.thDesc || 'Deliverable / Description';
-    const thQty = labels.thQty || 'Qty';
-    const thRate = labels.thRate || 'Rate';
-    const thAmount = labels.thAmount || 'Amount';
-
-    const itemsRows = items.map(it => {
-      const q = it.qty !== undefined && it.qty !== null && it.qty !== '' ? it.qty : 1;
-      const r = parseFloat(it.rate) || 0;
-      const a = (it.amount !== undefined && it.amount !== null && it.amount !== '') ? (parseFloat(it.amount) || 0) : (parseFloat(q) * r);
-      return `
-        <tr class="border-b border-slate-100 text-xs">
-          <td class="py-2.5 px-3 text-slate-800 font-medium">${escapeHtml(it.description || '')}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-slate-600">${escapeHtml(String(q))}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-slate-600">${formatMoney(r, cur)}</td>
-          <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">${formatMoney(a, cur)}</td>
-        </tr>
-      `;
-    }).join('');
-
-    const totalsHtml = `
-      <div class="flex justify-end pt-2 pb-1" style="margin-bottom:${sectionGap}px;">
-        <div class="w-64 space-y-1.5 text-xs">
-          ${(discountPct > 0 || taxPct > 0) ? `
-            <div class="flex justify-between text-slate-500">
-              <span>Subtotal</span>
-              <span class="font-mono text-slate-700">${formatMoney(subtotal, cur)}</span>
-            </div>
-          ` : ''}
-          ${discountPct > 0 ? `
-            <div class="flex justify-between text-slate-500">
-              <span>Discount (${discountPct}%)</span>
-              <span class="font-mono text-emerald-600 font-medium">− ${formatMoney(discountAmt, cur)}</span>
-            </div>
-          ` : ''}
-          ${taxPct > 0 ? `
-            <div class="flex justify-between text-slate-500">
-              <span>Tax (${taxPct}%)</span>
-              <span class="font-mono text-slate-700">+ ${formatMoney(taxAmt, cur)}</span>
-            </div>
-          ` : ''}
-          <div class="flex justify-between font-bold text-sm text-slate-900 pt-2 border-t-2 border-slate-900">
-            <span>${escapeHtml(labels.totalInvestment || (isProforma ? 'Total Amount Due' : 'Total Investment'))}</span>
-            <span class="font-mono font-bold">${formatMoney(finalTotal, cur)}</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const sections = (Array.isArray(d.sections) && d.sections.length > 0)
-      ? d.sections
-      : (typeof getDefaultPoSections === 'function' ? getDefaultPoSections(d, entity) : []);
-
-    const textSectionsHtml = sections
-      .filter(s => s && s.type !== 'header' && s.type !== 'overview' && s.type !== 'divider' && s.type !== 'deliverables')
-      .map(sec => {
-        const titleSt = Object.assign({
-          fontSize: Number(snapTypo.titleSize) || 12,
-          fontWeight: '800',
-          letterSpacing: '0.05em',
-          color: '#0f172a',
-          textAlign: 'left'
-        }, elStyles['title_' + sec.id] || {});
-        const contentSt = Object.assign({
-          fontSize: Number(snapTypo.fontSize) || 13,
-          lineHeight: Number(snapTypo.lineHeight) || 1.6,
-          color: '#334155',
-          textAlign: 'left'
-        }, elStyles['content_' + sec.id] || {});
-        const secTitleInner = rich['title_' + sec.id] || escapeHtml(sec.title || '');
-        const hasTitle = (sec.title && sec.title.trim().length > 0) || (rich['title_' + sec.id] && rich['title_' + sec.id].trim().length > 0);
-        const titleHtml = hasTitle
-          ? `<div style="font-size:${titleSt.fontSize}px; font-weight:${titleSt.fontWeight}; letter-spacing:${titleSt.letterSpacing}; color:${titleSt.color}; text-transform:uppercase; margin-bottom:${titleGap}px; text-align:${titleSt.textAlign};">${secTitleInner}</div>`
-          : '';
-
-        if (sec.type === 'acceptance') {
-          const clientTitleInner = rich['po-client-sign-title_' + sec.id] || escapeHtml(sec.clientTitle || 'Authorized Client Signature');
-          const providerTitleInner = rich['po-provider-sign-title_' + sec.id] || escapeHtml(sec.providerTitle || 'Service Provider Signature');
-          const clientTitleSt = elStyles['po-client-sign-title_' + sec.id] || {};
-          const providerTitleSt = elStyles['po-provider-sign-title_' + sec.id] || {};
-          const signNameSt = elStyles['po-sign-name-label_' + sec.id] || {};
-          const signNameProviderSt = elStyles['po-sign-name-provider-label_' + sec.id] || {};
-
-          const signSealText = sec.signSealText || 'Signature & Seal';
-          const signDateText = sec.signDateText || 'Date: _________________';
-          const signNameText = rich['po-sign-name-label_' + sec.id] || escapeHtml(sec.signNameText || 'Name: _________________');
-
-          const signSealProviderText = sec.signSealProviderText || 'Signature & Seal';
-          const signDateProviderText = sec.signDateProviderText || 'Date: _________________';
-          const signNameProviderText = rich['po-sign-name-provider-label_' + sec.id] || escapeHtml(sec.signNameProviderText || 'Name: _________________');
-
-          return `
-            <div class="po-section" style="margin-bottom:${sectionGap}px;">
-              ${titleHtml}
-              <div class="po-signatures-grid grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
-                <div class="space-y-3">
-                  <div class="font-bold text-xs uppercase tracking-wider text-slate-800" style="${clientTitleSt.color ? 'color:' + clientTitleSt.color + ';' : ''}">${clientTitleInner}</div>
-                  <div class="h-16 border-b border-slate-300 flex items-end pb-1 text-[11px] text-slate-400">
-                    ${escapeHtml(signSealText)}
-                  </div>
-                  <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
-                    <span class="w-1/2">${escapeHtml(signDateText)}</span>
-                    <span class="w-1/2 text-right" style="${signNameSt.fontSize ? 'font-size:' + signNameSt.fontSize + 'px;' : ''}${signNameSt.fontWeight ? 'font-weight:' + signNameSt.fontWeight + ';' : ''}">${signNameText}</span>
-                  </div>
-                </div>
-                <div class="space-y-3">
-                  <div class="font-bold text-xs uppercase tracking-wider text-slate-800" style="${providerTitleSt.color ? 'color:' + providerTitleSt.color + ';' : ''}">${providerTitleInner}</div>
-                  <div class="h-16 border-b border-slate-300 flex items-end pb-1 text-[11px] text-slate-400">
-                    ${escapeHtml(signSealProviderText)}
-                  </div>
-                  <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
-                    <span class="w-1/2">${escapeHtml(signDateProviderText)}</span>
-                    <span class="w-1/2 text-right" style="${signNameProviderSt.fontSize ? 'font-size:' + signNameProviderSt.fontSize + 'px;' : ''}${signNameProviderSt.fontWeight ? 'font-weight:' + signNameProviderSt.fontWeight + ';' : ''}">${signNameProviderText}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-
-        const rawContent = rich['content_' + sec.id] || sec.content || '';
-        const bodyHtml = (typeof formatInitialContent === 'function') ? formatInitialContent(rawContent) : (rawContent ? escapeHtml(rawContent).replace(/\n/g, '<br>') : '');
-        return `
-          <div class="po-section" style="margin-bottom:${sectionGap}px;">
-            ${titleHtml}
-            <div style="font-size:${contentSt.fontSize}px; line-height:${contentSt.lineHeight}; color:${contentSt.color}; text-align:${contentSt.textAlign};">${bodyHtml}</div>
-          </div>
-        `;
-      }).join('');
-
-    const signatures = Array.isArray(d.signatures) ? d.signatures : [];
-    const signaturesHtml = signatures.map(sig => {
-      const xMm = Number(sig.xMm || 130);
-      const yMm = Number(sig.yMm || 230);
-      const wMm = Math.max(12, Number(sig.widthMm || 48));
-      const hMm = Math.max(6, Number(sig.heightMm || 18));
-      const inner = (typeof buildPoSignatureInnerSvg === 'function') ? buildPoSignatureInnerSvg(sig) : '';
-      return `<div class="po-signature-vector" style="position:absolute;left:${xMm}mm;top:${yMm}mm;width:${wMm}mm;height:${hMm}mm;pointer-events:none;">${inner}</div>`;
-    }).join('');
-
-    return `
-      <div class="po-page-sheet po-document-sheet price-offering-sheet shadow-2xl" style="--po-font-family:${fontFamily}; --po-font-size:${fontSize}px; --po-line-height:${lineHeight}; --po-section-gap:${sectionGap}px; --po-title-gap:${titleGap}px; --po-title-size:${titleSize}px; --po-sheet-padding:${sheetPadding}; width:210mm; min-height:297mm; height:auto; max-width:210mm; box-sizing:border-box; background:#ffffff; position:relative; margin:0 auto; padding:${sheetPadding};">
-        <!-- Header -->
-        <div class="po-header-grid flex flex-col sm:flex-row sm:items-start justify-between gap-6" style="margin-bottom:${sectionGap}px;">
-          <div class="space-y-1 flex-1 min-w-0">
-            <div style="font-size:${headingSt.fontSize}px; font-weight:${headingSt.fontWeight || '800'}; letter-spacing:${headingSt.letterSpacing || '-0.02em'}; color:${headingSt.color || '#0f172a'}; line-height:1.15;">
-              ${headingHtml}
-            </div>
-            ${subtitleHtml ? `<div style="font-size:${subSt.fontSize}px; font-weight:${subSt.fontWeight || '700'}; letter-spacing:${subSt.letterSpacing || '0.08em'}; color:${subSt.color || '#475569'}; text-transform:uppercase; margin-top:4px; line-height:1.3;">${subtitleHtml}</div>` : ''}
-          </div>
-          <div class="text-left sm:text-right space-y-0.5 shrink-0 text-xs" style="color:#64748b; line-height:1.4;">
-            ${(sender.name || rich.sender_name) ? `<div style="font-weight:700; color:#0f172a; font-size:12px;">${rich.sender_name || escapeHtml(sender.name)}</div>` : ''}
-            ${(sender.title || rich.sender_title) ? `<div>${rich.sender_title || escapeHtml(sender.title)}</div>` : ''}
-            ${(sender.contact || rich.sender_contact) ? `<div>${rich.sender_contact || escapeHtml(sender.contact)}</div>` : ''}
-            ${(sender.location || rich.sender_location) ? `<div style="color:#94a3b8; font-size:10px;">${rich.sender_location || escapeHtml(sender.location)}</div>` : ''}
-          </div>
-        </div>
-
-        <!-- Overview -->
-        <div class="po-overview-grid grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs" style="margin-bottom:${sectionGap}px;">
-          <div class="space-y-1 min-w-0">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.client || 'CLIENT / RECIPIENT')}</div>
-            <div class="font-bold text-slate-900 text-base leading-snug">${escapeHtml(clientName)}</div>
-            ${clientEmail ? `<div class="text-slate-600 text-xs">${escapeHtml(clientEmail)}</div>` : ''}
-            ${clientAddress ? `<div class="text-slate-500 text-[11px] whitespace-pre-line leading-relaxed">${escapeHtml(clientAddress)}</div>` : ''}
-          </div>
-          <div class="grid grid-cols-2 gap-3 text-[11px] content-start">
-            <div class="po-meta-cell">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.reference || 'REFERENCE')}</div>
-              <div class="font-mono font-semibold text-slate-800">${escapeHtml(refNo)}</div>
-            </div>
-            <div class="po-meta-cell">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.currency || 'CURRENCY')}</div>
-              <div class="font-bold text-slate-800 uppercase">${escapeHtml(cur)}</div>
-            </div>
-            <div class="po-meta-cell">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.issueDate || 'DATE ISSUED')}</div>
-              <div class="font-medium text-slate-700">${escapeHtml(issueDate)}</div>
-            </div>
-            <div class="po-meta-cell">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(labels.validUntil || (isProforma ? 'PAYMENT DUE' : 'VALID UNTIL'))}</div>
-              <div class="font-medium text-slate-700">${escapeHtml(validUntil)}</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="po-divider-line" style="height:1px; background:#e2e8f0; width:100%; margin:${Math.round(sectionGap/2)}px 0 ${sectionGap}px 0;"></div>
-
-        <!-- Deliverables -->
-        ${items.length > 0 ? `
-          <div class="overflow-x-auto rounded-xl border border-slate-200" style="margin-bottom:${Math.round(sectionGap/2)}px;">
-            <table class="po-table w-full text-left border-collapse text-xs">
-              <thead>
-                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <th class="py-2.5 px-3">${escapeHtml(thDesc)}</th>
-                  <th class="py-2.5 px-3 text-center w-20">${escapeHtml(thQty)}</th>
-                  <th class="py-2.5 px-3 text-right w-28">${escapeHtml(thRate)}</th>
-                  <th class="py-2.5 px-3 text-right w-28">${escapeHtml(thAmount)}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 bg-white">
-                ${itemsRows}
-              </tbody>
-            </table>
-          </div>
-          ${totalsHtml}
-        ` : ''}
-
-        ${textSectionsHtml}
-        ${signaturesHtml}
-      </div>
-    `;
-  }
-
-  function buildFallbackSnapshotSheetHtml(snap, entity = null, isProforma = false) {
-    return buildRealPoSheetHtml(snap, entity, isProforma);
-  }
-
   function getPoContentFingerprint(docObj) {
     if (!docObj || typeof docObj !== 'object') return '';
     try {
@@ -33852,7 +33579,7 @@ function initSortableWidgets() {
       latest.total = parseFloat(sourceData.total) || 0;
       latest.currency = sourceData.currency || entity.currency || state.displayCurrency || 'EUR';
       latest.data = JSON.parse(JSON.stringify(sourceData));
-      if (!latest.sheetHtml) latest.sheetHtml = buildFallbackSnapshotSheetHtml(latest);
+      latest.sheetHtml = '';
       saveBudget();
       if (isProforma || isProjEntity) {
         renderProjectDetailPage(entity, state.displayCurrency);
@@ -33877,7 +33604,6 @@ function initSortableWidgets() {
       data: JSON.parse(JSON.stringify(sourceData)),
       sheetHtml: ''
     };
-    snap.sheetHtml = buildFallbackSnapshotSheetHtml(snap);
 
     exportsArr.unshift(snap);
     if (exportsArr.length > 25) exportsArr.length = 25;
@@ -34041,7 +33767,7 @@ function initSortableWidgets() {
     const isOldFallback = typeof snap.sheetHtml === 'string' && snap.sheetHtml.includes('grid-cols-2 sm:grid-cols-4');
     if (!snap.sheetHtml || isOldFallback || isDraft) {
       const exactHtml = renderExactPoSheetHtml(snap, entity, isProforma, isDeposit);
-      containerEl.innerHTML = exactHtml || buildRealPoSheetHtml(snap, entity, isProforma);
+      containerEl.innerHTML = exactHtml || '<div class="p-8 text-center text-sm text-slate-400">Preview unavailable for this document.</div>';
     } else {
       containerEl.innerHTML = snap.sheetHtml;
     }
