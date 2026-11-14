@@ -25309,6 +25309,7 @@ function initSortableWidgets() {
     subtotal: 'Subtotal',
     discount: 'Discount',
     tax: 'VAT / Tax',
+    paidDeposit: 'Paid Deposit',
     totalInvestment: 'Total Amount Due'
   };
 
@@ -30189,6 +30190,12 @@ function initSortableWidgets() {
               <span id="poTaxAmountDisplay" class="po-selectable font-mono font-semibold rounded px-0.5 cursor-pointer" data-elem-id="tax_val" data-elem-name="Tax Amount" data-elem-type="text">+${formatMoney(0, cur)}</span>
             </div>
 
+            <!-- Paid Deposit Row (Proforma Only — pulled & calculated from Deposit Doc if it exists) -->
+            <div id="poPaidDepositRow" class="po-total-row hidden items-center justify-between py-1 text-slate-600" data-po-unit-id="row_paid_deposit">
+              <input type="text" class="po-selectable po-total-label font-medium text-xs text-slate-600 bg-transparent border-none outline-none rounded px-0 py-0.5 w-auto transition-colors" data-elem-id="label_paid_deposit" data-elem-name="Paid Deposit Label" data-elem-type="text" value="${escapeHtml(labels.paidDeposit || 'Paid Deposit')}" placeholder="Paid Deposit...">
+              <span id="poPaidDepositAmountDisplay" class="po-selectable font-mono font-semibold text-slate-900 rounded px-0.5 cursor-pointer" data-elem-id="paid_deposit_val" data-elem-name="Paid Deposit Amount" data-elem-type="text">-${formatMoney(0, cur)}</span>
+            </div>
+
             <!-- Grand Total Bar -->
             <div class="po-total-row flex items-center justify-between py-2 border-t-2 border-slate-900 text-sm font-bold text-slate-900 mt-2" data-po-unit-id="row_grand_total">
               <input type="text" class="po-selectable po-total-label uppercase tracking-wider font-bold text-xs text-slate-900 bg-transparent border-none outline-none rounded px-0 py-0.5 w-36 transition-colors" data-elem-id="label_total_investment" data-elem-name="Total Investment Label" data-elem-type="text" value="${escapeHtml(labels.totalInvestment || 'TOTAL')}" placeholder="TOTAL...">
@@ -31460,7 +31467,20 @@ function initSortableWidgets() {
     const taxPercent = parseFloat(taxInput?.value) || 0;
     const taxAmt = (afterDisc * taxPercent) / 100;
 
-    const total = afterDisc + taxAmt;
+    const isProformaDoc = getActiveDocType() === 'proforma';
+    const targetEntity = typeof getPoEditorTarget === 'function' ? getPoEditorTarget() : null;
+    const proj = (targetEntity && targetEntity._isProject) ? targetEntity : (state.budget?.projects || []).find(p => p.id === (state.activeProformaProjectId || state.activeFollowupProjectId));
+    let depositAmt = 0;
+    if (isProformaDoc && proj) {
+      if (proj.depositProforma && !isNaN(parseFloat(proj.depositProforma.total))) {
+        depositAmt = parseFloat(proj.depositProforma.total) || 0;
+      } else if (Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0) {
+        const exp = proj.depositProformaExports[0];
+        if (exp && !isNaN(parseFloat(exp.total))) depositAmt = parseFloat(exp.total) || 0;
+      }
+    }
+
+    const total = Math.max(0, afterDisc + taxAmt - depositAmt);
 
     const subtotalEl = document.getElementById('poSubtotalDisplay');
     if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal, cur);
@@ -31512,6 +31532,21 @@ function initSortableWidgets() {
       }
     }
 
+    // Hide or format paid deposit row (proforma only — pulled from deposit document)
+    const paidDepRow = document.getElementById('poPaidDepositRow');
+    const paidDepAmtEl = document.getElementById('poPaidDepositAmountDisplay');
+    if (paidDepRow) {
+      if (isProformaDoc && depositAmt > 0) {
+        paidDepRow.classList.remove('hidden');
+        paidDepRow.classList.add('flex');
+        if (paidDepAmtEl) paidDepAmtEl.textContent = `-${formatMoney(depositAmt, cur)}`;
+      } else {
+        paidDepRow.classList.add('hidden');
+        paidDepRow.classList.remove('flex');
+        if (paidDepAmtEl) paidDepAmtEl.textContent = `-${formatMoney(0, cur)}`;
+      }
+    }
+
     if (addDiscTaxBar) {
       if (discPercent > 0 && taxPercent > 0) {
         addDiscTaxBar.classList.add('hidden');
@@ -31522,7 +31557,7 @@ function initSortableWidgets() {
 
     syncPriceOfferingTableMirrors();
 
-    return { subtotal, discPercent, discAmt, taxPercent, taxAmt, total, currency: cur };
+    return { subtotal, discPercent, discAmt, taxPercent, taxAmt, depositAmt, total, currency: cur };
   }
 
   function triggerPriceOfferingAutoSave(immediate = false) {
@@ -31567,6 +31602,7 @@ function initSortableWidgets() {
     subtotal: ['label_subtotal', 'Subtotal'],
     discount: ['label_discount', 'Discount'],
     tax: ['label_tax', 'VAT / Tax'],
+    paidDeposit: ['label_paid_deposit', 'Paid Deposit'],
     totalInvestment: ['label_total_investment', 'Total Investment']
   };
 
@@ -31733,6 +31769,7 @@ function initSortableWidgets() {
       subtotal: totals.subtotal,
       discountPercent: totals.discPercent,
       taxPercent: totals.taxPercent,
+      paidDeposit: totals.depositAmt || 0,
       total: totals.total,
       scope: (currentPoSections.find(s => s.type === 'scope') || {}).content || '',
       timeline: (currentPoSections.find(s => s.type === 'timeline') || {}).content || '',
