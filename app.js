@@ -34754,27 +34754,21 @@ ${sectionsText}
           }
           const payLabel = pay.notes || pay.method || 'Payment';
           return `
-            <div class="flex items-center justify-between gap-2 px-3 py-2.5 bg-white hover:bg-slate-50/60 rounded-xl border border-slate-200/60 text-xs transition-colors group/pay">
-              <div class="min-w-0">
-                <div class="flex items-baseline gap-2 flex-wrap">
-                  <span class="font-semibold text-slate-900 font-mono text-[13px]">+${formatMoney(payAmt, payCur)}${payEquiv}</span>
-                  <span class="text-[11px] font-medium text-slate-400 truncate">${escapeHtml(payLabel)}</span>
-                </div>
-                <div class="relative inline-flex items-center mt-0.5">
-                  <button type="button" class="edit-detail-payment-date-btn group/date inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-emerald-700 cursor-pointer transition-colors" data-payment-id="${escapeHtml(pay.id)}" title="Click to change payment date">
-                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400 group-hover/date:text-emerald-600 transition-colors"></i>
+            <div class="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-slate-50/80 hover:bg-slate-100/70 rounded-xl border border-slate-200/50 text-xs transition-colors group/pay">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Deposited"></span>
+                <span class="font-semibold text-slate-900 font-mono text-[13px] shrink-0">+${formatMoney(payAmt, payCur)}${payEquiv}</span>
+                <span class="text-[11px] text-slate-400 truncate">· ${escapeHtml(payLabel)}</span>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="relative inline-flex items-center">
+                  <button type="button" class="edit-detail-payment-date-btn text-[11px] font-medium text-slate-500 hover:text-slate-800 cursor-pointer transition-colors" data-payment-id="${escapeHtml(pay.id)}" title="Click to change payment date">
                     <span>${escapeHtml(formattedPayDate)}</span>
                   </button>
-                  <input type="date" class="detail-payment-date-input opacity-0 pointer-events-none absolute left-0 top-full w-px h-px" data-payment-id="${escapeHtml(pay.id)}" value="${escapeHtml(pay.date || '')}" tabindex="-1">
+                  <input type="date" class="detail-payment-date-input opacity-0 pointer-events-none absolute right-0 top-full w-px h-px" data-payment-id="${escapeHtml(pay.id)}" value="${escapeHtml(pay.date || '')}" tabindex="-1">
                 </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700/90 bg-emerald-50/50 px-2 py-0.5 rounded-full border border-emerald-200/50">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>Deposited</span>
-                </span>
-                <button type="button" class="delete-detail-payment-btn text-slate-300 hover:text-rose-500 hover:bg-rose-50/70 p-1 rounded-lg transition-colors cursor-pointer" data-payment-id="${escapeHtml(pay.id)}" title="Delete payment record">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <button type="button" class="delete-detail-payment-btn text-slate-300 hover:text-rose-500 p-0.5 rounded transition-colors cursor-pointer" data-payment-id="${escapeHtml(pay.id)}" title="Delete payment record">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
             </div>
