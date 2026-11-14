@@ -929,48 +929,302 @@
   }
 
   // ---------- Rendering: Calendar ----------
+  function getMiniCalSourceConfig(srcKey) {
+    const defaults = {
+      my_plan: { showOnMiniCal: true, miniStyle: 'framed', color: '#16a34a', miniCalScope: 'week' },
+      meetings: { showOnMiniCal: true, miniStyle: 'side-pill', color: '#0ea5e9' },
+      projects: { showOnMiniCal: false, miniStyle: 'bold-number', color: '#0284c7', paymentShowOnMiniCal: false, paymentMiniStyle: 'bottom-arc', paymentColor: '#0284c7' },
+      leads: { showOnMiniCal: false, miniStyle: 'underline', color: '#d97706' },
+      bills: { showOnMiniCal: true, miniStyle: 'highlight', color: '#9333ea' }
+    };
+    const cfg = state.calendarPlan && state.calendarPlan.sources && state.calendarPlan.sources[srcKey];
+    return Object.assign({}, defaults[srcKey] || {}, cfg || {});
+  }
+
   function renderCalendar() {
     const year = state.calMonth.getFullYear();
     const month = state.calMonth.getMonth();
+    const ymStr = `${year}-${String(month + 1).padStart(2, '0')}`;
     const todayYMD = toYMD(new Date());
+
+    const prefs = state.appPrefs || {};
+    const billingStyle = prefs.calendarBillingStyle || 'badge';
+    const todayStyle = prefs.calendarTodayStyle || 'ring';
+    const todayColor = prefs.calendarTodayColor || '#f97315';
+    const adjacentDays = prefs.calendarAdjacentDays || 'faded';
+    const weekStart = prefs.calendarWeekStart || 'sunday';
+    const dotColor = prefs.calendarDotColor || '#9333ea';
 
     document.getElementById('calMonthLabel').textContent = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-    const firstDay = new Date(year, month, 1);
-    const startOffset = (firstDay.getDay() + 6) % 7; // Monday = 0
-    const gridStart = new Date(year, month, 1 - startOffset);
+    const weekHeadersEl = document.getElementById('calWeekHeaders');
+    if (weekHeadersEl) {
+      const labels = weekStart === 'monday'
+        ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+        : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+      weekHeadersEl.replaceChildren(...labels.map(lbl => el('span', { textContent: lbl })));
+    }
+
+    // 1. Map active bills & notes by day (matching desktop mini-calendar)
+    const billsByDay = {};
+    (state.subscriptions || []).forEach(sub => {
+      if (!sub || sub.isFrozen) return;
+      const nameLower = (sub.name || '').toLowerCase();
+      if (nameLower.includes('proforma') || nameLower.includes('price offering') || nameLower.includes('tax receipt') || nameLower.includes('deposit / upfront') || nameLower.includes('project deliverables')) return;
+      const bDay = sub.billingDay ? parseInt(sub.billingDay, 10) : (sub.lastBilledDate ? parseInt(sub.lastBilledDate.split('-')[2], 10) : null);
+      if (bDay && bDay >= 1 && bDay <= 31) {
+        if (sub.billingCycle === 'yearly' && sub.lastBilledDate) {
+          const subMonth = parseInt(sub.lastBilledDate.split('-')[1], 10) - 1;
+          if (subMonth !== month) return;
+        }
+        if (!billsByDay[bDay]) billsByDay[bDay] = [];
+        billsByDay[bDay].push(sub);
+      }
+    });
+
+    const notesByDay = {};
+    (state.notes || []).forEach(note => {
+      if (!note || note.isDone || note.completed || !note.dueDate) return;
+      const parts = note.dueDate.split('-');
+      if (parts.length === 3 && parseInt(parts[0], 10) === year && (parseInt(parts[1], 10) - 1) === month) {
+        const dNum = parseInt(parts[2], 10);
+        if (!notesByDay[dNum]) notesByDay[dNum] = [];
+        notesByDay[dNum].push(note);
+      }
+    });
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const firstDayOffset = weekStart === 'monday' ? (firstDayIndex + 6) % 7 : firstDayIndex;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const billsMiniCfg = getMiniCalSourceConfig('bills');
+    const billMiniMode = billsMiniCfg.miniStyle || 'highlight';
+    const activeBillColor = billsMiniCfg.color || dotColor || '#9333ea';
+
+    const myPlanCfg = getMiniCalSourceConfig('my_plan');
+    const meetingsCfg = getMiniCalSourceConfig('meetings');
+    const projCfg = getMiniCalSourceConfig('projects');
+    const leadCfg = getMiniCalSourceConfig('leads');
 
     const dayNodes = [];
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
-      const ymd = toYMD(d);
-      const isOther = d.getMonth() !== month;
-      const isToday = ymd === todayYMD;
-      const isSelected = ymd === state.selectedDate;
 
-      const entries = collectCalendarEntriesForDate(ymd);
-      const uniqueColors = [...new Set(entries.map(e => e.color))].slice(0, 3);
-
-      const cls = ['cal-day'];
-      if (isOther) cls.push('other-month');
-      if (isToday && !isSelected) cls.push('today');
-      if (isSelected) cls.push('selected');
-
+    // Leading days
+    for (let i = firstDayOffset - 1; i >= 0; i--) {
+      const prevDate = daysInPrevMonth - i;
+      const prevD = new Date(year, month - 1, prevDate);
+      const prevYmd = toYMD(prevD);
+      const cls = ['cal-day-cell', 'other-month'];
+      if (adjacentDays === 'hidden') cls.push('is-hidden');
       dayNodes.push(el('button', {
         type: 'button',
         className: cls.join(' '),
         onClick: () => {
-          state.selectedDate = ymd;
-          if (isOther) state.calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+          state.selectedDate = prevYmd;
+          state.calMonth = new Date(prevD.getFullYear(), prevD.getMonth(), 1);
           renderCalendar();
         }
-      }, [
-        el('span', { textContent: String(d.getDate()) }),
-        el('span', { className: 'cal-dots' }, uniqueColors.map(c =>
-          el('span', { className: 'cal-dot', style: `background:${isSelected ? '#ffffff' : c}` })
-        ))
-      ]));
+      }, el('span', { className: 'cal-day-num', textContent: String(prevDate) })));
     }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const ymd = `${ymStr}-${String(day).padStart(2, '0')}`;
+      const isToday = ymd === todayYMD;
+      const isSelected = ymd === state.selectedDate;
+      const hasBill = !!(billsByDay[day] && billsByDay[day].length > 0);
+      const hasNote = !!(notesByDay[day] && notesByDay[day].length > 0);
+
+      const classes = ['cal-day-cell'];
+      const styles = [];
+      let boldNumberColor = null;
+
+      // Extra mini-cal items from calendarPlan.sources
+      const extraDayItems = [];
+      const dayEntries = collectCalendarEntriesForDate(ymd);
+      dayEntries.forEach(e => {
+        if (e.completed) return;
+        if (e.kind === 'custom_item') {
+          const isMtg = e.badge === 'Meeting';
+          const cfg = isMtg ? meetingsCfg : myPlanCfg;
+          if (cfg.showOnMiniCal !== false) {
+            extraDayItems.push({ miniStyle: cfg.miniStyle || (isMtg ? 'side-pill' : 'framed'), color: e.color || cfg.color });
+          }
+        } else if (e.kind === 'project') {
+          const isPay = e.badge === 'Payment Due';
+          const show = isPay ? (projCfg.paymentShowOnMiniCal !== false && !!projCfg.showOnMiniCal) : !!projCfg.showOnMiniCal;
+          if (show) {
+            extraDayItems.push({
+              miniStyle: isPay ? (projCfg.paymentMiniStyle || 'bottom-arc') : (projCfg.miniStyle || 'bold-number'),
+              color: isPay ? (projCfg.paymentColor || projCfg.color) : projCfg.color
+            });
+          }
+        } else if (e.kind === 'project_step' && projCfg.showOnMiniCal) {
+          extraDayItems.push({ miniStyle: projCfg.miniStyle || 'bold-number', color: projCfg.color });
+        } else if ((e.kind === 'lead' || e.kind === 'lead_step') && leadCfg.showOnMiniCal) {
+          extraDayItems.push({ miniStyle: leadCfg.miniStyle || 'underline', color: leadCfg.color });
+        }
+      });
+
+      const billUsesHighlight = hasBill && billsMiniCfg.showOnMiniCal !== false && (billMiniMode === 'highlight' || billMiniMode === 'badge');
+      const allLayerItems = [...extraDayItems];
+
+      if (hasBill && billsMiniCfg.showOnMiniCal !== false) {
+        const isAllBillsPaid = billsByDay[day].every(sub => isSubscriptionPaidInMonth(sub, ymStr));
+        if (billMiniMode === 'highlight' || billMiniMode === 'badge') {
+          classes.push('has-bill', `billing-${billingStyle}`);
+          if (isAllBillsPaid) {
+            classes.push('is-paid');
+          } else {
+            boldNumberColor = activeBillColor;
+            if (activeBillColor && activeBillColor.toLowerCase() !== '#9333ea') {
+              classes.push('custom-color');
+              styles.push(`--cal-dot-color:${activeBillColor}`, `--cal-dot-bg:${activeBillColor}18`, `--cal-dot-border:${activeBillColor}35`);
+            }
+          }
+        } else if (billMiniMode === 'dot') {
+          billsByDay[day].forEach(() => {
+            allLayerItems.unshift({ miniStyle: 'dot', color: isAllBillsPaid ? '#94a3b8' : activeBillColor });
+          });
+        } else {
+          allLayerItems.unshift({ miniStyle: billMiniMode, color: isAllBillsPaid ? '#94a3b8' : activeBillColor });
+        }
+      }
+
+      // Dots (Notes + dot-styled items; 1-4 bottom row, 5-8 halo ring)
+      const allDots = [];
+      if (hasNote) notesByDay[day].forEach(n => allDots.push(getNoteColor(n)));
+      allLayerItems.forEach(ext => {
+        if ((ext.miniStyle || 'dot') === 'dot') allDots.push(ext.color || '#0284c7');
+      });
+
+      const children = [];
+      const appliedLayers = new Set();
+      let hasBgFillLayer = billUsesHighlight;
+      let hasFrameLayer = billUsesHighlight;
+      let hasTopRight = false;
+
+      allLayerItems.forEach(ext => {
+        const mStyle = ext.miniStyle || 'dot';
+        const mColor = ext.color || '#0284c7';
+        if (mStyle === 'dot' || appliedLayers.has(mStyle)) return;
+        appliedLayers.add(mStyle);
+
+        if (mStyle === 'highlight') {
+          if (!hasBgFillLayer) {
+            hasBgFillLayer = true;
+            styles.push(`background-color:${mColor}18`);
+            if (!hasFrameLayer && !isToday) {
+              hasFrameLayer = true;
+              styles.push(`border:1px solid ${mColor}38`);
+            }
+            if (!boldNumberColor) boldNumberColor = mColor;
+          } else if (!hasFrameLayer && !isToday) {
+            hasFrameLayer = true;
+            children.push(el('span', { style: `position:absolute;inset:0;border-radius:9px;border:1.5px solid ${mColor}48;pointer-events:none;z-index:2` }));
+          }
+        } else if (mStyle === 'glass-tint') {
+          if (!hasBgFillLayer) {
+            hasBgFillLayer = true;
+            styles.push(`background:linear-gradient(135deg,${mColor}2e 0%,${mColor}10 55%,rgba(255,255,255,0.92) 100%)`);
+            if (!hasFrameLayer && !isToday) {
+              hasFrameLayer = true;
+              styles.push(`border:1px solid ${mColor}38`);
+            }
+            if (!boldNumberColor) boldNumberColor = mColor;
+          }
+        } else if (mStyle === 'bold-number' || mStyle === 'diamond') {
+          boldNumberColor = mColor;
+        } else if (mStyle === 'circle' || mStyle === 'gradient') {
+          children.push(el('span', { style: `position:absolute;width:30px;height:30px;border-radius:9999px;background:radial-gradient(circle closest-side at 50% 50%,${mColor}55 0%,${mColor}3a 28%,${mColor}20 56%,${mColor}00 94%,transparent 100%);pointer-events:none;z-index:0` }));
+        } else if (mStyle === 'double-ring') {
+          children.push(el('span', { style: `position:absolute;width:28px;height:28px;border-radius:9999px;background:radial-gradient(circle closest-side at 50% 50%,transparent 0%,transparent 34%,${mColor}16 50%,${mColor}46 66%,${mColor}00 95%,transparent 100%);pointer-events:none;z-index:0` }));
+        } else if ((mStyle === 'soft-frame' || mStyle === 'framed' || mStyle === 'framed-highlight') && !isToday) {
+          if (!hasFrameLayer) {
+            hasFrameLayer = true;
+            styles.push(`border-color:${mColor}38`);
+          } else {
+            children.push(el('span', { style: `position:absolute;inset:1px;border-radius:7px;border:1px solid ${mColor}38;pointer-events:none;z-index:2` }));
+          }
+        } else if (mStyle === 'dashed' && !isToday) {
+          if (!hasFrameLayer) {
+            hasFrameLayer = true;
+            styles.push(`border:1px dashed ${mColor}75`);
+          }
+        } else if (mStyle === 'underline' || mStyle === 'top-bar' || mStyle === 'brackets') {
+          children.push(el('span', { style: 'position:absolute;inset:2px;pointer-events:none;z-index:2' }, [
+            el('span', { style: `position:absolute;top:0;left:0;width:6px;height:6px;border-top:1.5px solid ${mColor};border-left:1.5px solid ${mColor};border-top-left-radius:3px` }),
+            el('span', { style: `position:absolute;bottom:0;right:0;width:6px;height:6px;border-bottom:1.5px solid ${mColor};border-right:1.5px solid ${mColor};border-bottom-right-radius:3px` })
+          ]));
+        } else if (mStyle === 'side-pill' || mStyle === 'fold') {
+          children.push(el('span', { style: `position:absolute;top:0;left:0;width:0;height:0;border-style:solid;border-width:8px 8px 0 0;border-color:${mColor} transparent transparent transparent;border-top-left-radius:8px;pointer-events:none;z-index:2` }));
+        } else if (mStyle === 'corner-pip' || mStyle === 'star' || mStyle === 'triangle') {
+          const pos = hasTopRight ? 'top:3px;left:3px;' : 'top:3px;right:3px;';
+          hasTopRight = true;
+          children.push(el('span', { style: `position:absolute;${pos}width:5px;height:5px;border-radius:9999px;background-color:${mColor};box-shadow:0 0 0 1px #ffffff;pointer-events:none;z-index:2` }));
+        }
+      });
+
+      if (isToday) {
+        classes.push('is-today', `today-${todayStyle}`);
+        styles.push(`--cal-today-color:${todayColor}`);
+      }
+      if (isSelected) classes.push('is-selected');
+
+      const numSpan = el('span', { className: 'cal-day-num', textContent: String(day) });
+      if (boldNumberColor && !(isToday && todayStyle === 'solid')) {
+        numSpan.style.color = boldNumberColor;
+        numSpan.style.fontWeight = '700';
+      }
+      children.push(numSpan);
+
+      const cappedDots = allDots.slice(0, 8);
+      if (cappedDots.length > 0 && cappedDots.length <= 4) {
+        children.push(el('div', { className: 'cal-note-dots' }, cappedDots.map(c =>
+          el('span', { className: 'cal-note-dot', style: `background-color:${c}` })
+        )));
+      } else if (cappedDots.length > 4) {
+        const bDots = [cappedDots[0], cappedDots[1]];
+        const rem = cappedDots.slice(2, 8);
+        const rDots = [rem[0], rem[3]].filter(Boolean);
+        const lDots = [rem[1], rem[4]].filter(Boolean);
+        const tDots = [rem[2], rem[5]].filter(Boolean);
+        children.push(el('div', { className: 'cal-note-dots' }, bDots.map(c => el('span', { className: 'cal-note-dot', style: `background-color:${c}` }))));
+        if (rDots.length) children.push(el('div', { className: 'cal-ring-right' }, rDots.map(c => el('span', { className: 'cal-note-dot', style: `background-color:${c}` }))));
+        if (lDots.length) children.push(el('div', { className: 'cal-ring-left' }, lDots.map(c => el('span', { className: 'cal-note-dot', style: `background-color:${c}` }))));
+        if (tDots.length) children.push(el('div', { className: 'cal-ring-top' }, tDots.map(c => el('span', { className: 'cal-note-dot', style: `background-color:${c}` }))));
+      }
+
+      dayNodes.push(el('button', {
+        type: 'button',
+        className: classes.join(' '),
+        style: styles.join(';'),
+        onClick: () => {
+          state.selectedDate = ymd;
+          renderCalendar();
+        }
+      }, children));
+    }
+
+    // Trailing days to complete 6 rows (42 cells) or last week
+    const totalCells = dayNodes.length;
+    const remainder = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remainder; i++) {
+      const nextD = new Date(year, month + 1, i);
+      const nextYmd = toYMD(nextD);
+      const cls = ['cal-day-cell', 'other-month'];
+      if (adjacentDays === 'hidden') cls.push('is-hidden');
+      dayNodes.push(el('button', {
+        type: 'button',
+        className: cls.join(' '),
+        onClick: () => {
+          state.selectedDate = nextYmd;
+          state.calMonth = new Date(nextD.getFullYear(), nextD.getMonth(), 1);
+          renderCalendar();
+        }
+      }, el('span', { className: 'cal-day-num', textContent: String(i) })));
+    }
+
     document.getElementById('calGrid').replaceChildren(...dayNodes);
 
     // Render Agenda for selectedDate
