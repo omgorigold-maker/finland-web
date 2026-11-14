@@ -1692,14 +1692,16 @@
               <div id="detailPaymentsList" class="space-y-2 pt-1"></div>
             </div>
 
-            <!-- Attached Documents (Receipt, Proforma) -->
+            <!-- Attached Documents (Quote, Proformas, Receipt, Brief) -->
             <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-3.5">
               <div class="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Invoices &amp; Receipts</h3>
-                <span class="text-[11px] text-slate-400">Proforma &amp; Receipt</span>
+                <span class="text-[11px] text-slate-400">Project Documents</span>
               </div>
               
               <!-- Hidden Direct File Inputs -->
+              <input type="file" id="directProjectQuoteFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
+              <input type="file" id="directProjectBriefFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
               <input type="file" id="directReceiptFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
               <input type="file" id="directDepositProformaFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
               <input type="file" id="directProformaFileInput" accept="image/*,.pdf,.eml,.msg,.txt" class="hidden">
@@ -1767,27 +1769,33 @@
                 </div>
 
                 <!-- Receipt doc row -->
-                <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <i data-lucide="receipt" class="w-4 h-4 text-emerald-600 shrink-0"></i>
-                    <div class="min-w-0">
-                      <div class="font-semibold text-slate-800 truncate">Final Tax Receipt</div>
-                      <div id="detailReceiptStatusText" class="text-[10px] text-slate-400 truncate">Not attached</div>
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <i data-lucide="receipt" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                      <div class="min-w-0">
+                        <div class="font-semibold text-slate-800 truncate">Final Tax Receipt</div>
+                        <div id="detailReceiptStatusText" class="text-[10px] text-slate-400 truncate">Not attached</div>
+                      </div>
                     </div>
+                    <div id="detailReceiptActions" class="shrink-0 flex items-center gap-1"></div>
                   </div>
-                  <div id="detailReceiptActions" class="shrink-0 flex items-center gap-1"></div>
+                  <div id="detailReceiptSavedList" class="hidden pt-2 border-t border-slate-200/70 space-y-1.5"></div>
                 </div>
 
                 <!-- Client Brief / Specs doc row (Preserved from Lead or attached on Project) -->
-                <div id="detailBriefDocRow" class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <i data-lucide="paperclip" class="w-4 h-4 text-sky-600 shrink-0"></i>
-                    <div class="min-w-0">
-                      <div class="font-semibold text-slate-800 truncate">Client Brief / Specs</div>
-                      <div id="detailBriefStatusText" class="text-[10px] text-slate-400 truncate">Not attached</div>
+                <div id="detailBriefDocRow" class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <i data-lucide="paperclip" class="w-4 h-4 text-sky-600 shrink-0"></i>
+                      <div class="min-w-0">
+                        <div class="font-semibold text-slate-800 truncate">Client Brief / Specs</div>
+                        <div id="detailBriefStatusText" class="text-[10px] text-slate-400 truncate">Not attached</div>
+                      </div>
                     </div>
+                    <div id="detailBriefActions" class="shrink-0 flex items-center gap-1"></div>
                   </div>
-                  <div id="detailBriefActions" class="shrink-0 flex items-center gap-1"></div>
+                  <div id="detailBriefSavedList" class="hidden pt-2 border-t border-slate-200/70 space-y-1.5"></div>
                 </div>
 
               </div>

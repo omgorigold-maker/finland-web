@@ -575,10 +575,32 @@
             const incomingBudget = JSON.parse(v);
             if (existingBudget && typeof existingBudget === 'object' && incomingBudget && typeof incomingBudget === 'object') {
               let modifiedBudget = false;
+              const exDel = Array.isArray(existingBudget.deletedProjectIds) ? existingBudget.deletedProjectIds : [];
+              const inDel = Array.isArray(incomingBudget.deletedProjectIds) ? incomingBudget.deletedProjectIds : [];
+              const mergedDel = Array.from(new Set([...exDel, ...inDel].filter(id => typeof id === 'string' && id)));
+              const mergedDelSet = new Set(mergedDel);
+              if (mergedDel.length !== inDel.length) {
+                incomingBudget.deletedProjectIds = mergedDel;
+                modifiedBudget = true;
+              }
               for (const arrField of ['projects', 'leads', 'incomes', 'categories', 'poSavedTemplates']) {
                 const exList = existingBudget[arrField];
-                const inList = incomingBudget[arrField];
-                if (Array.isArray(exList) && exList.length > 0 && (!Array.isArray(inList) || exList.length - inList.length > 1)) {
+                let inList = incomingBudget[arrField];
+                if (arrField === 'projects') {
+                  if (Array.isArray(inList) && mergedDelSet.size > 0) {
+                    const filteredIn = inList.filter(p => !(p && mergedDelSet.has(p.id)));
+                    if (filteredIn.length !== inList.length) {
+                      inList = filteredIn;
+                      incomingBudget.projects = filteredIn;
+                      modifiedBudget = true;
+                    }
+                  }
+                  const exActive = Array.isArray(exList) ? exList.filter(p => !(p && mergedDelSet.has(p.id))) : [];
+                  if (exActive.length > 0 && (!Array.isArray(inList) || (!incoming._allow_bulk_delete && exActive.length - inList.length > 1))) {
+                    incomingBudget.projects = exActive;
+                    modifiedBudget = true;
+                  }
+                } else if (Array.isArray(exList) && exList.length > 0 && (!Array.isArray(inList) || exList.length - inList.length > 1)) {
                   incomingBudget[arrField] = exList;
                   modifiedBudget = true;
                 }
@@ -3065,6 +3087,32 @@ ${escapeHtml(data || '')}
                 }
                 if (localHasNewer) {
                   needsRepush = true;
+                }
+              } else if (k === STORAGE_KEYS.BUDGET && current && current.trim().startsWith('{') && remoteVal.trim().startsWith('{')) {
+                try {
+                  const localB = JSON.parse(current);
+                  const remoteB = JSON.parse(remoteVal);
+                  const lDel = Array.isArray(localB?.deletedProjectIds) ? localB.deletedProjectIds : [];
+                  const rDel = Array.isArray(remoteB?.deletedProjectIds) ? remoteB.deletedProjectIds : [];
+                  const mergedDel = Array.from(new Set([...lDel, ...rDel].filter(id => typeof id === 'string' && id)));
+                  const mergedDelSet = new Set(mergedDel);
+                  if (mergedDelSet.size > 0 && remoteB && typeof remoteB === 'object') {
+                    remoteB.deletedProjectIds = mergedDel;
+                    if (Array.isArray(remoteB.projects)) {
+                      remoteB.projects = remoteB.projects.filter(p => !(p && mergedDelSet.has(p.id)));
+                    }
+                    if (mergedDel.length > rDel.length) {
+                      needsRepush = true;
+                    }
+                  }
+                  const finalStr = JSON.stringify(remoteB);
+                  if (finalStr !== current) {
+                    localStorage.setItem(k, finalStr);
+                    changed = true;
+                  }
+                } catch (e) {
+                  localStorage.setItem(k, remoteVal);
+                  changed = true;
                 }
               } else if (remoteVal.trim() !== '[]' && remoteVal.trim() !== '{}' && remoteVal.trim() !== '') {
                 localStorage.setItem(k, remoteVal);
@@ -15008,6 +15056,7 @@ function initSortableWidgets() {
       isFreelancer: true,
       taxReservePercent: 0,
       projects: [],
+      deletedProjectIds: [],
       leads: [],
       incomes: [],
       categories: JSON.parse(JSON.stringify(DEFAULT_BUDGET_CATEGORIES)),
@@ -15021,10 +15070,13 @@ function initSortableWidgets() {
         const parsed = JSON.parse(raw) || {};
         state.budget = Object.assign(state.budget, parsed);
         if (!Array.isArray(state.budget.projects)) state.budget.projects = [];
+        if (!Array.isArray(state.budget.deletedProjectIds)) state.budget.deletedProjectIds = [];
         if (!Array.isArray(state.budget.leads)) state.budget.leads = [];
+        const deletedProjSet = new Set(state.budget.deletedProjectIds);
         const seenProjIds = new Set();
         state.budget.projects = state.budget.projects.filter(p => {
           if (!p || !p.id) return false;
+          if (deletedProjSet.has(p.id)) return false;
           if (seenProjIds.has(p.id)) return false;
           seenProjIds.add(p.id);
           return true;
@@ -17753,11 +17805,13 @@ function initSortableWidgets() {
         // D. Delete Project
         if (e.target.closest('.delete-freelance-proj-btn')) {
           if (await confirmAction(`Delete project "${proj.client}"?`)) {
+            if (!Array.isArray(state.budget.deletedProjectIds)) state.budget.deletedProjectIds = [];
+            if (!state.budget.deletedProjectIds.includes(id)) state.budget.deletedProjectIds.push(id);
             state.budget.projects = state.budget.projects.filter(p => p.id !== id);
-            await deleteReceiptAttachment(id);
-            await deleteReceiptAttachment(`${id}_proforma`);
             saveBudget();
             renderBudgetView();
+            await deleteReceiptAttachment(id);
+            await deleteReceiptAttachment(`${id}_proforma`);
             showToast('Project Removed', `${proj.client} deleted.`, 'info');
           }
           return;
@@ -22208,6 +22262,38 @@ function initSortableWidgets() {
     return [];
   }
 
+  function getProjectReceiptAttachmentsList(proj) {
+    if (!proj) return [];
+    if (Array.isArray(proj.receiptAttachments) && proj.receiptAttachments.length > 0) {
+      return proj.receiptAttachments;
+    }
+    if (proj.hasReceiptDoc || proj.hasInvoiceDoc) {
+      return [{
+        id: 'legacy_receipt',
+        attKey: proj.receiptAttKey || `${proj.id}_receipt`,
+        fileName: proj.receiptDocName || proj.invoiceDocName || (proj.receiptNumber ? `Receipt #${proj.receiptNumber}.pdf` : 'receipt.pdf'),
+        attachedAt: null
+      }];
+    }
+    return [];
+  }
+
+  function getProjectBriefAttachmentsList(entity) {
+    if (!entity) return [];
+    if (Array.isArray(entity.briefAttachments) && entity.briefAttachments.length > 0) {
+      return entity.briefAttachments;
+    }
+    if (entity.hasBriefDoc) {
+      return [{
+        id: 'legacy_brief',
+        attKey: entity.briefAttKey || `${entity.id}_brief`,
+        fileName: entity.briefDocName || 'brief.pdf',
+        attachedAt: null
+      }];
+    }
+    return [];
+  }
+
   function formatFollowupDocTimestamp(isoStr) {
     if (!isoStr) return '';
     try {
@@ -22232,7 +22318,7 @@ function initSortableWidgets() {
       return !candName || candName === expectedName;
     };
 
-    const entityPrefixMatch = String(fallbackKey || attKey || '').match(/^((?:proj|lead)_[a-zA-Z0-9_]+?)_(?:quote|proforma|brief|invoice|receipt)(?:_|$)/);
+    const entityPrefixMatch = String(fallbackKey || attKey || '').match(/^((?:proj|lead)_[a-zA-Z0-9_]+?)_(?:deposit_proforma|quote|proforma|brief|invoice|receipt)(?:_|$)/);
     const entityId = entityPrefixMatch ? entityPrefixMatch[1] : '';
 
     // 1. Exact dedicated key lookup first
@@ -22395,18 +22481,40 @@ function initSortableWidgets() {
         }
         showToast('Document Attached', `${file.name} saved as Tax Invoice.`, 'success');
       } else if (type === 'receipt') {
-        p.hasReceiptDoc = true;
-        p.receiptDocName = file.name;
-        const attKey = `${projectId}_receipt_${Date.now()}`;
-        p.receiptAttKey = attKey;
+        const existingList = getProjectReceiptAttachmentsList(p).map(x => Object.assign({}, x));
+        for (const item of existingList) {
+          if (!item.attKey || item.attKey === `${projectId}_receipt` || item.attKey === `${projectId}_invoice` || item.attKey === projectId) {
+            const migId = (item.id && item.id !== 'legacy_receipt') ? item.id : ('ratt_mig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+            const migKey = `${projectId}_receipt_${migId}`;
+            const oldData = await getReceiptAttachment(item.attKey || `${projectId}_receipt`) || await getReceiptAttachment(`${projectId}_invoice`) || await getReceiptAttachment(projectId);
+            if (oldData && oldData.data) {
+              await saveReceiptAttachment(migKey, oldData);
+            }
+            item.id = migId;
+            item.attKey = migKey;
+          }
+        }
+        const attId = 'ratt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        const attKey = `${projectId}_receipt_${attId}`;
         await saveReceiptAttachment(attKey, att);
         await saveReceiptAttachment(`${projectId}_receipt`, att);
         await saveReceiptAttachment(projectId, att);
+        existingList.unshift({
+          id: attId,
+          attKey,
+          fileName: file.name,
+          docType,
+          attachedAt: new Date().toISOString()
+        });
+        p.receiptAttachments = existingList;
+        p.hasReceiptDoc = true;
+        p.receiptDocName = file.name;
+        p.receiptAttKey = attKey;
         if (Array.isArray(p.steps)) {
           const s = p.steps.find(x => x.id === 'step_receipt' || x.title.toLowerCase().includes('receipt'));
           if (s) { s.completed = true; s.completedDate = new Date().toISOString().split('T')[0]; }
         }
-        showToast('Document Attached', `${file.name} saved as Final Tax Receipt.`, 'success');
+        showToast('Document Attached', `${file.name} saved to Final Tax Receipt files.`, 'success');
       }
 
       saveBudget();
@@ -22493,18 +22601,46 @@ function initSortableWidgets() {
       if (!p.hasReceiptDoc) await deleteReceiptAttachment(projectId);
       showToast('Document Removed', 'Tax invoice removed.', 'info');
     } else if (type === 'receipt') {
-      p.hasReceiptDoc = false;
-      p.hasInvoiceDoc = false;
-      if (p.receiptAttKey) {
-        await deleteReceiptAttachment(p.receiptAttKey);
-        delete p.receiptAttKey;
+      const list = getProjectReceiptAttachmentsList(p);
+      if (attId) {
+        const target = list.find(x => x.id === attId);
+        if (target && target.attKey && target.attKey !== `${projectId}_receipt` && target.attKey !== `${projectId}_invoice` && target.attKey !== projectId) {
+          await deleteReceiptAttachment(target.attKey);
+        }
+        p.receiptAttachments = list.filter(x => x.id !== attId);
+      } else {
+        for (const item of list) {
+          if (item.attKey) await deleteReceiptAttachment(item.attKey);
+        }
+        p.receiptAttachments = [];
       }
-      delete p.receiptDocName;
-      delete p.invoiceDocName;
-      delete p.invoiceDoc;
-      await deleteReceiptAttachment(`${projectId}_receipt`);
-      await deleteReceiptAttachment(`${projectId}_invoice`);
-      await deleteReceiptAttachment(projectId);
+      if (!Array.isArray(p.receiptAttachments) || p.receiptAttachments.length === 0) {
+        p.receiptAttachments = [];
+        p.hasReceiptDoc = false;
+        p.hasInvoiceDoc = false;
+        if (p.receiptAttKey) {
+          await deleteReceiptAttachment(p.receiptAttKey);
+          delete p.receiptAttKey;
+        }
+        delete p.receiptDocName;
+        delete p.invoiceDocName;
+        delete p.invoiceDoc;
+        await deleteReceiptAttachment(`${projectId}_receipt`);
+        await deleteReceiptAttachment(`${projectId}_invoice`);
+        await deleteReceiptAttachment(projectId);
+      } else {
+        p.hasReceiptDoc = true;
+        const topAtt = p.receiptAttachments[0];
+        p.receiptDocName = topAtt.fileName || 'receipt.pdf';
+        p.receiptAttKey = topAtt.attKey || `${projectId}_receipt`;
+        if (topAtt && topAtt.attKey) {
+          const topData = await getReceiptAttachment(topAtt.attKey);
+          if (topData && topData.data) {
+            await saveReceiptAttachment(`${projectId}_receipt`, topData);
+            await saveReceiptAttachment(projectId, topData);
+          }
+        }
+      }
       showToast('Document Removed', 'Tax receipt removed.', 'info');
     }
 
@@ -25121,14 +25257,35 @@ function initSortableWidgets() {
         }
         showToast('Document Attached', `${file.name} saved to Price Quote / Proposal files.`, 'success');
       } else if (type === 'brief') {
-        lead.hasBriefDoc = true;
-        lead.briefDocName = file.name;
+        const existingList = getProjectBriefAttachmentsList(lead).map(x => Object.assign({}, x));
+        for (const item of existingList) {
+          if (!item.attKey || item.attKey === `${leadId}_brief`) {
+            const migId = (item.id && item.id !== 'legacy_brief') ? item.id : ('batt_mig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+            const migKey = `${leadId}_brief_${migId}`;
+            const oldData = await getReceiptAttachment(item.attKey || `${leadId}_brief`);
+            if (oldData && oldData.data) {
+              await saveReceiptAttachment(migKey, oldData);
+            }
+            item.id = migId;
+            item.attKey = migKey;
+          }
+        }
         const attId = 'batt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
         const attKey = `${leadId}_brief_${attId}`;
-        lead.briefAttKey = attKey;
         await saveReceiptAttachment(attKey, att);
         await saveReceiptAttachment(`${leadId}_brief`, att);
-        showToast('Document Attached', `${file.name} saved as Client Brief.`, 'success');
+        existingList.unshift({
+          id: attId,
+          attKey,
+          fileName: file.name,
+          docType,
+          attachedAt: new Date().toISOString()
+        });
+        lead.briefAttachments = existingList;
+        lead.hasBriefDoc = true;
+        lead.briefDocName = file.name;
+        lead.briefAttKey = attKey;
+        showToast('Document Attached', `${file.name} saved to Client Brief files.`, 'success');
       }
 
       saveBudget();
@@ -25181,14 +25338,41 @@ function initSortableWidgets() {
       }
       showToast('Document Removed', 'Attached quote file removed.', 'info');
     } else if (type === 'brief') {
-      lead.hasBriefDoc = false;
-      lead.briefDocName = null;
-      if (lead.briefAttKey) {
-        await deleteReceiptAttachment(lead.briefAttKey);
-        delete lead.briefAttKey;
+      const list = getProjectBriefAttachmentsList(lead);
+      if (attId) {
+        const target = list.find(x => x.id === attId);
+        if (target && target.attKey && target.attKey !== `${leadId}_brief`) {
+          await deleteReceiptAttachment(target.attKey);
+        }
+        lead.briefAttachments = list.filter(x => x.id !== attId);
+      } else {
+        for (const item of list) {
+          if (item.attKey) await deleteReceiptAttachment(item.attKey);
+        }
+        lead.briefAttachments = [];
       }
-      await deleteReceiptAttachment(`${leadId}_brief`);
-      showToast('Document Removed', 'Client brief deleted.', 'info');
+      if (!Array.isArray(lead.briefAttachments) || lead.briefAttachments.length === 0) {
+        lead.briefAttachments = [];
+        lead.hasBriefDoc = false;
+        lead.briefDocName = null;
+        if (lead.briefAttKey) {
+          await deleteReceiptAttachment(lead.briefAttKey);
+          delete lead.briefAttKey;
+        }
+        await deleteReceiptAttachment(`${leadId}_brief`);
+      } else {
+        lead.hasBriefDoc = true;
+        const topAtt = lead.briefAttachments[0];
+        lead.briefDocName = topAtt.fileName || 'brief.pdf';
+        lead.briefAttKey = topAtt.attKey || `${leadId}_brief`;
+        if (topAtt && topAtt.attKey) {
+          const topData = await getReceiptAttachment(topAtt.attKey);
+          if (topData && topData.data) {
+            await saveReceiptAttachment(`${leadId}_brief`, topData);
+          }
+        }
+      }
+      showToast('Document Removed', 'Client brief removed.', 'info');
     }
 
     saveBudget();
@@ -32496,11 +32680,7 @@ function initSortableWidgets() {
     if (!proj || !proj.proformaInvoice) return;
 
     if (await confirmAction(`Delete the editable Proforma Invoice document for "${proj.client || 'Project'}"? (Your exported copies & attached files stay safe)`)) {
-      const prevFp = getPoContentFingerprint(proj.proformaInvoice);
       delete proj.proformaInvoice;
-      if (prevFp && Array.isArray(proj.proformaExports) && proj.proformaExports.length > 0 && getPoContentFingerprint(proj.proformaExports[0].data) === prevFp) {
-        proj.proformaExports.shift();
-      }
       const attList = getProjectProformaAttachmentsList(proj);
       const expList = Array.isArray(proj.proformaExports) ? proj.proformaExports : [];
       proj.hasProformaDoc = attList.length > 0 || expList.length > 0;
@@ -32769,13 +32949,14 @@ function initSortableWidgets() {
     const proj = (state.budget?.projects || []).find(p => p.id === projectId);
     if (!proj || !proj.depositProforma) return;
 
-    if (await confirmAction(`Delete the editable Deposit Proforma document for "${proj.client || 'Project'}"? (Your exported copies stay safe)`)) {
-      const prevFp = getPoContentFingerprint(proj.depositProforma);
+    if (await confirmAction(`Delete the editable Deposit Proforma document for "${proj.client || 'Project'}"? (Your exported copies & attached files stay safe)`)) {
       delete proj.depositProforma;
-      if (prevFp && Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0 && getPoContentFingerprint(proj.depositProformaExports[0].data) === prevFp) {
-        proj.depositProformaExports.shift();
+      const attList = Array.isArray(proj.depositProformaAttachments) ? proj.depositProformaAttachments : [];
+      const expList = Array.isArray(proj.depositProformaExports) ? proj.depositProformaExports : [];
+      proj.hasDepositProformaDoc = attList.length > 0 || expList.length > 0;
+      if (attList.length === 0) {
+        proj.depositProformaDocName = '';
       }
-      proj.hasDepositProformaDoc = Array.isArray(proj.depositProformaExports) && proj.depositProformaExports.length > 0;
       saveBudget();
       renderProjectDetailPage(proj, state.displayCurrency);
       showToast('Deposit Proforma Removed', 'Editable deposit proforma document cleared.', 'info');
@@ -33944,11 +34125,7 @@ ${sectionsText}
     if (!lead || !lead.priceOffering) return;
 
     if (await confirmAction(`Delete the editable Price Quote document for "${lead.client}"? (Your exported copies & attached files stay safe)`)) {
-      const prevFp = getPoContentFingerprint(lead.priceOffering);
       delete lead.priceOffering;
-      if (prevFp && Array.isArray(lead.quoteExports) && lead.quoteExports.length > 0 && getPoContentFingerprint(lead.quoteExports[0].data) === prevFp) {
-        lead.quoteExports.shift();
-      }
       const attList = getLeadQuoteAttachmentsList(lead);
       const expList = Array.isArray(lead.quoteExports) ? lead.quoteExports : [];
       lead.hasQuoteDoc = attList.length > 0 || expList.length > 0;
@@ -34496,23 +34673,18 @@ ${sectionsText}
     const projQuoteAttachments = getLeadQuoteAttachmentsList(proj);
 
     if (projQuoteStatus && projQuoteActions) {
+      const totalQuoteItems = (proj.priceOffering ? 1 : 0) + projQuoteExports.length + projQuoteAttachments.length;
       if (proj.priceOffering) {
-        const poCur = proj.priceOffering.currency || projCur;
-        const poTot = parseFloat(proj.priceOffering.total) || 0;
-        const poRef = proj.priceOffering.refNo ? ` · ${proj.priceOffering.refNo}` : '';
         if (projQuoteExports.length > 0) {
           const latestVer = projQuoteExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.priceOffering) === getPoContentFingerprint(projQuoteExports[0].data);
           projQuoteStatus.textContent = matchesLatest
-            ? `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Saved (v${latestVer})`
-            : `Editable Doc (${formatMoney(poTot, poCur)}${poRef}) · Edited since v${latestVer}`;
+            ? `Draft matches v${latestVer} · ${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`
+            : `Edited since v${latestVer} · ${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`;
         } else {
-          projQuoteStatus.textContent = `Editable Doc (${formatMoney(poTot, poCur)}${poRef})`;
+          projQuoteStatus.textContent = `${totalQuoteItems} ${totalQuoteItems === 1 ? 'item' : 'items'}`;
         }
         projQuoteActions.innerHTML = `
-          <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
-            Edit Doc
-          </button>
           <button type="button" class="direct-attach-lead-quote-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach external quote file">
             + Attach
           </button>
@@ -34520,7 +34692,7 @@ ${sectionsText}
       } else {
         const savedCount = projQuoteExports.length + projQuoteAttachments.length;
         projQuoteStatus.textContent = savedCount > 0
-          ? `${savedCount} saved ${savedCount === 1 ? 'file' : 'files'} below`
+          ? `${savedCount} saved ${savedCount === 1 ? 'file' : 'files'}`
           : 'Not created';
         projQuoteActions.innerHTML = `
           <button type="button" class="open-lead-price-offering-btn px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
@@ -34546,12 +34718,12 @@ ${sectionsText}
           const poRef = proj.priceOffering.refNo || proj.priceOffering.docTitle || 'Price Quote';
           const dateLabel = formatFollowupDocTimestamp(proj.priceOffering.updatedAt || proj.createdAt);
           draftRowHtml = `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Generator Doc</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
-                  <div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable document')}</div>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-amber-200/90 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(poRef)}">${escapeHtml(poRef)} <span class="font-bold text-slate-900">(${formatMoney(poTot, poCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Live editable')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34568,21 +34740,19 @@ ${sectionsText}
             </div>
           `;
         }
-        const projDraftFp = proj.priceOffering ? getPoContentFingerprint(proj.priceOffering) : '';
-        const visibleProjExports = projQuoteExports.filter((exp, idx) => !(idx === 0 && projDraftFp && getPoContentFingerprint(exp.data) === projDraftFp));
-        const exportRowsHtml = visibleProjExports.map(exp => {
+        const exportRowsHtml = projQuoteExports.map(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
           const verLabel = exp.label || `v${exp.version || 1} · Exported`;
           const dateLabel = formatFollowupDocTimestamp(exp.exportedAt);
           const refText = exp.refNo || exp.docTitle || 'Price Quote';
           return `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
-                  <div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</div>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qexp">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(refText)}">${escapeHtml(refText)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(verLabel)}</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel || 'Saved snapshot')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34602,17 +34772,18 @@ ${sectionsText}
 
         const attRowsHtml = projQuoteAttachments.map(att => {
           const dateLabel = formatFollowupDocTimestamp(att.attachedAt || att.uploadedAt);
+          const fileLabel = att.fileName || 'proposal.pdf';
           return `
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-800 truncate">${escapeHtml(att.fileName || 'proposal.pdf')}</div>
-                  ${dateLabel ? `<div class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</div>` : ''}
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-slate-200/80 text-[11px] group/qatt">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</div>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  ${dateLabel ? `<span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateLabel)}</span>` : ''}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(att.attKey || `${proj.id}_quote`)}" data-file-name="${escapeHtml(att.fileName || 'proposal.pdf')}">
+                <button type="button" class="view-lead-quote-btn px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(att.attKey || `${proj.id}_quote`)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="quote" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached document">
@@ -34634,31 +34805,26 @@ ${sectionsText}
     if (depositStatus && depositActions) {
       const depositAttachments = Array.isArray(proj.depositProformaAttachments) ? proj.depositProformaAttachments : [];
       const depositExports = Array.isArray(proj.depositProformaExports) ? proj.depositProformaExports : [];
+      const totalDepositItems = (proj.depositProforma ? 1 : 0) + depositExports.length + depositAttachments.length;
       if (proj.depositProforma) {
-        const dpCur = proj.depositProforma.currency || projCur;
-        const dpTot = parseFloat(proj.depositProforma.total) || 0;
-        const dpRef = proj.depositProforma.refNo ? ` · ${proj.depositProforma.refNo}` : '';
         if (depositExports.length > 0) {
           const latestVer = depositExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.depositProforma) === getPoContentFingerprint(depositExports[0].data);
           depositStatus.textContent = matchesLatest
-            ? `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef}) · Saved (v${latestVer})`
-            : `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef}) · Edited since v${latestVer}`;
+            ? `Draft matches v${latestVer} · ${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`
+            : `Edited since v${latestVer} · ${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`;
         } else {
-          depositStatus.textContent = `Editable Doc (${formatMoney(dpTot, dpCur)}${dpRef})`;
+          depositStatus.textContent = `${totalDepositItems} ${totalDepositItems === 1 ? 'item' : 'items'}`;
         }
         depositActions.innerHTML = `
-          <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
-            Edit Doc
-          </button>
-          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
+          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
             + Attach
           </button>
         `;
       } else {
         if (depositAttachments.length > 0 || depositExports.length > 0) {
           const totalSaved = depositAttachments.length + depositExports.length;
-          depositStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'} below`;
+          depositStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'}`;
         } else {
           depositStatus.textContent = 'Not created';
         }
@@ -34666,7 +34832,7 @@ ${sectionsText}
           <button type="button" class="open-project-deposit-proforma-btn px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
             + Generate Doc
           </button>
-          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
+          <button type="button" class="direct-attach-deposit-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
             + Attach
           </button>
         `;
@@ -34680,12 +34846,12 @@ ${sectionsText}
           const dpRef = proj.depositProforma.refNo || proj.depositProforma.docTitle || 'Deposit Proforma';
           const dateStr = formatFollowupDocTimestamp(proj.depositProforma.updatedAt || proj.createdAt);
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-indigo-200/90 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Generator Doc</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(dpRef)} <span class="font-bold text-slate-900">(${formatMoney(dpTot, dpCur)})</span></p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable document')}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200/90 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(dpRef)}">${escapeHtml(dpRef)} <span class="font-bold text-slate-900">(${formatMoney(dpTot, dpCur)})</span></p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34702,20 +34868,19 @@ ${sectionsText}
             </div>
           `);
         }
-        const depositDraftFp = proj.depositProforma ? getPoContentFingerprint(proj.depositProforma) : '';
-        const visibleDepositExports = depositExports.filter((exp, idx) => !(idx === 0 && depositDraftFp && getPoContentFingerprint(exp.data) === depositDraftFp));
-        visibleDepositExports.forEach(exp => {
+        depositExports.forEach(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
           const vLabel = exp.label || `v${exp.version || exp.versionNumber || 1} · Exported`;
           const dateStr = formatFollowupDocTimestamp(exp.exportedAt);
+          const refLabel = exp.refNo || exp.docTitle || 'Deposit Proforma';
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(exp.refNo || exp.docTitle || 'Deposit Proforma')} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(refLabel)}">${escapeHtml(refLabel)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34737,17 +34902,18 @@ ${sectionsText}
           const dateVal = att.attachedAt || att.uploadedAt;
           const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
           const attKeyVal = att.attKey || att.attachmentKey || `${proj.id}_deposit_proforma`;
+          const fileLabel = att.fileName || 'deposit_proforma.pdf';
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(att.fileName || 'deposit_proforma.pdf')}</p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(att.fileName || 'deposit_proforma.pdf')}">
+                <button type="button" class="view-detail-deposit-proforma-btn px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="deposit_proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
@@ -34775,31 +34941,26 @@ ${sectionsText}
     if (proformaStatus && proformaActions) {
       const proformaAttachments = getProjectProformaAttachmentsList(proj);
       const proformaExports = Array.isArray(proj.proformaExports) ? proj.proformaExports : [];
+      const totalProformaItems = (proj.proformaInvoice ? 1 : 0) + proformaExports.length + proformaAttachments.length;
       if (proj.proformaInvoice) {
-        const piCur = proj.proformaInvoice.currency || projCur;
-        const piTot = parseFloat(proj.proformaInvoice.total) || 0;
-        const piRef = proj.proformaInvoice.refNo ? ` · ${proj.proformaInvoice.refNo}` : '';
         if (proformaExports.length > 0) {
           const latestVer = proformaExports[0].version || 1;
           const matchesLatest = getPoContentFingerprint(proj.proformaInvoice) === getPoContentFingerprint(proformaExports[0].data);
           proformaStatus.textContent = matchesLatest
-            ? `Editable Doc (${formatMoney(piTot, piCur)}${piRef}) · Saved (v${latestVer})`
-            : `Editable Doc (${formatMoney(piTot, piCur)}${piRef}) · Edited since v${latestVer}`;
+            ? `Draft matches v${latestVer} · ${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`
+            : `Edited since v${latestVer} · ${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`;
         } else {
-          proformaStatus.textContent = `Editable Doc (${formatMoney(piTot, piCur)}${piRef})`;
+          proformaStatus.textContent = `${totalProformaItems} ${totalProformaItems === 1 ? 'item' : 'items'}`;
         }
         proformaActions.innerHTML = `
-          <button type="button" class="open-project-proforma-btn px-2.5 py-1 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
-            Edit Doc
-          </button>
-          <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
+          <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" title="Attach an external or exported PDF file">
             + Attach
           </button>
         `;
       } else {
         if (proformaAttachments.length > 0 || proformaExports.length > 0) {
           const totalSaved = proformaAttachments.length + proformaExports.length;
-          proformaStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'} below`;
+          proformaStatus.textContent = `${totalSaved} saved ${totalSaved === 1 ? 'file' : 'files'}`;
         } else {
           proformaStatus.textContent = 'Not created';
         }
@@ -34807,7 +34968,7 @@ ${sectionsText}
           <button type="button" class="open-project-proforma-btn px-2.5 py-1 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-2xs cursor-pointer transition-all" data-id="${escapeHtml(proj.id)}">
             + Generate Doc
           </button>
-          <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
+          <button type="button" class="direct-attach-proforma-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
             + Attach
           </button>
         `;
@@ -34821,12 +34982,12 @@ ${sectionsText}
           const piRef = proj.proformaInvoice.refNo || proj.proformaInvoice.docTitle || 'Proforma Invoice';
           const dateStr = formatFollowupDocTimestamp(proj.proformaInvoice.updatedAt || proj.createdAt);
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-purple-200/90 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Generator Doc</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(piRef)} <span class="font-bold text-slate-900">(${formatMoney(piTot, piCur)})</span></p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable document')}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-purple-200/90 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(piRef)}">${escapeHtml(piRef)} <span class="font-bold text-slate-900">(${formatMoney(piTot, piCur)})</span></p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Draft</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Live editable')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34843,20 +35004,19 @@ ${sectionsText}
             </div>
           `);
         }
-        const proformaDraftFp = proj.proformaInvoice ? getPoContentFingerprint(proj.proformaInvoice) : '';
-        const visibleProformaExports = proformaExports.filter((exp, idx) => !(idx === 0 && proformaDraftFp && getPoContentFingerprint(exp.data) === proformaDraftFp));
-        visibleProformaExports.forEach(exp => {
+        proformaExports.forEach(exp => {
           const expCur = exp.currency || projCur;
           const expTot = parseFloat(exp.total) || 0;
           const vLabel = exp.label || `v${exp.version || exp.versionNumber || 1} · Exported`;
           const dateStr = formatFollowupDocTimestamp(exp.exportedAt);
+          const refLabel = exp.refNo || exp.docTitle || 'Proforma Invoice';
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(exp.refNo || exp.docTitle || 'Proforma Invoice')} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(refLabel)}">${escapeHtml(refLabel)} <span class="font-bold text-slate-900">(${formatMoney(expTot, expCur)})</span></p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">${escapeHtml(vLabel)}</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr || 'Saved snapshot')}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -34878,17 +35038,18 @@ ${sectionsText}
           const dateVal = att.attachedAt || att.uploadedAt;
           const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
           const attKeyVal = att.attKey || att.attachmentKey || `${proj.id}_proforma`;
+          const fileLabel = att.fileName || 'proforma.pdf';
           rowsHtml.push(`
-            <div class="flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">Attached File</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(att.fileName || 'proforma.pdf')}</p>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</p>
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span class="px-1 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                  <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="view-detail-proforma-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(att.fileName || 'proforma.pdf')}">
+                <button type="button" class="view-detail-proforma-btn px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
                   View
                 </button>
                 <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="proforma" data-att-id="${escapeHtml(att.id || '')}" title="Remove attached file">
@@ -34909,73 +35070,99 @@ ${sectionsText}
       }
     }
 
-    const invoiceStatus = document.getElementById('detailInvoiceStatusText');
-    const invoiceActions = document.getElementById('detailInvoiceActions');
-    if (invoiceStatus && invoiceActions) {
-      if (proj.hasInvoiceDoc) {
-        invoiceStatus.textContent = proj.invoiceDocName || 'invoice.pdf';
-        invoiceActions.innerHTML = `
-          <button type="button" class="view-detail-invoice-btn px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
-            View
-          </button>
-          <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="invoice" title="Remove document">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      } else {
-        invoiceStatus.textContent = 'Not attached';
-        invoiceActions.innerHTML = `
-          <button type="button" class="direct-attach-invoice-btn px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-medium cursor-pointer" data-id="${escapeHtml(proj.id)}">
-            + Attach
-          </button>
-        `;
-      }
-    }
-
     const receiptStatus = document.getElementById('detailReceiptStatusText');
     const receiptActions = document.getElementById('detailReceiptActions');
+    const receiptSavedList = document.getElementById('detailReceiptSavedList');
     if (receiptStatus && receiptActions) {
-      const hasReceipt = proj.hasReceiptDoc || proj.hasInvoiceDoc;
-      if (hasReceipt) {
-        receiptStatus.textContent = proj.receiptDocName || proj.invoiceDocName || (proj.receiptNumber ? `Receipt #${proj.receiptNumber}` : 'receipt.pdf');
-        receiptActions.innerHTML = `
-          <button type="button" class="view-detail-receipt-btn px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
-            View
-          </button>
-          <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="receipt" title="Remove document">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      } else {
-        receiptStatus.textContent = 'Not attached';
-        receiptActions.innerHTML = `
-          <button type="button" class="direct-attach-receipt-btn px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-medium cursor-pointer" data-id="${escapeHtml(proj.id)}">
-            + Attach
-          </button>
-        `;
+      const receiptAttachments = getProjectReceiptAttachmentsList(proj);
+      receiptStatus.textContent = receiptAttachments.length > 0
+        ? `${receiptAttachments.length} saved ${receiptAttachments.length === 1 ? 'file' : 'files'}`
+        : 'Not attached';
+      receiptActions.innerHTML = `
+        <button type="button" class="direct-attach-receipt-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
+          + Attach
+        </button>
+      `;
+      if (receiptSavedList) {
+        if (receiptAttachments.length > 0) {
+          receiptSavedList.innerHTML = receiptAttachments.map(att => {
+            const dateVal = att.attachedAt || att.uploadedAt;
+            const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
+            const attKeyVal = att.attKey || att.attachmentKey || proj.receiptAttKey || `${proj.id}_receipt`;
+            const fileLabel = att.fileName || 'receipt.pdf';
+            return `
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
+                  <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    <span class="px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                    <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" class="view-detail-receipt-btn px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
+                    View
+                  </button>
+                  <button type="button" class="remove-detail-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="receipt" data-att-id="${escapeHtml(att.id || '')}" title="Remove document">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+          receiptSavedList.classList.remove('hidden');
+        } else {
+          receiptSavedList.innerHTML = '';
+          receiptSavedList.classList.add('hidden');
+        }
       }
     }
 
     const projBriefStatus = document.getElementById('detailBriefStatusText');
     const projBriefActions = document.getElementById('detailBriefActions');
+    const projBriefSavedList = document.getElementById('detailBriefSavedList');
     if (projBriefStatus && projBriefActions) {
-      if (proj.hasBriefDoc) {
-        projBriefStatus.textContent = proj.briefDocName || 'brief.pdf';
-        projBriefActions.innerHTML = `
-          <button type="button" class="view-lead-brief-btn px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(proj.briefAttKey || `${proj.id}_brief`)}" data-file-name="${escapeHtml(proj.briefDocName || 'brief.pdf')}">
-            View
-          </button>
-          <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="brief" title="Remove document">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      } else {
-        projBriefStatus.textContent = 'Not attached';
-        projBriefActions.innerHTML = `
-          <button type="button" class="direct-attach-lead-brief-btn px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-medium cursor-pointer" data-id="${escapeHtml(proj.id)}">
-            + Attach
-          </button>
-        `;
+      const briefAttachments = getProjectBriefAttachmentsList(proj);
+      projBriefStatus.textContent = briefAttachments.length > 0
+        ? `${briefAttachments.length} saved ${briefAttachments.length === 1 ? 'file' : 'files'}`
+        : 'Not attached';
+      projBriefActions.innerHTML = `
+        <button type="button" class="direct-attach-lead-brief-btn px-2 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg text-xs font-medium cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}">
+          + Attach
+        </button>
+      `;
+      if (projBriefSavedList) {
+        if (briefAttachments.length > 0) {
+          projBriefSavedList.innerHTML = briefAttachments.map(att => {
+            const dateVal = att.attachedAt || att.uploadedAt;
+            const dateStr = dateVal ? formatFollowupDocTimestamp(dateVal) : 'Attached file';
+            const attKeyVal = att.attKey || att.attachmentKey || proj.briefAttKey || `${proj.id}_brief`;
+            const fileLabel = att.fileName || 'brief.pdf';
+            return `
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(fileLabel)}">${escapeHtml(fileLabel)}</p>
+                  <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    <span class="px-1 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200/70 text-[8px] font-bold uppercase tracking-tight leading-none shrink-0">File</span>
+                    <span class="text-[10px] text-slate-400 truncate">${escapeHtml(dateStr)}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" class="view-lead-brief-btn px-1.5 py-0.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded text-[10px] font-semibold cursor-pointer transition-colors" data-id="${escapeHtml(proj.id)}" data-att-key="${escapeHtml(attKeyVal)}" data-file-name="${escapeHtml(fileLabel)}">
+                    View
+                  </button>
+                  <button type="button" class="remove-lead-doc-btn p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer" data-id="${escapeHtml(proj.id)}" data-type="brief" data-att-id="${escapeHtml(att.id || '')}" title="Remove document">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+          projBriefSavedList.classList.remove('hidden');
+        } else {
+          projBriefSavedList.innerHTML = '';
+          projBriefSavedList.classList.add('hidden');
+        }
       }
     }
 
@@ -35906,6 +36093,8 @@ ${sectionsText}
     }
 
     if (!Array.isArray(state.budget.leads)) state.budget.leads = [];
+    if (!Array.isArray(state.budget.deletedProjectIds)) state.budget.deletedProjectIds = [];
+    if (!state.budget.deletedProjectIds.includes(projectId)) state.budget.deletedProjectIds.push(projectId);
     state.budget.leads.unshift(newLead);
     state.budget.projects = state.budget.projects.filter(p => p.id !== projectId);
 
@@ -36254,9 +36443,15 @@ ${sectionsText}
         const id = state.activeFollowupProjectId;
         const p = (state.budget.projects || []).find(x => x.id === id);
         if (p && await confirmAction(`Delete project "${p.client}"?`)) {
+          if (!Array.isArray(state.budget.deletedProjectIds)) state.budget.deletedProjectIds = [];
+          if (!state.budget.deletedProjectIds.includes(id)) state.budget.deletedProjectIds.push(id);
           state.budget.projects = (state.budget.projects || []).filter(x => x.id !== id);
+          saveBudget();
+          closeProjectDetailPage();
+          renderBudgetView();
           await deleteReceiptAttachment(id);
           await deleteReceiptAttachment(`${id}_quote`);
+          await deleteReceiptAttachment(`${id}_deposit_proforma`);
           await deleteReceiptAttachment(`${id}_proforma`);
           await deleteReceiptAttachment(`${id}_invoice`);
           await deleteReceiptAttachment(`${id}_receipt`);
@@ -36270,6 +36465,13 @@ ${sectionsText}
               }
             }
           }
+          if (Array.isArray(p.depositProformaAttachments)) {
+            for (const att of p.depositProformaAttachments) {
+              if (att && (att.attKey || att.attachmentKey)) {
+                await deleteReceiptAttachment(att.attKey || att.attachmentKey);
+              }
+            }
+          }
           if (Array.isArray(p.proformaAttachments)) {
             for (const att of p.proformaAttachments) {
               if (att && (att.attKey || att.attachmentKey)) {
@@ -36277,9 +36479,20 @@ ${sectionsText}
               }
             }
           }
-          saveBudget();
-          closeProjectDetailPage();
-          renderBudgetView();
+          if (Array.isArray(p.receiptAttachments)) {
+            for (const att of p.receiptAttachments) {
+              if (att && (att.attKey || att.attachmentKey)) {
+                await deleteReceiptAttachment(att.attKey || att.attachmentKey);
+              }
+            }
+          }
+          if (Array.isArray(p.briefAttachments)) {
+            for (const att of p.briefAttachments) {
+              if (att && (att.attKey || att.attachmentKey)) {
+                await deleteReceiptAttachment(att.attKey || att.attachmentKey);
+              }
+            }
+          }
           showToast('Project Deleted', 'Project removed.', 'info');
         }
       });
@@ -36804,6 +37017,32 @@ ${sectionsText}
     });
 
     // Direct File Inputs for Documents
+    const projQuoteFileInput = document.getElementById('directProjectQuoteFileInput');
+    if (projQuoteFileInput) {
+      projQuoteFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        const targetId = projQuoteFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectLeadDocUpload(file, 'quote', targetId);
+        }
+        projQuoteFileInput.removeAttribute('data-target-id');
+        projQuoteFileInput.value = '';
+      });
+    }
+
+    const projBriefFileInput = document.getElementById('directProjectBriefFileInput');
+    if (projBriefFileInput) {
+      projBriefFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        const targetId = projBriefFileInput.getAttribute('data-target-id') || state.activeFollowupProjectId;
+        if (file && targetId) {
+          handleDirectLeadDocUpload(file, 'brief', targetId);
+        }
+        projBriefFileInput.removeAttribute('data-target-id');
+        projBriefFileInput.value = '';
+      });
+    }
+
     const depositProformaFileInput = document.getElementById('directDepositProformaFileInput');
     if (depositProformaFileInput) {
       depositProformaFileInput.addEventListener('change', (e) => {
@@ -36905,11 +37144,14 @@ ${sectionsText}
       const viewReceiptBtn = e.target.closest('.view-detail-receipt-btn');
       if (viewReceiptBtn) {
         const id = viewReceiptBtn.getAttribute('data-id');
+        const attKey = viewReceiptBtn.getAttribute('data-att-key');
+        const fileName = viewReceiptBtn.getAttribute('data-file-name');
         if (id) {
           const proj = (state.budget?.projects || []).find(p => p.id === id);
-          if (proj && proj.receiptAttKey) {
-            const titleLabel = `${proj.client || 'Project'} — Final Tax Receipt`;
-            await openFollowupAttachmentViewer(proj.receiptAttKey, `${id}_receipt`, titleLabel, proj.receiptDocName || proj.invoiceDocName || 'receipt.pdf');
+          const resolvedKey = attKey || proj?.receiptAttKey;
+          if (resolvedKey) {
+            const titleLabel = `${proj?.client || 'Project'} — Final Tax Receipt`;
+            await openFollowupAttachmentViewer(resolvedKey, `${id}_receipt`, titleLabel, fileName || proj?.receiptDocName || proj?.invoiceDocName || 'receipt.pdf');
           } else {
             await openReceiptViewer(`${id}_receipt`);
           }
@@ -38061,7 +38303,10 @@ ${sectionsText}
       const attachQuoteBtn = e.target.closest('.direct-attach-lead-quote-btn');
       if (attachQuoteBtn) {
         const targetId = attachQuoteBtn.getAttribute('data-id') || state.activeFollowupLeadId || state.activeFollowupProjectId || '';
-        const inp = document.getElementById('directLeadQuoteFileInput');
+        const isProjTarget = (state.budget?.projects || []).some(p => p.id === targetId) || (!state.activeFollowupLeadId && !!state.activeFollowupProjectId);
+        const inp = isProjTarget
+          ? (document.getElementById('directProjectQuoteFileInput') || document.getElementById('directLeadQuoteFileInput'))
+          : document.getElementById('directLeadQuoteFileInput');
         if (inp) {
           if (targetId) inp.setAttribute('data-target-id', targetId);
           inp.click();
@@ -38071,7 +38316,10 @@ ${sectionsText}
       const attachBriefBtn = e.target.closest('.direct-attach-lead-brief-btn');
       if (attachBriefBtn) {
         const targetId = attachBriefBtn.getAttribute('data-id') || state.activeFollowupLeadId || state.activeFollowupProjectId || '';
-        const inp = document.getElementById('directLeadBriefFileInput');
+        const isProjTarget = (state.budget?.projects || []).some(p => p.id === targetId) || (!state.activeFollowupLeadId && !!state.activeFollowupProjectId);
+        const inp = isProjTarget
+          ? (document.getElementById('directProjectBriefFileInput') || document.getElementById('directLeadBriefFileInput'))
+          : document.getElementById('directLeadBriefFileInput');
         if (inp) {
           if (targetId) inp.setAttribute('data-target-id', targetId);
           inp.click();
