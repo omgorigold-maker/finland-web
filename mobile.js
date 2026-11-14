@@ -1941,11 +1941,12 @@
         return btn;
       });
 
+      const isPresetColor = MOBILE_NAV_COLORS.some(hex => hex === currentColor.toLowerCase());
       const colorDots = MOBILE_NAV_COLORS.map(hex =>
         el('button', {
           type: 'button',
           className: `tab-color-dot${currentColor.toLowerCase() === hex ? ' active' : ''}`,
-          style: `background:${hex}`,
+          style: `background:${hex};--dot-color:${hex}`,
           'aria-label': `Set ${t.label} icon color ${hex}`,
           onClick: () => {
             if (!mp.tabColors) mp.tabColors = {};
@@ -1957,12 +1958,32 @@
         })
       );
 
+      const pickerInput = el('input', {
+        type: 'color',
+        className: 'tab-color-input',
+        value: /^#[0-9a-f]{6}$/i.test(currentColor) ? currentColor : '#0f172a',
+        'aria-label': `Pick custom color for ${t.label}`
+      });
+      pickerInput.addEventListener('input', (e) => {
+        if (!mp.tabColors) mp.tabColors = {};
+        mp.tabColors[t.key] = e.target.value;
+        saveMobilePrefs();
+        applyMobilePrefs();
+      });
+      pickerInput.addEventListener('change', () => renderMobileCustomSheet());
+
+      const pickerWrap = el('label', {
+        className: `tab-color-picker-wrap${!isPresetColor ? ' active' : ''}`,
+        style: !isPresetColor ? `--dot-color:${currentColor}` : '--dot-color:#ffffff',
+        title: 'Custom color'
+      }, [pickerInput]);
+
       return el('div', { className: 'icon-picker-row' }, [
         el('div', { className: 'icon-picker-top' }, [
           el('span', { className: 'icon-picker-name', textContent: t.label }),
           el('div', { className: 'icon-picker-opts' }, iconBtns)
         ]),
-        el('div', { className: 'icon-picker-colors' }, colorDots)
+        el('div', { className: 'icon-picker-colors' }, [...colorDots, pickerWrap])
       ]);
     }));
 
