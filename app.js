@@ -27223,7 +27223,7 @@ function initSortableWidgets() {
   function getPoCurrency() {
     const curInp = document.getElementById('poCurrencyInput') || document.getElementById('poCurrencySelect');
     if (!curInp) return state.displayCurrency || 'EUR';
-    const raw = curInp.value.trim().toUpperCase();
+    const raw = String(curInp.value !== undefined ? curInp.value : (curInp.textContent || '')).trim().toUpperCase();
     if (raw.includes('EUR') || raw.includes('€')) return 'EUR';
     if (raw.includes('USD') || raw.includes('$')) return 'USD';
     if (raw.includes('ILS') || raw.includes('₪')) return 'ILS';
@@ -33982,6 +33982,7 @@ function initSortableWidgets() {
     } else {
       containerEl.innerHTML = snap.sheetHtml;
     }
+    containerEl.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
 
     document.getElementById('poVersionsDropdownMenu')?.classList.add('hidden');
     modal.classList.remove('hidden');
@@ -33996,6 +33997,8 @@ function initSortableWidgets() {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    const containerEl = document.getElementById('followupSnapshotSheetContainer');
+    if (containerEl) containerEl.innerHTML = '';
   }
 
   function printFollowupSnapshotDirectly() {
