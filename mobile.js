@@ -1433,6 +1433,26 @@
     const pinned = filtered.filter(n => n.isPinned || n.pinned);
     const others = filtered.filter(n => !(n.isPinned || n.pinned));
 
+    const now = new Date();
+    const todayYMD = toYMD(now);
+    const tomDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const tomorrowYMD = toYMD(tomDate);
+    const currentYear = now.getFullYear();
+
+    const noteTime = (n) => {
+      const ts = Date.parse(n.updatedAt || n.createdAt || '');
+      return Number.isFinite(ts) ? ts : 0;
+    };
+
+    const formatNoteBatchDate = (ymd) => {
+      const [y, m, d] = ymd.split('-').map(Number);
+      if (!y || !m || !d) return ymd;
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString('en-US', y === currentYear
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     const buildNoteCard = (n) => {
       const bodyStr = n.body || (Array.isArray(n.bodyBlocks) ? n.bodyBlocks.filter(Boolean).join(' ') : '') || n.content || '';
       const preview = bodyStr.length > 110 ? bodyStr.slice(0, 110) + '...' : bodyStr;
@@ -1460,13 +1480,66 @@
 
     const out = [];
     if (pinned.length) {
+      pinned.sort((a, b) => {
+        const da = String(a.dueDate || '').trim();
+        const db = String(b.dueDate || '').trim();
+        if (da && db && da !== db) return da < db ? -1 : 1;
+        if (da !== db) return da ? -1 : 1;
+        return noteTime(b) - noteTime(a);
+      });
       out.push(el('div', { className: 'section-label', textContent: 'Pinned' }));
       pinned.forEach(n => out.push(buildNoteCard(n)));
     }
-    if (others.length) {
-      if (pinned.length) out.push(el('div', { className: 'section-label', textContent: 'Notes' }));
-      others.forEach(n => out.push(buildNoteCard(n)));
+
+    const todayNotes = [];
+    const tomorrowNotes = [];
+    const otherDateMap = new Map();
+    const undatedNotes = [];
+
+    others.forEach(n => {
+      const due = String(n.dueDate || '').trim();
+      if (!due) {
+        undatedNotes.push(n);
+      } else if (due === todayYMD) {
+        todayNotes.push(n);
+      } else if (due === tomorrowYMD) {
+        tomorrowNotes.push(n);
+      } else {
+        if (!otherDateMap.has(due)) otherDateMap.set(due, []);
+        otherDateMap.get(due).push(n);
+      }
+    });
+
+    const sortWithinBatch = (arr) => arr.sort((a, b) => noteTime(b) - noteTime(a));
+
+    if (todayNotes.length) {
+      out.push(el('div', { className: 'section-label', textContent: 'Today' }));
+      sortWithinBatch(todayNotes).forEach(n => out.push(buildNoteCard(n)));
     }
+    if (tomorrowNotes.length) {
+      out.push(el('div', { className: 'section-label', textContent: 'Tomorrow' }));
+      sortWithinBatch(tomorrowNotes).forEach(n => out.push(buildNoteCard(n)));
+    }
+
+    const upcomingDates = [];
+    const pastDates = [];
+    otherDateMap.forEach((_, dateKey) => {
+      if (dateKey > tomorrowYMD) upcomingDates.push(dateKey);
+      else pastDates.push(dateKey);
+    });
+    upcomingDates.sort((a, b) => (a < b ? -1 : 1));
+    pastDates.sort((a, b) => (a > b ? -1 : 1));
+
+    [...upcomingDates, ...pastDates].forEach(dateKey => {
+      out.push(el('div', { className: 'section-label', textContent: formatNoteBatchDate(dateKey) }));
+      sortWithinBatch(otherDateMap.get(dateKey)).forEach(n => out.push(buildNoteCard(n)));
+    });
+
+    if (undatedNotes.length) {
+      out.push(el('div', { className: 'section-label', textContent: 'No Date' }));
+      sortWithinBatch(undatedNotes).forEach(n => out.push(buildNoteCard(n)));
+    }
+
     listEl.replaceChildren(...out);
   }
 
