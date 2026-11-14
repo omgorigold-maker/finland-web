@@ -217,6 +217,142 @@
     renderAll();
   }
 
+  const PENDING_OPS_KEY = 'finland_mobile_pending_ops_v1';
+
+  function getPendingOps() {
+    return parseJSON(localStorage.getItem(PENDING_OPS_KEY), []);
+  }
+
+  function setPendingOps(ops) {
+    localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops));
+  }
+
+  function applyOpToValue(key, currentVal, op) {
+    if (op.type === 'set_raw') return op.value;
+
+    if (key === KEYS.EXPENSES || key === KEYS.NOTES) {
+      const list = Array.isArray(currentVal) ? [...currentVal] : [];
+      if (op.type === 'upsert_item') {
+        const idx = list.findIndex(x => x && x.id === op.item.id);
+        if (idx !== -1) list[idx] = Object.assign({}, list[idx], op.item);
+        else list.unshift(op.item);
+      } else if (op.type === 'delete_item') {
+        return list.filter(x => x && x.id !== op.id);
+      } else if (op.type === 'toggle_note_done') {
+        const note = list.find(x => x && x.id === op.id);
+        if (note) {
+          note.isDone = !(note.isDone || note.completed);
+          note.completed = note.isDone;
+          note.updatedAt = new Date().toISOString();
+        }
+      }
+      return list;
+    }
+
+    if (key === KEYS.CALENDAR_PLAN) {
+      const cp = (currentVal && typeof currentVal === 'object') ? Object.assign({}, currentVal) : {};
+      const items = Array.isArray(cp.items) ? [...cp.items] : [];
+      if (op.type === 'upsert_cal_item') {
+        const idx = items.findIndex(x => x && x.id === op.item.id);
+        if (idx !== -1) items[idx] = Object.assign({}, items[idx], op.item);
+        else items.push(op.item);
+      } else if (op.type === 'toggle_cal_item') {
+        const it = items.find(x => x && x.id === op.id);
+        if (it) it.completed = !it.completed;
+      } else if (op.type === 'delete_cal_item') {
+        cp.items = items.filter(x => x && x.id !== op.id);
+        return cp;
+      }
+      cp.items = items;
+      return cp;
+    }
+
+    if (key === KEYS.BUDGET) {
+      const b = (currentVal && typeof currentVal === 'object') ? Object.assign({}, currentVal) : {};
+      if (op.type === 'toggle_project_step' && Array.isArray(b.projects)) {
+        b.projects = b.projects.map(p => {
+          if (!p || p.id !== op.projectId || !Array.isArray(p.steps)) return p;
+          const steps = p.steps.map((s, i) => {
+            if (i !== op.stepIdx || !s) return s;
+            const next = !(s.completed || s.done);
+            return Object.assign({}, s, { completed: next, done: next });
+          });
+          return Object.assign({}, p, { steps });
+        });
+      } else if (op.type === 'toggle_project_done' && Array.isArray(b.projects)) {
+        b.projects = b.projects.map(p => {
+          if (!p || p.id !== op.projectId) return p;
+          const next = !isProjectDone(p);
+          return Object.assign({}, p, { isDone: next, status: next ? 'completed' : 'active' });
+        });
+      } else if (op.type === 'toggle_lead_step' && Array.isArray(b.leads)) {
+        b.leads = b.leads.map(l => {
+          if (!l || l.id !== op.leadId || !Array.isArray(l.steps)) return l;
+          const steps = l.steps.map((s, i) => {
+            if (i !== op.stepIdx || !s) return s;
+            const next = !(s.completed || s.done);
+            return Object.assign({}, s, { completed: next, done: next });
+          });
+          return Object.assign({}, l, { steps });
+        });
+      }
+      return b;
+    }
+
+    return currentVal;
+  }
+
+  function applyOpLocally(key, op) {
+    const fallback = (key === KEYS.EXPENSES || key === KEYS.NOTES) ? [] : (key === KEYS.DISPLAY_CURRENCY ? 'EUR' : {});
+    const cur = key === KEYS.DISPLAY_CURRENCY ? (localStorage.getItem(key) || 'EUR') : parseJSON(localStorage.getItem(key), fallback);
+    const next = applyOpToValue(key, cur, op);
+    const serialized = typeof next === 'string' ? next : JSON.stringify(next);
+    localStorage.setItem(key, serialized);
+    loadFromLocalStorage();
+  }
+
+  async function postVaultKeys(payloadObj) {
+    const payload = Object.assign({}, payloadObj);
+    if (state.restoreEpoch) payload._restore_epoch = state.restoreEpoch;
+    const res = await fetch('/api/vault', {
+      method: 'POST',
+      headers: apiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    if (res.status === 401) {
+      setSyncStatus('error', 'Locked');
+      openDialog('pinDialog');
+      return { ok: false, locked: true };
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const out = await res.json().catch(() => ({}));
+    return { ok: true, out };
+  }
+
+  async function flushPendingOpsOnRemote(remoteData) {
+    const ops = getPendingOps();
+    if (!ops.length) return remoteData;
+    const updatedKeys = {};
+    const mergedRemote = Object.assign({}, remoteData);
+
+    ops.forEach(({ key, op }) => {
+      const fallback = (key === KEYS.EXPENSES || key === KEYS.NOTES) ? [] : (key === KEYS.DISPLAY_CURRENCY ? 'EUR' : {});
+      const curVal = key === KEYS.DISPLAY_CURRENCY
+        ? (mergedRemote[key] || 'EUR')
+        : parseJSON(mergedRemote[key], fallback);
+      const nextVal = applyOpToValue(key, curVal, op);
+      const serialized = typeof nextVal === 'string' ? nextVal : JSON.stringify(nextVal);
+      mergedRemote[key] = serialized;
+      updatedKeys[key] = serialized;
+    });
+
+    const res = await postVaultKeys(updatedKeys);
+    if (res.ok && (!res.out || res.out.status !== 'ignored_stale_epoch')) {
+      setPendingOps([]);
+    }
+    return mergedRemote;
+  }
+
   async function pullVault(silent) {
     if (!silent) setSyncStatus('syncing', 'Syncing...');
     try {
@@ -227,7 +363,11 @@
         return false;
       }
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
+      let data = await res.json();
+      if (data && data._restore_epoch) state.restoreEpoch = String(data._restore_epoch);
+      if (getPendingOps().length > 0) {
+        data = await flushPendingOpsOnRemote(data);
+      }
       applyVaultPayload(data);
       setSyncStatus('ok', 'Synced');
       return true;
@@ -237,30 +377,38 @@
     }
   }
 
-  async function saveAndPushKey(key, value) {
-    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-    localStorage.setItem(key, serialized);
+  async function smartMutateAndPush(key, op) {
+    // 1. Update local immediately for instant UI responsiveness
+    applyOpLocally(key, op);
     setSyncStatus('syncing', 'Saving...');
+
     try {
-      const payload = { [key]: serialized };
-      if (state.restoreEpoch) payload._restore_epoch = state.restoreEpoch;
-      const res = await fetch('/api/vault', {
-        method: 'POST',
-        headers: apiHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload)
-      });
+      // 2. Pull latest server vault first so we never clobber desktop edits
+      const res = await fetch('/api/vault', { headers: apiHeaders(), cache: 'no-store' });
       if (res.status === 401) {
+        const ops = getPendingOps();
+        ops.push({ key, op });
+        setPendingOps(ops);
         setSyncStatus('error', 'Locked');
         openDialog('pinDialog');
         return;
       }
-      const out = await res.json().catch(() => ({}));
-      if (out && out.status === 'ignored_stale_epoch') {
-        await pullVault(true);
-        return;
-      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const remote = await res.json();
+      if (remote && remote._restore_epoch) state.restoreEpoch = String(remote._restore_epoch);
+
+      // 3. Replay any queued ops + this new op on top of the latest remote data
+      const ops = getPendingOps();
+      ops.push({ key, op });
+      setPendingOps(ops);
+      const mergedRemote = await flushPendingOpsOnRemote(remote);
+      applyVaultPayload(mergedRemote);
       setSyncStatus('ok', 'Synced');
     } catch {
+      // Offline: keep surgical op queued so it merges cleanly on reconnect
+      const ops = getPendingOps();
+      ops.push({ key, op });
+      setPendingOps(ops);
       setSyncStatus('error', 'Offline');
     }
   }
@@ -575,9 +723,7 @@
         type: 'button',
         className: `step-row${sDone ? ' done' : ''}`,
         onClick: async () => {
-          s.completed = !sDone;
-          s.done = s.completed;
-          await saveAndPushKey(KEYS.BUDGET, state.budget);
+          await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_project_step', projectId, stepIdx: idx });
           openProjectDetail(projectId);
           renderAll();
         }
@@ -593,12 +739,10 @@
       className: done ? 'btn-secondary' : 'btn-primary',
       textContent: done ? 'Reopen Project' : 'Mark Project Done',
       onClick: async () => {
-        p.isDone = !done;
-        p.status = p.isDone ? 'completed' : 'active';
-        await saveAndPushKey(KEYS.BUDGET, state.budget);
+        await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_project_done', projectId });
         closeDialog('detailDialog');
         renderAll();
-        showToast(p.isDone ? 'Project marked done' : 'Project reopened');
+        showToast(!done ? 'Project marked done' : 'Project reopened');
       }
     });
 
@@ -632,9 +776,7 @@
         type: 'button',
         className: `step-row${sDone ? ' done' : ''}`,
         onClick: async () => {
-          s.completed = !sDone;
-          s.done = s.completed;
-          await saveAndPushKey(KEYS.BUDGET, state.budget);
+          await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_lead_step', leadId, stepIdx: idx });
           openLeadDetail(leadId);
           renderAll();
         }
@@ -748,34 +890,13 @@
 
   async function toggleCalendarEntry(entry) {
     if (entry.kind === 'custom_item') {
-      const item = (state.calendarPlan.items || []).find(x => x && x.id === entry.id);
-      if (item) {
-        item.completed = !item.completed;
-        await saveAndPushKey(KEYS.CALENDAR_PLAN, state.calendarPlan);
-      }
+      await smartMutateAndPush(KEYS.CALENDAR_PLAN, { type: 'toggle_cal_item', id: entry.id });
     } else if (entry.kind === 'project_step') {
-      const proj = (state.budget.projects || []).find(x => x && x.id === entry.projectId);
-      if (proj && Array.isArray(proj.steps) && proj.steps[entry.stepIdx]) {
-        const s = proj.steps[entry.stepIdx];
-        s.completed = !(s.completed || s.done);
-        s.done = s.completed;
-        await saveAndPushKey(KEYS.BUDGET, state.budget);
-      }
+      await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_project_step', projectId: entry.projectId, stepIdx: entry.stepIdx });
     } else if (entry.kind === 'lead_step') {
-      const lead = (state.budget.leads || []).find(x => x && x.id === entry.leadId);
-      if (lead && Array.isArray(lead.steps) && lead.steps[entry.stepIdx]) {
-        const s = lead.steps[entry.stepIdx];
-        s.completed = !(s.completed || s.done);
-        s.done = s.completed;
-        await saveAndPushKey(KEYS.BUDGET, state.budget);
-      }
+      await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_lead_step', leadId: entry.leadId, stepIdx: entry.stepIdx });
     } else if (entry.kind === 'note') {
-      const note = (state.notes || []).find(x => x && x.id === entry.noteId);
-      if (note) {
-        note.isDone = !(note.isDone || note.completed);
-        note.completed = note.isDone;
-        await saveAndPushKey(KEYS.NOTES, state.notes);
-      }
+      await smartMutateAndPush(KEYS.NOTES, { type: 'toggle_note_done', id: entry.noteId });
     }
     renderAll();
   }
@@ -1012,7 +1133,7 @@
       const idx = (CURRENCIES.indexOf(state.displayCurrency) + 1) % CURRENCIES.length;
       state.displayCurrency = CURRENCIES[idx];
       document.getElementById('currencyBtn').textContent = state.displayCurrency;
-      saveAndPushKey(KEYS.DISPLAY_CURRENCY, state.displayCurrency);
+      smartMutateAndPush(KEYS.DISPLAY_CURRENCY, { type: 'set_raw', value: state.displayCurrency });
       renderAll();
     });
 
@@ -1089,16 +1210,10 @@
         updatedAt: new Date().toISOString()
       };
 
-      if (id) {
-        const idx = state.expenses.findIndex(x => x && x.id === id);
-        if (idx !== -1) state.expenses[idx] = Object.assign({}, state.expenses[idx], entry);
-      } else {
-        entry.createdAt = new Date().toISOString();
-        state.expenses.unshift(entry);
-      }
+      if (!id) entry.createdAt = new Date().toISOString();
 
       closeDialog('txDialog');
-      await saveAndPushKey(KEYS.EXPENSES, state.expenses);
+      await smartMutateAndPush(KEYS.EXPENSES, { type: 'upsert_item', item: entry });
       renderAll();
       showToast('Transaction saved');
     });
@@ -1106,9 +1221,8 @@
     document.getElementById('txDeleteBtn').addEventListener('click', async () => {
       const id = document.getElementById('txIdInput').value;
       if (!id) return;
-      state.expenses = state.expenses.filter(x => x && x.id !== id);
       closeDialog('txDialog');
-      await saveAndPushKey(KEYS.EXPENSES, state.expenses);
+      await smartMutateAndPush(KEYS.EXPENSES, { type: 'delete_item', id });
       renderAll();
       showToast('Transaction deleted');
     });
@@ -1136,16 +1250,9 @@
         completed: false
       };
 
-      if (id) {
-        const idx = state.calendarPlan.items.findIndex(x => x && x.id === id);
-        if (idx !== -1) state.calendarPlan.items[idx] = Object.assign({}, state.calendarPlan.items[idx], item);
-      } else {
-        state.calendarPlan.items.push(item);
-      }
-
       state.selectedDate = item.date;
       closeDialog('calItemDialog');
-      await saveAndPushKey(KEYS.CALENDAR_PLAN, state.calendarPlan);
+      await smartMutateAndPush(KEYS.CALENDAR_PLAN, { type: 'upsert_cal_item', item });
       renderAll();
       showToast('Saved to calendar');
     });
@@ -1153,9 +1260,8 @@
     document.getElementById('calItemDeleteBtn').addEventListener('click', async () => {
       const id = document.getElementById('calItemIdInput').value;
       if (!id) return;
-      state.calendarPlan.items = state.calendarPlan.items.filter(x => x && x.id !== id);
       closeDialog('calItemDialog');
-      await saveAndPushKey(KEYS.CALENDAR_PLAN, state.calendarPlan);
+      await smartMutateAndPush(KEYS.CALENDAR_PLAN, { type: 'delete_cal_item', id });
       renderAll();
       showToast('Calendar item deleted');
     });
@@ -1177,16 +1283,10 @@
         updatedAt: new Date().toISOString()
       };
 
-      if (id) {
-        const idx = state.notes.findIndex(x => x && x.id === id);
-        if (idx !== -1) state.notes[idx] = Object.assign({}, state.notes[idx], note);
-      } else {
-        note.createdAt = new Date().toISOString();
-        state.notes.unshift(note);
-      }
+      if (!id) note.createdAt = new Date().toISOString();
 
       closeDialog('noteDialog');
-      await saveAndPushKey(KEYS.NOTES, state.notes);
+      await smartMutateAndPush(KEYS.NOTES, { type: 'upsert_item', item: note });
       renderAll();
       showToast('Note saved');
     });
@@ -1194,9 +1294,8 @@
     document.getElementById('noteDeleteBtn').addEventListener('click', async () => {
       const id = document.getElementById('noteIdInput').value;
       if (!id) return;
-      state.notes = state.notes.filter(x => x && x.id !== id);
       closeDialog('noteDialog');
-      await saveAndPushKey(KEYS.NOTES, state.notes);
+      await smartMutateAndPush(KEYS.NOTES, { type: 'delete_item', id });
       renderAll();
       showToast('Note deleted');
     });
