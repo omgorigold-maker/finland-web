@@ -34465,17 +34465,17 @@ ${sectionsText}
     const toggleDoneBtn = document.getElementById('detailToggleDoneBtn');
     if (toggleDoneBtn) {
       if (isDone) {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 border border-slate-200/80';
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50/60 hover:bg-slate-100/80 hover:text-slate-800 border border-slate-200/70 hover:border-slate-300/80 rounded-lg transition-all active:scale-[0.98]';
         toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Reopen Project</span>`;
       } else if (workIsDone && !isPaid) {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 border border-slate-200/80';
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50/60 hover:bg-slate-100/80 hover:text-slate-800 border border-slate-200/70 hover:border-slate-300/80 rounded-lg transition-all active:scale-[0.98]';
         toggleDoneBtn.innerHTML = `<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Reopen Work</span>`;
       } else if (isPaid) {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white';
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700/90 bg-emerald-50/40 hover:bg-emerald-50/90 hover:text-emerald-800 border border-emerald-200/60 hover:border-emerald-300/80 rounded-lg transition-all active:scale-[0.98]';
         toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark as Done</span>`;
       } else {
-        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white';
-        toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark work as done</span>`;
+        toggleDoneBtn.className = 'cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700/90 bg-emerald-50/40 hover:bg-emerald-50/90 hover:text-emerald-800 border border-emerald-200/60 hover:border-emerald-300/80 rounded-lg transition-all active:scale-[0.98]';
+        toggleDoneBtn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span id="detailToggleDoneText">Mark Work as Done</span>`;
       }
     }
 
