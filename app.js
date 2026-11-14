@@ -22680,9 +22680,16 @@ function initSortableWidgets() {
     let mutated = false;
 
     if (state.budget.poDefaultTemplate) {
-      const before = JSON.stringify(state.budget.poDefaultTemplate);
-      sanitizePoTemplateData(state.budget.poDefaultTemplate);
-      if (JSON.stringify(state.budget.poDefaultTemplate) !== before) mutated = true;
+      const defT = state.budget.poDefaultTemplate;
+      if (defT.docType === 'deposit_proforma' || defT.docType === 'proforma' || /proforma|deposit/i.test(String(defT.docTitle || '')) || /^(deposit proforma|proforma invoice)/i.test(String(defT.name || ''))) {
+        delete state.budget.poDefaultTemplate;
+        try { localStorage.removeItem('ft_po_default_template'); } catch (e) {}
+        mutated = true;
+      } else {
+        const before = JSON.stringify(defT);
+        sanitizePoTemplateData(defT);
+        if (JSON.stringify(defT) !== before) mutated = true;
+      }
     }
     if (Array.isArray(state.budget.poSavedTemplates)) {
       const before = JSON.stringify(state.budget.poSavedTemplates);
@@ -26060,13 +26067,15 @@ function initSortableWidgets() {
       ];
     }
 
-    // Ensure all items have a valid docType
+    // Ensure all items have a valid, strictly isolated docType
     list.forEach(t => {
       sanitizePoTemplateData(t);
-      if (!t.docType) {
-        if (t.docTitle && t.docTitle.includes('DEPOSIT')) t.docType = 'deposit_proforma';
-        else if (t.docTitle && t.docTitle.includes('PROFORMA')) t.docType = 'proforma';
-        else t.docType = 'price_quote';
+      if (t.id === 'tpl_master_deposit_proforma' || /^deposit proforma/i.test(String(t.name || '')) || (t.docTitle && /deposit/i.test(t.docTitle))) {
+        t.docType = 'deposit_proforma';
+      } else if (t.id === 'tpl_master_proforma' || /^proforma invoice/i.test(String(t.name || '')) || (t.docTitle && /proforma/i.test(t.docTitle))) {
+        t.docType = 'proforma';
+      } else if (!t.docType) {
+        t.docType = 'price_quote';
       }
     });
 
@@ -32439,7 +32448,7 @@ function initSortableWidgets() {
     }
 
     // Items
-    const initLeadAmount = parseFloat(lead.amount) || 0;
+    const initLeadAmount = parseFloat(lead.amount !== undefined ? lead.amount : lead.fee) || 0;
     if (Array.isArray(po.items) && po.items.length > 0) {
       currentPoItems = JSON.parse(JSON.stringify(po.items));
       if (currentPoItems.length === 1 && (parseFloat(currentPoItems[0].amount) || 0) === 0 && initLeadAmount > 0) {
