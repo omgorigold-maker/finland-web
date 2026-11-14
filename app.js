@@ -33181,6 +33181,7 @@ function initSortableWidgets() {
     const isDeposit = !!state.activeDepositProformaProjectId;
     const isProforma = !!state.activeProformaProjectId;
     const targetEntity = getPoEditorTarget(state.activePriceOfferingLeadId || state.activeDepositProformaProjectId || state.activeProformaProjectId || state.activeFollowupLeadId || state.activeFollowupProjectId);
+    const client = clientEl?.value?.trim() || (targetEntity && targetEntity.client) || 'Client';
     const proj = document.getElementById('poProjectTitle')?.value.trim() || (targetEntity && (targetEntity.title || targetEntity.description)) || document.getElementById('poDocSubtitle')?.value.trim() || 'Project';
     const ref = refEl?.value.trim() || (isDeposit ? 'DPI' : (isProforma ? 'PI' : 'PO'));
     if (isDeposit) {
