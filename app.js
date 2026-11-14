@@ -21849,12 +21849,20 @@ function initSortableWidgets() {
   function openTotalFeeEdit() {
     const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
     if (!p) return;
-    const display = document.getElementById('detailTotalFeeDisplay');
     const form = document.getElementById('detailTotalFeeEditForm');
     const input = document.getElementById('detailTotalFeeInput');
     const prefix = document.getElementById('detailTotalFeeCurPrefix');
     const curSel = document.getElementById('detailTotalFeeCurrencySelect');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeRemainingPaymentEdit();
+    closeDeadlineEdit();
+    closePaymentDueEdit();
 
     const totalFee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
     const projCur = p.currency || state.displayCurrency || 'EUR';
@@ -21863,7 +21871,6 @@ function initSortableWidgets() {
     if (prefix) prefix.textContent = curSymbol;
     if (curSel) curSel.value = projCur;
 
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
@@ -21985,13 +21992,21 @@ function initSortableWidgets() {
   function openRemainingPaymentEdit() {
     const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
     if (!p) return;
-    const display = document.getElementById('detailRemainingFeeDisplay');
     const form = document.getElementById('detailRemainingFeeEditForm');
     const input = document.getElementById('detailRemainingFeeInput');
     const dateInput = document.getElementById('detailRemainingDateInput');
     const label = document.getElementById('detailRemainingHeaderLabel');
     const prefix = document.getElementById('detailRemainingFeeCurPrefix');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeTotalFeeEdit();
+    closeDeadlineEdit();
+    closePaymentDueEdit();
 
     const projCur = p.currency || state.displayCurrency || 'EUR';
     const curSym = CURRENCY_SYMBOLS[projCur] || (projCur === 'USD' ? '$' : (projCur === 'ILS' ? '₪' : '€'));
@@ -22004,14 +22019,15 @@ function initSortableWidgets() {
       label.classList.add('text-emerald-600');
     }
     if (prefix) prefix.textContent = `+${curSym}`;
-    input.value = '';
-    input.placeholder = rem > 0 ? String(Math.round(rem * 100) / 100) : '0.00';
+    const remStr = rem > 0 ? String(Math.round(rem * 100) / 100) : '';
+    input.value = remStr;
+    input.placeholder = rem > 0 ? remStr : '0.00';
     if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
+    input.select();
   }
 
   function closeRemainingPaymentEdit() {
@@ -22045,7 +22061,9 @@ function initSortableWidgets() {
     const rawVal = input.value.trim();
     const payAmt = parseFloat(rawVal);
     if (!rawVal || isNaN(payAmt) || payAmt <= 0) {
-      closeRemainingPaymentEdit();
+      showToast('Enter Amount', 'Please enter a payment amount greater than zero.', 'info');
+      input.focus();
+      input.select();
       return;
     }
 
@@ -22115,13 +22133,20 @@ function initSortableWidgets() {
   function openDeadlineEdit() {
     const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
     if (!p) return;
-    const display = document.getElementById('detailDeadlineDisplay');
     const form = document.getElementById('detailDeadlineEditForm');
     const input = document.getElementById('detailDeadlineInput');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeTotalFeeEdit();
+    closeRemainingPaymentEdit();
+    closePaymentDueEdit();
 
     input.value = p.dueDate || '';
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
@@ -22167,13 +22192,20 @@ function initSortableWidgets() {
   function openPaymentDueEdit() {
     const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
     if (!p) return;
-    const display = document.getElementById('detailPaymentDueDisplay');
     const form = document.getElementById('detailPaymentDueEditForm');
     const input = document.getElementById('detailPaymentDueInput');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeTotalFeeEdit();
+    closeRemainingPaymentEdit();
+    closeDeadlineEdit();
 
     input.value = p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) || '';
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
@@ -36947,7 +36979,6 @@ ${sectionsText}
         if (e.key === 'Enter') { e.preventDefault(); saveTotalFeeEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeTotalFeeEdit(); }
       });
-      totalFeeInput.addEventListener('blur', () => saveTotalFeeEdit());
     }
 
     // Remaining Fee / Inline Log Payment events
@@ -36960,33 +36991,51 @@ ${sectionsText}
       });
     }
     const saveRemPayBtn = document.getElementById('saveRemainingPaymentBtn');
-    if (saveRemPayBtn) saveRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveRemainingPaymentEdit(); });
+    if (saveRemPayBtn) {
+      saveRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveRemainingPaymentEdit(); });
+      saveRemPayBtn.addEventListener('click', (e) => { e.stopPropagation(); saveRemainingPaymentEdit(); });
+    }
     const cancelRemPayBtn = document.getElementById('cancelRemainingPaymentBtn');
-    if (cancelRemPayBtn) cancelRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeRemainingPaymentEdit(); });
+    if (cancelRemPayBtn) {
+      cancelRemPayBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeRemainingPaymentEdit(); });
+      cancelRemPayBtn.addEventListener('click', (e) => { e.stopPropagation(); closeRemainingPaymentEdit(); });
+    }
     const remFeeEditForm = document.getElementById('detailRemainingFeeEditForm');
     const remFeeInput = document.getElementById('detailRemainingFeeInput');
     const remDateInput = document.getElementById('detailRemainingDateInput');
-    const handleRemBlur = () => {
-      setTimeout(() => {
-        if (remFeeEditForm && !remFeeEditForm.contains(document.activeElement)) {
-          saveRemainingPaymentEdit();
-        }
-      }, 120);
-    };
     if (remFeeInput) {
       remFeeInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); saveRemainingPaymentEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeRemainingPaymentEdit(); }
       });
-      remFeeInput.addEventListener('blur', handleRemBlur);
     }
     if (remDateInput) {
       remDateInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); saveRemainingPaymentEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeRemainingPaymentEdit(); }
       });
-      remDateInput.addEventListener('blur', handleRemBlur);
     }
+
+    // Close open Project Detail header popovers when clicking outside them
+    document.addEventListener('mousedown', (e) => {
+      if (totalFeeBox && !totalFeeBox.contains(e.target)) {
+        const tfForm = document.getElementById('detailTotalFeeEditForm');
+        if (tfForm && !tfForm.classList.contains('hidden')) saveTotalFeeEdit();
+      }
+      if (remFeeBox && !remFeeBox.contains(e.target)) {
+        if (remFeeEditForm && !remFeeEditForm.classList.contains('hidden')) closeRemainingPaymentEdit();
+      }
+      const dlBox = document.getElementById('detailDeadlineContainer');
+      if (dlBox && !dlBox.contains(e.target)) {
+        const dlForm = document.getElementById('detailDeadlineEditForm');
+        if (dlForm && !dlForm.classList.contains('hidden')) closeDeadlineEdit();
+      }
+      const pdBox = document.getElementById('detailPaymentDueContainer');
+      if (pdBox && !pdBox.contains(e.target)) {
+        const pdForm = document.getElementById('detailPaymentDueEditForm');
+        if (pdForm && !pdForm.classList.contains('hidden')) closePaymentDueEdit();
+      }
+    });
 
     // Deadline In-Box Edit events
     const deadlineBox = document.getElementById('detailDeadlineContainer');
@@ -37361,12 +37410,6 @@ ${sectionsText}
           if (p) renderProjectDetailPage(p, state.displayCurrency);
         }
       });
-      paymentsList.addEventListener('blur', (e) => {
-        const dateInp = e.target.closest('.detail-payment-date-input');
-        if (dateInp) {
-          saveInlinePaymentDate(dateInp.getAttribute('data-payment-id'), dateInp.value);
-        }
-      }, true);
     }
 
     // Add Step Form
