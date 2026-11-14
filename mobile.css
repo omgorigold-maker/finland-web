@@ -1841,23 +1841,24 @@ body.density-compact .tx-row {
 .icon-picker-colors {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 9px;
+  justify-content: space-between;
+  width: 184px;
+  align-self: flex-end;
 }
 
 .tab-color-dot {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  border: 0;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+  border: 2px solid transparent;
   padding: 0;
   flex-shrink: 0;
-  transition: box-shadow 0.15s ease, transform 0.12s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .tab-color-dot.active {
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--dot-color, var(--ink));
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px #ffffff inset;
 }
 
 .tab-color-picker-wrap {
