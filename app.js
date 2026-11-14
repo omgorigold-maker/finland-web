@@ -25150,16 +25150,23 @@ function initSortableWidgets() {
   function openLeadAmountEdit() {
     const lead = (state.budget.leads || []).find(x => x.id === state.activeFollowupLeadId);
     if (!lead) return;
-    const display = document.getElementById('leadDetailAmountDisplay');
     const form = document.getElementById('leadDetailAmountEditForm');
     const input = document.getElementById('leadDetailAmountInput');
     const curSelect = document.getElementById('leadDetailCurrencySelect');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeLeadFollowupDateEdit();
+    const statusDropdown = document.getElementById('leadDetailStatusDropdown');
+    if (statusDropdown) statusDropdown.classList.add('hidden');
 
     input.value = lead.amount || '';
     if (curSelect) curSelect.value = lead.currency || state.displayCurrency || 'EUR';
 
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
@@ -25206,13 +25213,20 @@ function initSortableWidgets() {
   function openLeadFollowupDateEdit() {
     const lead = (state.budget.leads || []).find(x => x.id === state.activeFollowupLeadId);
     if (!lead) return;
-    const display = document.getElementById('leadDetailFollowupDateDisplay');
     const form = document.getElementById('leadDetailFollowupDateEditForm');
     const input = document.getElementById('leadDetailFollowupDateInput');
-    if (!display || !form || !input) return;
+    if (!form || !input) return;
+
+    if (!form.classList.contains('hidden')) {
+      input.focus();
+      return;
+    }
+
+    closeLeadAmountEdit();
+    const statusDropdown = document.getElementById('leadDetailStatusDropdown');
+    if (statusDropdown) statusDropdown.classList.add('hidden');
 
     input.value = lead.targetDate || '';
-    display.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
     input.focus();
@@ -38145,11 +38159,6 @@ ${sectionsText}
         if (e.key === 'Enter') { e.preventDefault(); saveLeadAmountEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeLeadAmountEdit(); }
       });
-      leadAmtInput.addEventListener('blur', () => saveLeadAmountEdit());
-    }
-    const leadCurSelect = document.getElementById('leadDetailCurrencySelect') || document.getElementById('leadDetailAmountCurrency');
-    if (leadCurSelect) {
-      leadCurSelect.addEventListener('change', () => saveLeadAmountEdit());
     }
 
     // Lead Follow-up Date Box Edit
@@ -38172,12 +38181,23 @@ ${sectionsText}
     const leadDateInput = document.getElementById('leadDetailFollowupDateInput');
     if (leadDateInput) {
       leadDateInput.addEventListener('change', () => saveLeadFollowupDateEdit());
-      leadDateInput.addEventListener('blur', () => saveLeadFollowupDateEdit());
       leadDateInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); saveLeadFollowupDateEdit(); }
         else if (e.key === 'Escape') { e.preventDefault(); closeLeadFollowupDateEdit(); }
       });
     }
+
+    // Close open Lead Detail header popovers when clicking outside them
+    document.addEventListener('mousedown', (e) => {
+      if (leadAmtBox && !leadAmtBox.contains(e.target)) {
+        const amtForm = document.getElementById('leadDetailAmountEditForm');
+        if (amtForm && !amtForm.classList.contains('hidden')) saveLeadAmountEdit();
+      }
+      if (leadDateBox && !leadDateBox.contains(e.target)) {
+        const dtForm = document.getElementById('leadDetailFollowupDateEditForm');
+        if (dtForm && !dtForm.classList.contains('hidden')) closeLeadFollowupDateEdit();
+      }
+    });
 
     // Lead Opportunity Box & Status Dropdown
     const leadOppBox = document.getElementById('leadDetailOpportunityBox');
