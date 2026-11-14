@@ -21871,7 +21871,6 @@ function initSortableWidgets() {
     if (!p) return;
     const form = document.getElementById('detailTotalFeeEditForm');
     const input = document.getElementById('detailTotalFeeInput');
-    const prefix = document.getElementById('detailTotalFeeCurPrefix');
     const curSel = document.getElementById('detailTotalFeeCurrencySelect');
     if (!form || !input) return;
 
@@ -21887,8 +21886,6 @@ function initSortableWidgets() {
     const totalFee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
     const projCur = p.currency || state.displayCurrency || 'EUR';
     input.value = totalFee;
-    const curSymbol = CURRENCY_SYMBOLS[projCur] || (projCur === 'USD' ? '$' : (projCur === 'ILS' ? '₪' : '€'));
-    if (prefix) prefix.textContent = curSymbol;
     if (curSel) curSel.value = projCur;
 
     form.classList.remove('hidden');
@@ -22271,21 +22268,6 @@ function initSortableWidgets() {
       form.classList.add('hidden');
       form.classList.remove('flex');
     }
-  }
-
-  function toggleProjectWorkDone() {
-    const p = (state.budget.projects || []).find(x => x.id === state.activeFollowupProjectId);
-    if (!p) return;
-    p.isWorkDone = !isProjectWorkDone(p);
-    saveBudget();
-    renderProjectDetailPage(p, state.displayCurrency);
-    if (state.currentTab === 'budget') renderBudgetView();
-    if (typeof renderSidebarSubscriptionCalendar === 'function') renderSidebarSubscriptionCalendar();
-    showToast(
-      p.isWorkDone ? 'Work Marked Done ✓' : 'Work Reopened',
-      p.isWorkDone ? 'Work deadline completed — awaiting payment.' : 'Work deadline active again.',
-      p.isWorkDone ? 'success' : 'info'
-    );
   }
 
   // Client Name Inline Edit
@@ -25031,64 +25013,6 @@ function initSortableWidgets() {
         showToast('Steps Reordered', 'New lead step sequence saved.', 'info');
       }
     });
-  }
-
-  // Lead Step Inline Editor
-  function startEditingLeadStep(stepId) {
-    const lead = (state.budget.leads || []).find(x => x.id === state.activeFollowupLeadId);
-    if (!lead || !Array.isArray(lead.steps)) return;
-    const step = lead.steps.find(s => s.id === stepId);
-    if (!step) return;
-
-    const wrapper = document.querySelector(`.lead-step-title-wrapper[data-lead-step-id="${stepId}"]`);
-    if (!wrapper) return;
-
-    wrapper.innerHTML = `
-      <div class="flex items-center gap-1.5 w-full">
-        <input type="text" class="lead-step-inline-edit-input flex-1 px-2 py-0.5 text-xs font-medium text-slate-900 bg-white border border-amber-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20" value="${escapeHtml(step.title)}">
-        <button type="button" class="save-lead-step-inline-btn p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer" title="Save (Enter)"><i data-lucide="check" class="w-3.5 h-3.5"></i></button>
-        <button type="button" class="cancel-lead-step-inline-btn p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded cursor-pointer" title="Cancel (Esc)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-      </div>
-    `;
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      window.lucide.createIcons();
-    }
-
-    const input = wrapper.querySelector('.lead-step-inline-edit-input');
-    if (input) {
-      input.focus();
-      input.select();
-
-      const commitChange = () => {
-        const newTitle = input.value.trim();
-        if (newTitle && newTitle !== step.title) {
-          step.title = newTitle;
-          saveBudget();
-          showToast('Step Updated', `"${newTitle}" saved.`, 'success');
-        }
-        renderLeadDetailPage(lead, state.displayCurrency);
-      };
-
-      const cancelChange = () => {
-        renderLeadDetailPage(lead, state.displayCurrency);
-      };
-
-      input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') {
-          ev.preventDefault();
-          commitChange();
-        } else if (ev.key === 'Escape') {
-          ev.preventDefault();
-          cancelChange();
-        }
-      });
-
-      const saveBtn = wrapper.querySelector('.save-lead-step-inline-btn');
-      if (saveBtn) saveBtn.addEventListener('click', commitChange);
-
-      const cancelBtn = wrapper.querySelector('.cancel-lead-step-inline-btn');
-      if (cancelBtn) cancelBtn.addEventListener('click', cancelChange);
-    }
   }
 
   // Lead Inline Field Editors
@@ -31764,20 +31688,6 @@ function initSortableWidgets() {
     }
   }
 
-  function formatPoDisplayDate(dateStr) {
-    if (!dateStr) return '';
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        if (!isNaN(d.getTime())) {
-          return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        }
-      }
-    } catch (e) {}
-    return dateStr;
-  }
-
   function syncPoRunningHeaders() {
     const docTitle = document.getElementById('poDocHeading')?.value || 'Price Quote / Proposal';
     const clientName = document.getElementById('poClientName')?.value || 'Client';
@@ -34659,33 +34569,6 @@ ${sectionsText}
     }
   }
 
-  // Save All Changes on Lead Detail Page
-  function saveLeadDetailChanges() {
-    flushLeadDetailChanges();
-    const lead = (state.budget.leads || []).find(x => x.id === state.activeFollowupLeadId);
-    if (!lead) return;
-
-    renderLeadDetailPage(lead, state.displayCurrency);
-    renderBudgetView();
-
-    const saveBtn = document.getElementById('leadDetailSaveChangesBtn');
-    if (saveBtn) {
-      const originalHtml = saveBtn.innerHTML;
-      saveBtn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-300"></i><span>Saved ✓</span>`;
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-      }
-      setTimeout(() => {
-        saveBtn.innerHTML = originalHtml;
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-          window.lucide.createIcons();
-        }
-      }, 1800);
-    }
-
-    showToast('Lead Saved ✓', `Changes to "${lead.client}" saved.`, 'success');
-  }
-
   function openProjectDetailPage(projectId) {
     if (state.activeFollowupProjectId && state.activeFollowupProjectId !== projectId) {
       try { flushProjectDetailChanges(); } catch (e) {}
@@ -34935,8 +34818,6 @@ ${sectionsText}
     if (totalFeeDisplay) totalFeeDisplay.classList.remove('hidden');
     const totalFeeForm = document.getElementById('detailTotalFeeEditForm');
     if (totalFeeForm) { totalFeeForm.classList.add('hidden'); totalFeeForm.classList.remove('flex'); }
-    const totalFeeCurPrefix = document.getElementById('detailTotalFeeCurPrefix');
-    if (totalFeeCurPrefix) totalFeeCurPrefix.textContent = (CURRENCY_SYMBOLS[projCur] || (projCur === 'USD' ? '$' : (projCur === 'ILS' ? '₪' : '€')));
     const totalFeeCurSelect = document.getElementById('detailTotalFeeCurrencySelect');
     if (totalFeeCurSelect) totalFeeCurSelect.value = projCur;
     const totalFeeInput = document.getElementById('detailTotalFeeInput');
@@ -38115,9 +37996,6 @@ ${sectionsText}
       });
     }
 
-    const leadSaveChangesBtn = document.getElementById('leadDetailSaveChangesBtn');
-    if (leadSaveChangesBtn) leadSaveChangesBtn.addEventListener('click', saveLeadDetailChanges);
-
     const leadDeleteBtn = document.getElementById('leadDetailDeleteBtn');
     if (leadDeleteBtn) {
       leadDeleteBtn.addEventListener('click', async () => {
@@ -38137,15 +38015,15 @@ ${sectionsText}
 
     // Lead Inline Client Name Edit
     const leadClientEl = document.getElementById('leadDetailClientName');
-    const editLeadClientBtn = document.getElementById('editLeadDetailClientNameBtn') || document.getElementById('editLeadClientNameBtn');
+    const editLeadClientBtn = document.getElementById('editLeadDetailClientNameBtn');
     if (leadClientEl) leadClientEl.addEventListener('click', openLeadClientNameEdit);
     if (editLeadClientBtn) editLeadClientBtn.addEventListener('click', openLeadClientNameEdit);
-    const saveLeadClientBtn = document.getElementById('saveLeadDetailClientNameBtn') || document.getElementById('saveLeadClientNameBtn');
+    const saveLeadClientBtn = document.getElementById('saveLeadDetailClientNameBtn');
     if (saveLeadClientBtn) {
       saveLeadClientBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveLeadClientNameEdit(); });
       saveLeadClientBtn.addEventListener('click', saveLeadClientNameEdit);
     }
-    const cancelLeadClientBtn = document.getElementById('cancelLeadDetailClientNameBtn') || document.getElementById('cancelLeadClientNameBtn');
+    const cancelLeadClientBtn = document.getElementById('cancelLeadDetailClientNameBtn');
     if (cancelLeadClientBtn) {
       cancelLeadClientBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeLeadClientNameEdit(); });
       cancelLeadClientBtn.addEventListener('click', closeLeadClientNameEdit);
@@ -38161,15 +38039,15 @@ ${sectionsText}
 
     // Lead Inline Title Edit
     const leadTitleEl = document.getElementById('leadDetailTitle');
-    const editLeadTitleBtn = document.getElementById('editLeadDetailTitleBtn') || document.getElementById('editLeadTitleBtn');
+    const editLeadTitleBtn = document.getElementById('editLeadDetailTitleBtn');
     if (leadTitleEl) leadTitleEl.addEventListener('click', openLeadTitleEdit);
     if (editLeadTitleBtn) editLeadTitleBtn.addEventListener('click', openLeadTitleEdit);
-    const saveLeadTitleBtn = document.getElementById('saveLeadDetailTitleBtn') || document.getElementById('saveLeadTitleBtn');
+    const saveLeadTitleBtn = document.getElementById('saveLeadDetailTitleBtn');
     if (saveLeadTitleBtn) {
       saveLeadTitleBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveLeadTitleEdit(); });
       saveLeadTitleBtn.addEventListener('click', saveLeadTitleEdit);
     }
-    const cancelLeadTitleBtn = document.getElementById('cancelLeadDetailTitleBtn') || document.getElementById('cancelLeadTitleBtn');
+    const cancelLeadTitleBtn = document.getElementById('cancelLeadDetailTitleBtn');
     if (cancelLeadTitleBtn) {
       cancelLeadTitleBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeLeadTitleEdit(); });
       cancelLeadTitleBtn.addEventListener('click', closeLeadTitleEdit);
@@ -38190,12 +38068,12 @@ ${sectionsText}
         if (!e.target.closest('#leadDetailAmountEditForm')) openLeadAmountEdit();
       });
     }
-    const saveLeadAmtBtn = document.getElementById('saveLeadDetailAmountBtn') || document.getElementById('saveLeadAmountBtn');
+    const saveLeadAmtBtn = document.getElementById('saveLeadDetailAmountBtn');
     if (saveLeadAmtBtn) {
       saveLeadAmtBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveLeadAmountEdit(); });
       saveLeadAmtBtn.addEventListener('click', (e) => { e.stopPropagation(); saveLeadAmountEdit(); });
     }
-    const cancelLeadAmtBtn = document.getElementById('cancelLeadDetailAmountBtn') || document.getElementById('cancelLeadAmountBtn');
+    const cancelLeadAmtBtn = document.getElementById('cancelLeadDetailAmountBtn');
     if (cancelLeadAmtBtn) {
       cancelLeadAmtBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeLeadAmountEdit(); });
       cancelLeadAmtBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLeadAmountEdit(); });
@@ -38215,12 +38093,12 @@ ${sectionsText}
         if (!e.target.closest('#leadDetailFollowupDateEditForm')) openLeadFollowupDateEdit();
       });
     }
-    const saveLeadDateBtn = document.getElementById('saveLeadDetailFollowupDateBtn') || document.getElementById('saveLeadFollowupDateBtn');
+    const saveLeadDateBtn = document.getElementById('saveLeadDetailFollowupDateBtn');
     if (saveLeadDateBtn) {
       saveLeadDateBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); saveLeadFollowupDateEdit(); });
       saveLeadDateBtn.addEventListener('click', (e) => { e.stopPropagation(); saveLeadFollowupDateEdit(); });
     }
-    const cancelLeadDateBtn = document.getElementById('cancelLeadDetailFollowupDateBtn') || document.getElementById('cancelLeadFollowupDateBtn');
+    const cancelLeadDateBtn = document.getElementById('cancelLeadDetailFollowupDateBtn');
     if (cancelLeadDateBtn) {
       cancelLeadDateBtn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); closeLeadFollowupDateEdit(); });
       cancelLeadDateBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLeadFollowupDateEdit(); });
