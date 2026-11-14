@@ -656,7 +656,7 @@
           kind: 'project',
           projectId: proj.id,
           title: `Deadline: ${name}`,
-          time: 'Deadline',
+          time: '',
           badge: 'Work Deadline',
           color: '#0284c7',
           completed: workDone,
@@ -669,7 +669,7 @@
           kind: 'project',
           projectId: proj.id,
           title: `Payment Due: ${name}`,
-          time: 'Payment Due',
+          time: '',
           badge: 'Payment Due',
           color: '#0284c7',
           completed: false,
@@ -747,7 +747,7 @@
         kind: 'note',
         noteId: note.id,
         title: note.title || 'Untitled Note',
-        time: note.label || 'Note',
+        time: '',
         badge: note.label || 'Note',
         color: getNoteColor(note),
         completed: isNoteDone(note),
@@ -1350,7 +1350,9 @@
         el('div', { className: 'agenda-item-sub' }, [
           el('span', { className: 'source-dot', style: `background:${entry.color}` }),
           el('span', { textContent: entry.badge }),
-          entry.time ? el('span', { className: 'mono', textContent: `· ${entry.time}` }) : null
+          (entry.time && entry.time.trim().toLowerCase() !== String(entry.badge || '').trim().toLowerCase())
+            ? el('span', { className: 'mono', textContent: `· ${entry.time}` })
+            : null
         ])
       ]);
 
