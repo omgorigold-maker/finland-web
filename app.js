@@ -16604,24 +16604,17 @@ function initSortableWidgets() {
 
             <!-- Amount & Payment Status -->
             <div class="mt-2.5 space-y-1.5">
-              <div>
-                <div class="flex items-baseline justify-between gap-2">
-                  <div class="flex items-baseline gap-1.5 min-w-0">
-                    ${isPartial
-                      ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-lg font-bold text-slate-400"><span class="text-slate-300 font-normal">/</span> ${formatMoney(totalAmt, projCur)}</span>`
-                      : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
-                    }
-                  </div>
-                  ${!isPartial && projCur !== cur
-                    ? `<span class="text-xs font-mono text-slate-500 whitespace-nowrap shrink-0 text-right" title="Converted to ${cur} at current exchange rate">≈ ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
-                    : (equivHtml ? `<span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>` : '')
+              <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-baseline gap-1.5 shrink-0 whitespace-nowrap">
+                  ${isPartial
+                    ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-lg font-bold text-slate-400"><span class="text-slate-300 font-normal">/</span> ${formatMoney(totalAmt, projCur)}</span>`
+                    : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
                   }
                 </div>
-                ${isPartial && projCur !== cur ? `
-                  <div class="text-xs font-mono text-slate-500 mt-0.5" title="Converted to ${cur} at current exchange rate">
-                    ≈ ${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)} <span class="text-slate-300">/</span> ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}
-                  </div>
-                ` : ''}
+                ${projCur !== cur
+                  ? `<span class="text-[11px] font-mono text-slate-500 min-w-0 truncate text-right" title="Converted to ${cur} at current exchange rate">${isPartial ? `≈ ${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)} / ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}` : `≈ ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}`}</span>`
+                  : (equivHtml ? `<span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>` : '')
+                }
               </div>
 
               <!-- Progress bar for payment -->
