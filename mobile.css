@@ -2224,11 +2224,23 @@ body.density-compact .tx-row {
 }
 
 .card-next-step {
-  margin: 5px 0 0;
+  display: inline-block;
+  max-width: 100%;
+  margin: 6px 0 0;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: #f0f9ff;
+  color: #0369a1;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.card-meta .card-price {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
 }

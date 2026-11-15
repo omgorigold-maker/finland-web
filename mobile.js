@@ -983,8 +983,7 @@
           nextStepTitle ? el('p', { className: 'card-next-step', textContent: `Next: ${nextStepTitle}` }) : null,
           el('div', { className: 'card-meta' }, [
             due ? el('span', { className: 'mono', textContent: `Due ${due}` }) : null,
-            steps.length ? el('span', { textContent: `${doneSteps}/${steps.length} steps` }) : null,
-            fee ? el('span', { className: 'mono', textContent: formatMoney(fee, p.currency || state.displayCurrency) }) : null
+            fee ? el('span', { className: 'mono card-price', textContent: formatMoney(fee, p.currency || state.displayCurrency) }) : null
           ])
         ]));
       });
@@ -997,7 +996,6 @@
       sortedLeads.forEach(l => {
         const done = isLeadDone(l);
         const steps = Array.isArray(l.steps) ? l.steps : [];
-        const doneSteps = steps.filter(isStepDone).length;
         const nextStep = !done ? steps.find(s => s && !isStepDone(s)) : null;
         const nextStepTitle = nextStep ? (nextStep.title || nextStep.text || '').trim() : '';
         const due = l.targetDate || l.followUpDate || l.dueDate || '';
@@ -1014,8 +1012,7 @@
           l.client ? el('p', { className: 'card-sub', textContent: l.client }) : null,
           nextStepTitle ? el('p', { className: 'card-next-step', textContent: `Next: ${nextStepTitle}` }) : null,
           el('div', { className: 'card-meta' }, [
-            due ? el('span', { className: 'mono', textContent: `Follow-up ${due}` }) : null,
-            steps.length ? el('span', { textContent: `${doneSteps}/${steps.length} steps` }) : null
+            due ? el('span', { className: 'mono', textContent: `Follow-up ${due}` }) : null
           ])
         ]));
       });
