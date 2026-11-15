@@ -17377,7 +17377,7 @@ function initSortableWidgets() {
               boxTag.className = 'text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium shrink-0';
             } else {
               boxTag.textContent = `${rawPct}% used`;
-              const tagColor = pct > 80 ? 'text-amber-700 bg-amber-50' : 'text-indigo-700 bg-indigo-50';
+              const tagColor = pct > 80 ? 'text-amber-700 bg-amber-50' : 'text-slate-600 bg-slate-100';
               boxTag.className = `text-[10px] ${tagColor} px-1.5 py-0.5 rounded font-medium shrink-0`;
             }
           }
