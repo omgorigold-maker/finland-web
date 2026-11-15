@@ -16737,7 +16737,7 @@ function initSortableWidgets() {
         const isExpectedDeficit = afterBudgetsProjectedIfClear < 0;
         const segments = [];
         if (fixedBreakdown.bills > 0 || (fixedBreakdown.subscriptions <= 0 && fixedBills > 0)) {
-          segments.push({ label: 'Bills', title: 'Bills', amount: fixedBreakdown.bills, barClass: 'bg-slate-300', textClass: 'text-slate-400' });
+          segments.push({ label: 'Bills', title: 'Bills', amount: fixedBreakdown.bills, barClass: 'bg-[#b4c0cf]', textClass: 'text-[#7e8b9d]' });
         }
         if (fixedBreakdown.subscriptions > 0) {
           segments.push({ label: 'Subscriptions', title: 'Subscriptions', amount: fixedBreakdown.subscriptions, barClass: 'bg-slate-400', textClass: 'text-slate-500' });
