@@ -23289,9 +23289,15 @@ function initSortableWidgets() {
     const activeProjects = [];
     const completedProjects = [];
     let totalProjectsMoney = 0;
-    let totalProjectsPaid = 0;
-    let totalProjectsLeft = 0;
     let totalCompletedMoney = 0;
+    let summaryOngoingCount = 0;
+    let summaryOngoingMoney = 0;
+    let summaryOngoingPaid = 0;
+    let summaryOngoingLeft = 0;
+    let summaryDeliveredCount = 0;
+    let summaryDeliveredMoney = 0;
+    let summaryDeliveredPaid = 0;
+    let summaryDeliveredWaiting = 0;
     let dueSoonCount = 0;
     let overdueCount = 0;
     const today = new Date();
@@ -23306,6 +23312,19 @@ function initSortableWidgets() {
       const paidConverted = convertCurrency(paid, projCur, cur);
       const leftConverted = convertCurrency(Math.max(0, fee - paid), projCur, cur);
       const done = isProjectDone(p);
+      const workDone = isProjectWorkDone(p) || done;
+
+      if (workDone) {
+        summaryDeliveredCount++;
+        summaryDeliveredMoney += feeConverted;
+        summaryDeliveredPaid += paidConverted;
+        summaryDeliveredWaiting += leftConverted;
+      } else {
+        summaryOngoingCount++;
+        summaryOngoingMoney += feeConverted;
+        summaryOngoingPaid += paidConverted;
+        summaryOngoingLeft += leftConverted;
+      }
 
       if (done) {
         completedProjects.push(p);
@@ -23313,8 +23332,6 @@ function initSortableWidgets() {
       } else {
         activeProjects.push(p);
         totalProjectsMoney += feeConverted;
-        totalProjectsPaid += paidConverted;
-        totalProjectsLeft += leftConverted;
 
         if (!isProjectWorkDone(p) && p.dueDate) {
           const d = new Date(p.dueDate + 'T00:00:00');
@@ -23352,8 +23369,8 @@ function initSortableWidgets() {
 
     const projectsEquivEl = document.getElementById('followupSummaryProjectsEquiv');
     if (projectsEquivEl) {
-      if (totalProjectsMoney > 0) {
-        projectsEquivEl.textContent = `≈ ${formatMoney(convertCurrency(totalProjectsMoney, cur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalProjectsMoney, cur, targetCur2), targetCur2)}`;
+      if (summaryOngoingMoney > 0) {
+        projectsEquivEl.textContent = `≈ ${formatMoney(convertCurrency(summaryOngoingMoney, cur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(summaryOngoingMoney, cur, targetCur2), targetCur2)}`;
         projectsEquivEl.classList.remove('hidden');
       } else {
         projectsEquivEl.classList.add('hidden');
@@ -23362,8 +23379,8 @@ function initSortableWidgets() {
 
     const completedEquivEl = document.getElementById('followupSummaryCompletedEquiv');
     if (completedEquivEl) {
-      if (totalCompletedMoney > 0) {
-        completedEquivEl.textContent = `≈ ${formatMoney(convertCurrency(totalCompletedMoney, cur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalCompletedMoney, cur, targetCur2), targetCur2)}`;
+      if (summaryDeliveredMoney > 0) {
+        completedEquivEl.textContent = `≈ ${formatMoney(convertCurrency(summaryDeliveredMoney, cur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(summaryDeliveredMoney, cur, targetCur2), targetCur2)}`;
         completedEquivEl.classList.remove('hidden');
       } else {
         completedEquivEl.classList.add('hidden');
@@ -23374,14 +23391,14 @@ function initSortableWidgets() {
     const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     setTxt('followupSummaryLeadsCount', String(leads.length));
     setTxt('followupSummaryLeadsMoney', formatMoney(totalLeadsMoney, cur));
-    setTxt('followupSummaryProjectsCount', String(activeProjects.length));
-    setTxt('followupSummaryProjectsMoney', formatMoney(totalProjectsMoney, cur));
+    setTxt('followupSummaryProjectsCount', String(summaryOngoingCount));
+    setTxt('followupSummaryProjectsMoney', formatMoney(summaryOngoingMoney, cur));
     const projectsLabelEl = document.getElementById('followupSummaryProjectsLabel');
     const projectsBreakdownEl = document.getElementById('followupSummaryProjectsBreakdown');
     if (projectsLabelEl && projectsBreakdownEl) {
-      if (activeProjects.length > 0) {
+      if (summaryOngoingCount > 0) {
         projectsLabelEl.textContent = 'active';
-        projectsBreakdownEl.textContent = `· ${formatMoney(totalProjectsPaid, cur)} paid · ${formatMoney(totalProjectsLeft, cur)} left`;
+        projectsBreakdownEl.textContent = `· ${formatMoney(summaryOngoingPaid, cur)} paid · ${formatMoney(summaryOngoingLeft, cur)} left`;
         projectsBreakdownEl.classList.remove('hidden');
       } else {
         projectsLabelEl.textContent = 'active in progress';
@@ -23390,8 +23407,21 @@ function initSortableWidgets() {
       }
     }
     setTxt('followupSummaryDueCount', String(dueSoonCount));
-    setTxt('followupSummaryCompletedCount', String(completedProjects.length));
-    setTxt('followupSummaryCompletedMoney', formatMoney(totalCompletedMoney, cur));
+    setTxt('followupSummaryCompletedCount', String(summaryDeliveredCount));
+    setTxt('followupSummaryCompletedMoney', formatMoney(summaryDeliveredMoney, cur));
+    const completedLabelEl = document.getElementById('followupSummaryCompletedLabel');
+    const completedBreakdownEl = document.getElementById('followupSummaryCompletedBreakdown');
+    if (completedLabelEl && completedBreakdownEl) {
+      if (summaryDeliveredCount > 0) {
+        completedLabelEl.textContent = 'delivered';
+        completedBreakdownEl.textContent = `· ${formatMoney(summaryDeliveredPaid, cur)} paid · ${formatMoney(summaryDeliveredWaiting, cur)} waiting`;
+        completedBreakdownEl.classList.remove('hidden');
+      } else {
+        completedLabelEl.textContent = 'delivered jobs';
+        completedBreakdownEl.textContent = '';
+        completedBreakdownEl.classList.add('hidden');
+      }
+    }
 
     setTxt('followupLeadsCountBadge', String(leads.length));
     const leadsPill = document.getElementById('followupLeadsMoneyPill');
