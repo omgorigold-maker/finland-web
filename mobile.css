@@ -1842,7 +1842,7 @@ body.density-compact .tx-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 184px;
+  width: 205px;
   align-self: flex-end;
 }
 
@@ -1909,11 +1909,12 @@ body.density-compact .tx-row {
 .icon-picker-opts {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .icon-opt-btn {
-  width: 32px;
+  width: 30px;
+  height: 30px;
   height: 32px;
   border-radius: 9px;
   display: grid;
