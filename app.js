@@ -16095,7 +16095,7 @@ function initSortableWidgets() {
         if (!isSubscriptionCountedInMonth(sub, mKey)) return;
         const v = convertCurrency(parseFloat(sub.amount) || 0, sub.currency || 'EUR', cur);
         const monthlyAmt = sub.billingCycle === 'yearly' ? v / 12 : v;
-        if (String(sub.category || '').trim().toLowerCase() === 'subscriptions') {
+        if (String(sub.category || '').trim().toLowerCase() === 'subscriptions' || sub.recurringType === 'subscription') {
           subscriptions += monthlyAmt;
         } else {
           bills += monthlyAmt;
