@@ -236,7 +236,7 @@
       const markup = MOBILE_TAB_ICONS[tabKey] && MOBILE_TAB_ICONS[tabKey][iconKey];
       if (iconBox) {
         iconBox.style.color = tabColor;
-        iconBox.style.backgroundColor = tabColor.startsWith('#') && tabColor.length === 7 ? `${tabColor}18` : '';
+        iconBox.style.backgroundColor = tabColor.startsWith('#') && tabColor.length === 7 ? `${tabColor}0e` : '';
       }
       if (svg && markup) svg.innerHTML = markup;
     });
