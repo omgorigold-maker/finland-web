@@ -1234,7 +1234,10 @@
 
     document.getElementById('calMonthLabel').textContent = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const headerIcon = document.getElementById('calHeaderIcon');
-    if (headerIcon) headerIcon.style.color = headerIconColor;
+    if (headerIcon) {
+      const mp = state.mobilePrefs || DEFAULT_MOBILE_PREFS;
+      headerIcon.style.color = (mp.tabColors && mp.tabColors.calendar) || mp.navColor || headerIconColor;
+    }
 
     const weekHeadersEl = document.getElementById('calWeekHeaders');
     if (weekHeadersEl) {
