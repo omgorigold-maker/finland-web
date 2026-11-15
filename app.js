@@ -16477,19 +16477,43 @@ function initSortableWidgets() {
     return 0;
   }
 
-  // Shrink all Budget tile grey descriptions to one shared size where every line fits fully (no truncation)
+  // Shrink Budget tile numbers and grey descriptions only when needed so long values never overflow
   function fitBudgetTileText() {
-    const ids = ['budgetIncomeEquiv', 'budgetPendingEquiv', 'budgetFixedEquiv', 'budgetCategoryEquiv', 'budgetLeftEquiv', 'budgetAfterBudgetsEquiv'];
-    const els = ids.map(id => document.getElementById(id)).filter(el => el && el.offsetParent !== null);
-    if (!els.length) return;
-    const MAX = 10, MIN = 8.5;
-    let size = MAX;
-    const apply = s => els.forEach(el => el.style.setProperty('font-size', s + 'px', 'important'));
-    apply(size);
-    while (size > MIN && els.some(el => el.scrollWidth > el.clientWidth + 0.5)) {
-      size = Math.round((size - 0.25) * 100) / 100;
-      apply(size);
+    const equivIds = ['budgetIncomeEquiv', 'budgetPendingEquiv', 'budgetFixedEquiv', 'budgetCategoryEquiv', 'budgetLeftEquiv', 'budgetAfterBudgetsEquiv'];
+    const equivEls = equivIds.map(id => document.getElementById(id)).filter(el => el && el.offsetParent !== null);
+    if (equivEls.length) {
+      let size = 10;
+      const applyEquiv = s => equivEls.forEach(el => el.style.setProperty('font-size', s + 'px', 'important'));
+      applyEquiv(size);
+      while (size > 7.5 && equivEls.some(el => el.scrollWidth > el.clientWidth + 0.5)) {
+        size = Math.round((size - 0.25) * 100) / 100;
+        applyEquiv(size);
+      }
     }
+
+    const basePrimary = (typeof window !== 'undefined' && window.innerWidth >= 1024)
+      ? Math.min(20, Math.max(15, Math.round(window.innerWidth * 0.014 * 10) / 10))
+      : 18;
+    const fitPrimaryGroup = (container, targets) => {
+      if (!container || container.offsetParent === null) return;
+      let s = basePrimary;
+      const applyP = val => targets.forEach(t => t && t.style && t.style.setProperty('font-size', val + 'px', 'important'));
+      targets.forEach(t => t && t.style && t.style.removeProperty('font-size'));
+      if (container.scrollWidth <= container.clientWidth + 0.5) return;
+      while (s > 11 && container.scrollWidth > container.clientWidth + 0.5) {
+        s = Math.round((s - 0.5) * 10) / 10;
+        applyP(s);
+      }
+    };
+
+    ['budgetIncomePrimary', 'budgetPendingPrimary', 'budgetFixedPrimary', 'budgetLeftPrimary', 'budgetAfterBudgetsPrimary'].forEach(id => {
+      const el = document.getElementById(id);
+      fitPrimaryGroup(el, [el]);
+    });
+    fitPrimaryGroup(
+      document.getElementById('budgetCategoryValueRow'),
+      [document.getElementById('budgetCategoryPrimary'), document.getElementById('budgetCategoryLimit')]
+    );
   }
 
   // Render main Freelancer Budget & Cash Flow view

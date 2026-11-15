@@ -674,7 +674,18 @@ textarea.note-body-box-input,
   min-width: 0;
 }
 
-/* Primary amounts: scale down slightly so long currencies (₪) always fit on one line */
+/* Primary amounts: scale down cleanly so long numbers never spill outside their tile */
+#budgetIncomePrimary,
+#budgetPendingPrimary,
+#budgetFixedPrimary,
+#budgetCategoryValueRow,
+#budgetLeftPrimary,
+#budgetAfterBudgetsPrimary {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
 #budgetIncomePrimary,
 #budgetPendingPrimary,
 #budgetFixedPrimary,
@@ -692,7 +703,8 @@ textarea.note-body-box-input,
   #budgetFixedPrimary,
   #budgetCategoryPrimary,
   #budgetCategoryLimit,
-  #budgetLeftPrimary {
+  #budgetLeftPrimary,
+  #budgetAfterBudgetsPrimary {
     font-size: clamp(15px, 1.4vw, 20px) !important;
   }
 }
