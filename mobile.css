@@ -2135,3 +2135,15 @@ body.density-compact .tx-row {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.custom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.custom-actions .btn-primary,
+.custom-actions .btn-secondary {
+  width: 100%;
+}

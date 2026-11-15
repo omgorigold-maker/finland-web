@@ -134,8 +134,35 @@
     } catch {}
   }
 
-  function applyMobilePrefs() {
-    const mp = state.mobilePrefs || DEFAULT_MOBILE_PREFS;
+  function cloneMobilePrefs(src) {
+    const base = src || DEFAULT_MOBILE_PREFS;
+    return Object.assign({}, base, {
+      tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons, base.tabIcons || {}),
+      tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors, base.tabColors || {})
+    });
+  }
+
+  function isMobileCustomDirty() {
+    if (!state.mobileCustomDraft) return false;
+    return JSON.stringify(cloneMobilePrefs(state.mobileCustomDraft)) !== JSON.stringify(cloneMobilePrefs(state.mobilePrefs));
+  }
+
+  function requestCloseMobileCustomDialog() {
+    const dlg = document.getElementById('mobileCustomDialog');
+    if (!dlg || !dlg.open) return true;
+    if (isMobileCustomDirty()) {
+      const ok = window.confirm('Are you sure you want to leave without saving changes?');
+      if (!ok) return false;
+    }
+    state.mobileCustomDraft = null;
+    applyMobilePrefs(state.mobilePrefs);
+    renderCalendar();
+    dlg.close();
+    return true;
+  }
+
+  function applyMobilePrefs(prefsOverride) {
+    const mp = prefsOverride || state.mobilePrefs || DEFAULT_MOBILE_PREFS;
     if (document.documentElement && document.documentElement.style) {
       document.documentElement.style.setProperty('--nav-accent', mp.navColor || '#0f172a');
     }
@@ -230,8 +257,19 @@
         };
         let pressedOutside = false;
         dialog.addEventListener('pointerdown', (e) => { pressedOutside = outside(e); });
-        dialog.addEventListener('pointerup', (e) => { if (pressedOutside && outside(e)) dialog.close(); });
+        dialog.addEventListener('pointerup', (e) => {
+          if (pressedOutside && outside(e)) {
+            if (dialog.id === 'mobileCustomDialog') requestCloseMobileCustomDialog();
+            else dialog.close();
+          }
+        });
       }
+      dialog.addEventListener('cancel', (e) => {
+        if (dialog.id === 'mobileCustomDialog') {
+          e.preventDefault();
+          requestCloseMobileCustomDialog();
+        }
+      });
       dialog.addEventListener('close', () => { dialog.returnValue = ''; });
     });
 
@@ -239,7 +277,10 @@
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-close-dialog');
         const dlg = document.getElementById(id);
-        if (dlg && dlg.open) dlg.close();
+        if (dlg && dlg.open) {
+          if (id === 'mobileCustomDialog') requestCloseMobileCustomDialog();
+          else dlg.close();
+        }
       });
     });
   }
@@ -2183,6 +2224,7 @@
 
   // ---------- Event Wiring ----------
   function openMobileCustomDialog() {
+    state.mobileCustomDraft = cloneMobilePrefs(state.mobilePrefs);
     renderMobileCustomSheet();
     openDialog('mobileCustomDialog');
   }
@@ -2190,7 +2232,8 @@
   function renderMobileCustomSheet() {
     const body = document.getElementById('mobileCustomBody');
     if (!body) return;
-    const mp = state.mobilePrefs || DEFAULT_MOBILE_PREFS;
+    if (!state.mobileCustomDraft) state.mobileCustomDraft = cloneMobilePrefs(state.mobilePrefs);
+    const mp = state.mobileCustomDraft;
 
     const makeSeg = (opts, current, onPick, cols4) => {
       return el('div', { className: `custom-seg${cols4 ? ' cols-4' : ''}` }, opts.map(o =>
@@ -2200,8 +2243,7 @@
           textContent: o.label,
           onClick: () => {
             onPick(o.val);
-            saveMobilePrefs();
-            applyMobilePrefs();
+            applyMobilePrefs(mp);
             renderCalendar();
             renderMobileCustomSheet();
           }
@@ -2230,8 +2272,7 @@
           onClick: () => {
             if (!mp.tabIcons) mp.tabIcons = {};
             mp.tabIcons[t.key] = iconKey;
-            saveMobilePrefs();
-            applyMobilePrefs();
+            applyMobilePrefs(mp);
             renderMobileCustomSheet();
           }
         });
@@ -2249,8 +2290,7 @@
           onClick: () => {
             if (!mp.tabColors) mp.tabColors = {};
             mp.tabColors[t.key] = hex;
-            saveMobilePrefs();
-            applyMobilePrefs();
+            applyMobilePrefs(mp);
             renderMobileCustomSheet();
           }
         })
@@ -2265,8 +2305,7 @@
       pickerInput.addEventListener('input', (e) => {
         if (!mp.tabColors) mp.tabColors = {};
         mp.tabColors[t.key] = e.target.value;
-        saveMobilePrefs();
-        applyMobilePrefs();
+        applyMobilePrefs(mp);
       });
       pickerInput.addEventListener('change', () => renderMobileCustomSheet());
 
@@ -2285,22 +2324,34 @@
       ]);
     }));
 
+    const saveBtn = el('button', {
+      type: 'button',
+      className: 'btn-primary',
+      textContent: 'Save',
+      onClick: () => {
+        state.mobilePrefs = cloneMobilePrefs(mp);
+        state.mobileCustomDraft = null;
+        saveMobilePrefs();
+        applyMobilePrefs(state.mobilePrefs);
+        renderCalendar();
+        closeDialog('mobileCustomDialog');
+        showToast('Customization saved');
+      }
+    });
+
     const resetBtn = el('button', {
       type: 'button',
       className: 'btn-secondary',
       textContent: 'Reset to Default',
       onClick: () => {
-        state.mobilePrefs = Object.assign({}, DEFAULT_MOBILE_PREFS, {
-          tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons),
-          tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors)
-        });
-        saveMobilePrefs();
-        applyMobilePrefs();
+        state.mobileCustomDraft = cloneMobilePrefs(DEFAULT_MOBILE_PREFS);
+        applyMobilePrefs(state.mobileCustomDraft);
         renderCalendar();
         renderMobileCustomSheet();
-        showToast('Mobile look reset');
       }
     });
+
+    const actionsWrap = el('div', { className: 'custom-actions' }, [saveBtn, resetBtn]);
 
     body.replaceChildren(
       el('div', { className: 'custom-group' }, [
@@ -2344,7 +2395,7 @@
           { val: 'compact', label: 'Compact' }
         ], mp.density || 'comfortable', (v) => { mp.density = v; })
       ]),
-      resetBtn
+      actionsWrap
     );
   }
 
@@ -2795,13 +2846,24 @@
         const elapsed = Math.max(1, Date.now() - startAt);
         const fastFlick = dragDy > 48 && elapsed < 260;
         if (dragDy > 90 || fastFlick) {
-          dlg.style.transition = 'transform 0.18s ease-out';
-          dlg.style.transform = 'translateY(100%)';
-          setTimeout(() => {
-            if (dlg.open) dlg.close();
+          if (dlg.id === 'mobileCustomDialog' && isMobileCustomDirty()) {
+            dlg.style.transition = 'transform 0.18s ease-out';
             dlg.style.transform = '';
-            dlg.style.transition = '';
-          }, 170);
+            setTimeout(() => { requestCloseMobileCustomDialog(); }, 180);
+          } else {
+            dlg.style.transition = 'transform 0.18s ease-out';
+            dlg.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+              if (dlg.id === 'mobileCustomDialog') {
+                state.mobileCustomDraft = null;
+                applyMobilePrefs(state.mobilePrefs);
+                renderCalendar();
+              }
+              if (dlg.open) dlg.close();
+              dlg.style.transform = '';
+              dlg.style.transition = '';
+            }, 170);
+          }
         } else if (dragDy > 0) {
           dlg.style.transition = 'transform 0.18s ease-out';
           dlg.style.transform = '';
