@@ -16556,12 +16556,12 @@ function initSortableWidgets() {
       const equivHtml = `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`;
 
       const statusBadge = isPaid
-        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 whitespace-nowrap shrink-0">Paid in Full</span>'
+        ? '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">Paid in Full</span>'
         : isPartial
-        ? `<span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200 whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
+        ? `<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
         : p.status === 'invoiced'
-        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200 whitespace-nowrap shrink-0">Invoiced</span>'
-        : '<span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200 whitespace-nowrap shrink-0">In Progress</span>';
+        ? '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">Invoiced</span>'
+        : '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">In Progress</span>';
 
       const dateFooter = isPaid
         ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
