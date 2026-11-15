@@ -16755,14 +16755,11 @@ function initSortableWidgets() {
             ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Planned Budget Left (${Math.round(rP)}% of commitments)"></div>` : ''}`;
 
           if (flowText) {
-            const billsPct = Math.round((fixedBills / collectedIncome) * 100);
-            const spentPct = Math.round((totalAllEverydaySpent / collectedIncome) * 100);
-            const remPct = Math.round((remainingPlannedBudget / collectedIncome) * 100);
             const parts = [];
-            parts.push(`<span class="text-slate-500">Bills: ${billsPct}%</span>`);
-            if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round((taxReserve / collectedIncome) * 100)}%</span>`);
-            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${spentPct}%</span>`);
-            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${remPct}%</span>`);
+            parts.push(`<span class="text-slate-500">Bills: ${Math.round(fP)}%</span>`);
+            if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
+            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
+            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
             if (actualSafeToSpend >= 0) {
               parts.push(`<span class="text-emerald-600">Actual: +${formatMoney(actualSafeToSpend, cur)}</span>`);
               parts.push(`<span class="text-red-500">After Budgets: -${formatMoney(Math.abs(afterBudgetsLeft), cur)}</span>`);
