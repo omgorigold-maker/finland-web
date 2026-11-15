@@ -236,7 +236,19 @@
       const markup = MOBILE_TAB_ICONS[tabKey] && MOBILE_TAB_ICONS[tabKey][iconKey];
       if (iconBox) {
         iconBox.style.color = tabColor;
-        iconBox.style.backgroundColor = tabColor.startsWith('#') && tabColor.length === 7 ? `${tabColor}0e` : '';
+        let bgTint = '#f1f5f9';
+        if (/^#[0-9a-f]{6}$/i.test(tabColor)) {
+          const r = parseInt(tabColor.slice(1, 3), 16) / 255;
+          const g = parseInt(tabColor.slice(3, 5), 16) / 255;
+          const b = parseInt(tabColor.slice(5, 7), 16) / 255;
+          const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+          if (d > 0.04) {
+            let h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
+            h = Math.round(h * 60);
+            bgTint = `hsl(${h}, 98%, 95%)`;
+          }
+        }
+        iconBox.style.backgroundColor = bgTint;
       }
       if (svg && markup) svg.innerHTML = markup;
     });
