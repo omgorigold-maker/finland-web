@@ -17248,7 +17248,7 @@ function initSortableWidgets() {
       const subtitleText = inc.notes
         ? `${inc.method ? inc.method + ' • ' : ''}${inc.notes}`
         : (inc.method || 'Direct');
-      const bookmarkTagHtml = `<span class="absolute -top-px left-4 px-2.5 pt-1.5 pb-1 rounded-b-lg text-[10px] font-semibold tracking-wide border border-t-0 bg-slate-100/90 text-slate-600 border-slate-200/80 leading-none whitespace-nowrap">${escapeHtml(incType)}</span>`;
+      const bookmarkTagHtml = `<span class="absolute -top-px left-1/2 -translate-x-1/2 px-2.5 pt-1.5 pb-1 rounded-b-lg text-[10px] font-semibold tracking-wide border border-t-0 bg-slate-100/90 text-slate-600 border-slate-200/80 leading-none whitespace-nowrap">${escapeHtml(incType)}</span>`;
 
       return `
         <div class="relative bg-white border border-slate-200/80 rounded-2xl pt-6 px-4 pb-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group" data-id="${escapeHtml(inc.id)}">
