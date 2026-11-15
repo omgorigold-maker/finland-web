@@ -224,6 +224,22 @@
       const calMarkup = MOBILE_TAB_ICONS.calendar && MOBILE_TAB_ICONS.calendar[calIconKey];
       if (calMarkup) calHeaderIcon.innerHTML = calMarkup;
     }
+    const qaMap = { transaction: 'money', calendar: 'calendar', note: 'notes' };
+    Object.keys(qaMap).forEach(formKey => {
+      const tabKey = qaMap[formKey];
+      const row = document.querySelector(`#quickAddDialog .quick-action-row[data-open-form="${formKey}"]`);
+      if (!row) return;
+      const iconBox = row.querySelector('.qa-icon');
+      const svg = iconBox ? iconBox.querySelector('svg') : null;
+      const tabColor = (mp.tabColors && mp.tabColors[tabKey]) || mp.navColor || '#0f172a';
+      const iconKey = (mp.tabIcons && mp.tabIcons[tabKey]) || DEFAULT_MOBILE_PREFS.tabIcons[tabKey];
+      const markup = MOBILE_TAB_ICONS[tabKey] && MOBILE_TAB_ICONS[tabKey][iconKey];
+      if (iconBox) {
+        iconBox.style.color = tabColor;
+        iconBox.style.backgroundColor = tabColor.startsWith('#') && tabColor.length === 7 ? `${tabColor}18` : '';
+      }
+      if (svg && markup) svg.innerHTML = markup;
+    });
     if (document.body) {
       document.body.classList.toggle('density-compact', mp.density === 'compact');
     }
