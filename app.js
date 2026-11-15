@@ -16767,7 +16767,7 @@ function initSortableWidgets() {
           segments.push({ label: 'Subscriptions', title: 'Subscriptions', amount: fixedBreakdown.subscriptions, barClass: 'bg-slate-400', textClass: 'text-slate-500' });
         }
         if (taxRate > 0) {
-          segments.push({ label: `Tax (${taxRate}%)`, title: 'Tax Reserve', amount: projectedTax, barClass: 'bg-blue-500', textClass: 'text-blue-600' });
+          segments.push({ label: `Tax (${taxRate}%)`, title: 'Tax Reserve', amount: projectedTax, barClass: 'bg-[#7c8b9f]', textClass: 'text-[#56657a]' });
         }
         if (categoryBudgetDeduction > 0) {
           segments.push({ label: 'Budget Spending', title: 'Budget Spending', amount: categoryBudgetDeduction, barClass: 'bg-slate-500', textClass: 'text-slate-600' });
