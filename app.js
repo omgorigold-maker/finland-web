@@ -16527,11 +16527,17 @@ function initSortableWidgets() {
           else el.style.removeProperty('letter-spacing');
         });
       };
+      const flowOverflows = () => {
+        const gap = 16;
+        return (flowTextEl.scrollWidth + runwayTextEl.scrollWidth + gap > flowFooterRow.clientWidth)
+          || (flowFooterRow.scrollWidth > flowFooterRow.clientWidth + 0.5)
+          || (flowTextEl.scrollWidth > flowTextEl.clientWidth + 0.5);
+      };
       applyFlow(fSize, '');
-      if (flowFooterRow.scrollWidth > flowFooterRow.clientWidth + 0.5) {
+      if (flowOverflows()) {
         applyFlow(fSize, '-0.02em');
       }
-      while (fSize > 8 && flowFooterRow.scrollWidth > flowFooterRow.clientWidth + 0.5) {
+      while (fSize > 8 && flowOverflows()) {
         fSize = Math.round((fSize - 0.25) * 100) / 100;
         applyFlow(fSize, '-0.02em');
       }
