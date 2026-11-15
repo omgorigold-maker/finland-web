@@ -1215,6 +1215,8 @@ button {
 }
 
 .nav-btn {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1247,9 +1249,23 @@ button {
 }
 
 .nav-btn.active {
-  background: rgba(15, 23, 42, 0.024);
+  background: transparent;
   color: var(--ink);
   font-weight: 700;
+}
+
+.nav-btn.active::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.024);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .nav-btn.active svg {
@@ -1266,6 +1282,11 @@ button {
 .bottom-nav.nav-icons-only .nav-btn {
   min-height: 44px;
   justify-content: center;
+}
+
+.bottom-nav.nav-icons-only .nav-btn.active::before {
+  width: 44px;
+  height: 44px;
 }
 
 .bottom-nav.nav-icons-only .nav-btn span {
