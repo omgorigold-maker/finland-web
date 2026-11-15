@@ -1240,14 +1240,13 @@ button {
 }
 
 .nav-btn.active {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.045);
   color: var(--ink);
   font-weight: 700;
 }
 
 .nav-btn.active svg {
   stroke: var(--tab-accent, var(--ink));
-  stroke-width: 2.35;
 }
 
 .bottom-nav.dock-solid {
@@ -2197,7 +2196,7 @@ body.density-compact .tx-row {
 }
 
 .confirm-title {
-  margin: 0 0 6px;
+  margin: 0 0 16px;
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2217,8 +2216,21 @@ body.density-compact .tx-row {
   gap: 8px;
 }
 
+.btn-success {
+  height: 44px;
+  border-radius: 12px;
+  border: 0;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
 .confirm-actions .btn-primary,
 .confirm-actions .btn-secondary,
+.confirm-actions .btn-success,
 .confirm-actions .btn-danger {
   width: 100%;
   flex: none;

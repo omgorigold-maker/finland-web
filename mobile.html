@@ -67,7 +67,7 @@
       100% { transform: translateX(260%); }
     }
   </style>
-  <link rel="stylesheet" href="mobile.css?v=20261115l">
+  <link rel="stylesheet" href="mobile.css?v=20261115m">
 </head>
 <body>
   <div id="appSplash" class="app-splash" aria-label="Loading Finland">
@@ -478,16 +478,16 @@
 
   <!-- 9. Unsaved Changes Confirmation Modal -->
   <dialog id="mobileConfirmDialog" class="confirm-dialog" closedby="any" tabindex="-1" aria-labelledby="mobileConfirmTitle">
-    <h3 id="mobileConfirmTitle" class="confirm-title">Unsaved changes</h3>
-    <p class="confirm-message">Are you sure you want to leave without saving changes?</p>
+    <h3 id="mobileConfirmTitle" class="confirm-title">Leave without saving changes?</h3>
     <div class="confirm-actions">
       <button type="button" id="mobileConfirmKeepBtn" class="btn-secondary">No, keep editing</button>
+      <button type="button" id="mobileConfirmSaveBtn" class="btn-success">Save changes</button>
       <button type="button" id="mobileConfirmDiscardBtn" class="btn-danger">Discard changes</button>
     </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="mobile.js?v=20261115l"></script>
+  <script src="mobile.js?v=20261115m"></script>
 </body>
 </html>
