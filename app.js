@@ -16737,16 +16737,16 @@ function initSortableWidgets() {
         const isExpectedDeficit = afterBudgetsProjectedIfClear < 0;
         const segments = [];
         if (fixedBreakdown.bills > 0 || (fixedBreakdown.subscriptions <= 0 && fixedBills > 0)) {
-          segments.push({ label: 'Bills', title: 'Bills', amount: fixedBreakdown.bills, barClass: 'bg-slate-300', textClass: 'text-slate-500' });
+          segments.push({ label: 'Bills', title: 'Bills', amount: fixedBreakdown.bills, barClass: 'bg-slate-300', textClass: 'text-slate-400' });
         }
         if (fixedBreakdown.subscriptions > 0) {
-          segments.push({ label: 'Subscriptions', title: 'Subscriptions', amount: fixedBreakdown.subscriptions, barClass: 'bg-slate-500', textClass: 'text-slate-600' });
+          segments.push({ label: 'Subscriptions', title: 'Subscriptions', amount: fixedBreakdown.subscriptions, barClass: 'bg-slate-400', textClass: 'text-slate-500' });
         }
         if (taxRate > 0) {
           segments.push({ label: `Tax (${taxRate}%)`, title: 'Tax Reserve', amount: projectedTax, barClass: 'bg-blue-500', textClass: 'text-blue-600' });
         }
         if (categoryBudgetDeduction > 0) {
-          segments.push({ label: 'Budget Spending', title: 'Budget Spending', amount: categoryBudgetDeduction, barClass: 'bg-slate-700', textClass: 'text-slate-800' });
+          segments.push({ label: 'Budget Spending', title: 'Budget Spending', amount: categoryBudgetDeduction, barClass: 'bg-slate-500', textClass: 'text-slate-600' });
         }
 
         if (!isExpectedDeficit) {
