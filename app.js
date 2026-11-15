@@ -16556,21 +16556,21 @@ function initSortableWidgets() {
       const equivHtml = `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`;
 
       const statusBadge = isPaid
-        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">Paid in Full</span>'
+        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 whitespace-nowrap shrink-0">Paid in Full</span>'
         : isPartial
-        ? `<span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200">${percentPaid}% Paid</span>`
+        ? `<span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200 whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
         : p.status === 'invoiced'
-        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200">Invoiced</span>'
-        : '<span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200">In Progress</span>';
+        ? '<span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-200 whitespace-nowrap shrink-0">Invoiced</span>'
+        : '<span class="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200 whitespace-nowrap shrink-0">In Progress</span>';
 
       const dateFooter = isPaid
-        ? `<div class="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+        ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
             <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
             <span>Paid: ${escapeHtml(paidDate || p.dueDate || 'Settled')}</span>
           </div>`
-        : `<div class="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium">
+        : `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
             <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-            <span>${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
+            <span>${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due: ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due: ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
           </div>`;
 
       const invLabel = p.invoiceNumber ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">#${escapeHtml(p.invoiceNumber)}</span>` : '';
@@ -16621,46 +16621,48 @@ function initSortableWidgets() {
 
               <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 gap-2">
                 <span class="whitespace-nowrap shrink-0">${isPaid ? 'Fully settled' : (paidAmt > 0 ? `Paid ${formatMoney(paidAmt, projCur)} • Left ${formatMoney(remainingAmt, projCur)}` : `Left: ${formatMoney(remainingAmt, projCur)}`)}</span>
-                <span class="font-mono shrink-0">${equivHtml}</span>
+                <span class="font-mono min-w-0 truncate text-right">${equivHtml}</span>
+              </div>
+
+              <div class="pt-1.5">
+                ${dateFooter}
               </div>
             </div>
           </div>
 
-          <!-- Card Footer: Due/Paid Date, Invoice Attachment & Payment Action -->
+          <!-- Card Footer: Invoice Attachment & Payment Action -->
           <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            ${dateFooter}
-
-            <div class="flex items-center gap-1.5 flex-wrap">
+            <div class="flex items-center gap-1.5 min-w-0">
               ${(p.hasDepositProformaDoc || p.depositProforma || p.hasProformaDoc || p.proformaInvoice)
-                ? `<button class="view-project-proforma-btn px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium border border-indigo-200/80 flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="View Deposit Proforma Invoice">
-                    <i data-lucide="file-text" class="w-3 h-3 text-indigo-600"></i>
+                ? `<button class="view-project-proforma-btn px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium border border-indigo-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Deposit Proforma Invoice">
+                    <i data-lucide="file-text" class="w-3 h-3 text-indigo-600 shrink-0"></i>
                     <span>Proforma</span>
                   </button>`
                 : ''
               }
               ${(p.hasInvoiceDoc || p.hasReceiptDoc) 
-                ? `<button class="view-project-invoice-btn px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium border border-blue-200/80 flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="View Attached Receipt Document">
-                    <i data-lucide="paperclip" class="w-3 h-3 text-blue-600"></i>
+                ? `<button class="view-project-invoice-btn px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium border border-blue-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Attached Receipt Document">
+                    <i data-lucide="paperclip" class="w-3 h-3 text-blue-600 shrink-0"></i>
                     <span>Receipt</span>
                   </button>`
                 : ''
               }
               ${(isPaid || paidAmt > 0) && (!p.hasInvoiceDoc && !p.hasReceiptDoc && !p.hasProformaDoc)
-                ? `<button class="attach-project-invoice-btn px-2 py-1 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="Attach receipt document or PDF">
-                    <i data-lucide="upload" class="w-3 h-3"></i>
+                ? `<button class="attach-project-invoice-btn px-2.5 py-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-medium border border-slate-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="Attach receipt document or PDF">
+                    <i data-lucide="upload" class="w-3 h-3 shrink-0"></i>
                     <span>Attach</span>
                   </button>`
                 : ''
               }
-
-              ${!isPaid
-                ? `<button class="log-project-payment-btn px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-2xs flex items-center gap-1 transition-all cursor-pointer" data-id="${p.id}" title="Record incoming payment from client">
-                    <i data-lucide="arrow-down-left" class="w-3 h-3"></i>
-                    <span>Log Payment</span>
-                  </button>`
-                : ''
-              }
             </div>
+
+            ${!isPaid
+              ? `<button class="log-project-payment-btn px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-2xs flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ml-auto" data-id="${p.id}" title="Record incoming payment from client">
+                  <i data-lucide="arrow-down-left" class="w-3 h-3 shrink-0"></i>
+                  <span>Log Payment</span>
+                </button>`
+              : ''
+            }
           </div>
         </div>
       `;
