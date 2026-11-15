@@ -2251,6 +2251,63 @@ body.density-compact .tx-row {
   text-overflow: ellipsis;
 }
 
+.custom-seg.cols-4 .custom-seg-btn {
+  padding: 0 3px;
+  font-size: 11px;
+}
+
+.tab-order-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.tab-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.tab-order-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.tab-order-arrows {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tab-order-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.tab-order-btn:disabled {
+  opacity: 0.3;
+}
+
 .card-meta .card-price {
   margin-left: auto;
   font-size: 14px;

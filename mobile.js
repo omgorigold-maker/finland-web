@@ -67,6 +67,7 @@
     dockStyle: 'frosted',
     weekStart: 'sunday',
     startTab: 'followups',
+    tabOrder: ['followups', 'calendar', 'notes', 'money'],
     density: 'comfortable',
     tabIcons: {
       followups: 'check',
@@ -141,7 +142,11 @@
 
   function cloneMobilePrefs(src) {
     const base = src || DEFAULT_MOBILE_PREFS;
+    const validTabs = ['followups', 'calendar', 'notes', 'money'];
+    const rawOrder = Array.isArray(base.tabOrder) ? base.tabOrder.filter(t => validTabs.includes(t)) : [];
+    const tabOrder = [...new Set([...rawOrder, ...validTabs])];
     return Object.assign({}, base, {
+      tabOrder,
       tabIcons: Object.assign({}, DEFAULT_MOBILE_PREFS.tabIcons, base.tabIcons || {}),
       tabColors: Object.assign({}, DEFAULT_MOBILE_PREFS.tabColors, base.tabColors || {})
     });
@@ -175,6 +180,14 @@
     if (nav) {
       nav.classList.toggle('nav-icons-only', mp.navLabels === false);
       nav.classList.toggle('dock-solid', mp.dockStyle === 'solid');
+      const validTabs = ['followups', 'calendar', 'notes', 'money'];
+      const order = Array.isArray(mp.tabOrder)
+        ? [...new Set([...mp.tabOrder.filter(t => validTabs.includes(t)), ...validTabs])]
+        : validTabs;
+      order.forEach(tab => {
+        const btn = nav.querySelector(`.nav-btn[data-tab="${tab}"]`);
+        if (btn) nav.appendChild(btn);
+      });
       nav.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
         const tab = btn.getAttribute('data-tab');
         const svg = btn.querySelector('svg');
@@ -455,6 +468,9 @@
       state.mobilePrefs = cloneMobilePrefs(syncedMobilePrefs);
       saveMobilePrefs();
       applyMobilePrefs(state.mobilePrefs);
+      if (!state.userSwitchedTab && state.mobilePrefs.startTab && state.activeTab !== state.mobilePrefs.startTab && document.getElementById('headerTitle')) {
+        setTab(state.mobilePrefs.startTab);
+      }
     }
     document.getElementById('currencyBtn').textContent = state.displayCurrency;
   }
@@ -2415,10 +2431,63 @@
 
     const actionsWrap = el('div', { className: 'custom-actions' }, [saveBtn, resetBtn]);
 
+    const tabLabelMap = {
+      followups: 'Follow-Ups',
+      calendar: 'Calendar',
+      notes: 'Notes',
+      money: 'Money'
+    };
+    const validTabs = ['followups', 'calendar', 'notes', 'money'];
+    const currentOrder = Array.isArray(mp.tabOrder)
+      ? [...new Set([...mp.tabOrder.filter(t => validTabs.includes(t)), ...validTabs])]
+      : [...validTabs];
+
+    const tabOrderRow = el('div', { className: 'tab-order-list' }, currentOrder.map((tabKey, idx) => {
+      const dotColor = (mp.tabColors && mp.tabColors[tabKey]) || '#0f172a';
+      const move = (delta) => {
+        const nextIdx = idx + delta;
+        if (nextIdx < 0 || nextIdx >= currentOrder.length) return;
+        const copy = [...currentOrder];
+        const [item] = copy.splice(idx, 1);
+        copy.splice(nextIdx, 0, item);
+        mp.tabOrder = copy;
+        applyMobilePrefs(mp);
+        renderMobileCustomSheet();
+      };
+      return el('div', { className: 'tab-order-item' }, [
+        el('span', { className: 'tab-order-left' }, [
+          el('span', { className: 'label-dot', style: `background:${dotColor}` }),
+          el('span', { textContent: tabLabelMap[tabKey] || tabKey })
+        ]),
+        el('div', { className: 'tab-order-arrows' }, [
+          el('button', {
+            type: 'button',
+            className: 'tab-order-btn',
+            disabled: idx === 0,
+            'aria-label': `Move ${tabLabelMap[tabKey]} up`,
+            textContent: '↑',
+            onClick: () => move(-1)
+          }),
+          el('button', {
+            type: 'button',
+            className: 'tab-order-btn',
+            disabled: idx === currentOrder.length - 1,
+            'aria-label': `Move ${tabLabelMap[tabKey]} down`,
+            textContent: '↓',
+            onClick: () => move(1)
+          })
+        ])
+      ]);
+    }));
+
     body.replaceChildren(
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Tab Icons & Colors' }),
         iconRows
+      ]),
+      el('div', { className: 'custom-group' }, [
+        el('span', { className: 'custom-label', textContent: 'Tab Order' }),
+        tabOrderRow
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Bottom Bar Labels' }),
@@ -2444,11 +2513,14 @@
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Starting Tab' }),
         makeSeg([
-          { val: 'followups', label: 'Follow' },
+          { val: 'followups', label: 'Follow-Ups' },
           { val: 'calendar', label: 'Calendar' },
           { val: 'notes', label: 'Notes' },
           { val: 'money', label: 'Money' }
-        ], mp.startTab || 'followups', (v) => { mp.startTab = v; }, true)
+        ], mp.startTab || 'followups', (v) => {
+          mp.startTab = v;
+          setTab(v);
+        }, true)
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Card Density' }),
@@ -2465,7 +2537,10 @@
     setupDialogFallbacks();
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.addEventListener('click', () => setTab(btn.getAttribute('data-tab')));
+      btn.addEventListener('click', () => {
+        state.userSwitchedTab = true;
+        setTab(btn.getAttribute('data-tab'));
+      });
     });
 
     document.querySelectorAll('[data-followup-tab]').forEach(btn => {
