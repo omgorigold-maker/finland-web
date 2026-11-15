@@ -16760,15 +16760,6 @@ function initSortableWidgets() {
             if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
             if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
             if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
-            if (actualSafeToSpend >= 0) {
-              parts.push(`<span class="text-emerald-600">Actual: +${formatMoney(actualSafeToSpend, cur)}</span>`);
-              parts.push(`<span class="text-red-500">After Budgets: -${formatMoney(Math.abs(afterBudgetsLeft), cur)}</span>`);
-            } else {
-              parts.push(`<span class="text-red-500">Actual Deficit: -${formatMoney(Math.abs(actualSafeToSpend), cur)}</span>`);
-              if (remainingPlannedBudget > 0) {
-                parts.push(`<span class="text-red-400">After Budgets: -${formatMoney(Math.abs(afterBudgetsLeft), cur)}</span>`);
-              }
-            }
             flowText.innerHTML = parts.join(' <span class="text-slate-300">•</span> ');
           }
         }
