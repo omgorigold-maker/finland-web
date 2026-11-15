@@ -640,6 +640,10 @@
                 incomingBudget.poDefaultTemplate = existingBudget.poDefaultTemplate;
                 modifiedBudget = true;
               }
+              if (existingBudget.monthlyCategoryLimits && !incomingBudget.monthlyCategoryLimits) {
+                incomingBudget.monthlyCategoryLimits = existingBudget.monthlyCategoryLimits;
+                modifiedBudget = true;
+              }
               if (modifiedBudget) {
                 merged[k] = JSON.stringify(incomingBudget);
                 continue;
@@ -4270,12 +4274,9 @@ ${escapeHtml(data || '')}
       // Look for groceries / essentials category
       const foodCat = budgetCategories.find(c => /grocer|food|supermarket|essentials/i.test(c.name || ''));
       if (foodCat) {
-        const rawLimit = (foodCat.limit !== undefined && parseFloat(foodCat.limit) > 0)
-          ? parseFloat(foodCat.limit)
-          : ((state.budget.categoryBudgets && state.budget.categoryBudgets[foodCat.name] > 0) ? parseFloat(state.budget.categoryBudgets[foodCat.name]) : 0);
-        if (rawLimit > 0) {
-          const limitCur = foodCat.currency || state.budget.incomeCurrency || 'EUR';
-          essentialsBaseline = convertCurrency(rawLimit, limitCur, primaryCur);
+        const resolvedFoodLimit = getCategoryLimitForMonth(foodCat, currentMonthKey);
+        if (resolvedFoodLimit.limit > 0) {
+          essentialsBaseline = convertCurrency(resolvedFoodLimit.limit, resolvedFoodLimit.currency, primaryCur);
           essentialsSource = 'budget limit';
         }
       }
@@ -4285,7 +4286,7 @@ ${escapeHtml(data || '')}
         try {
           const stats = getFlexibleStats(currentMonthKey, primaryCur);
           const { avgs } = getHistoricalAverages ? getHistoricalAverages(currentMonthKey, primaryCur) : { avgs: null };
-          essentialsBaseline = getSurvivalFoodBaseline(primaryCur, stats, avgs);
+          essentialsBaseline = getSurvivalFoodBaseline(primaryCur, stats, avgs, currentMonthKey);
           essentialsSource = essentialsBaseline > 0 ? 'avg / actual' : 'budget limit';
         } catch (e) {
           // Keep safe
@@ -15169,6 +15170,7 @@ function initSortableWidgets() {
       incomes: [],
       categories: JSON.parse(JSON.stringify(DEFAULT_BUDGET_CATEGORIES)),
       categoryBudgets: {},
+      monthlyCategoryLimits: {},
       expectedIncome: 0,
       incomeCurrency: 'EUR'
     };
@@ -15214,6 +15216,9 @@ function initSortableWidgets() {
 
         if (!state.budget.categoryBudgets || typeof state.budget.categoryBudgets !== 'object') {
           state.budget.categoryBudgets = {};
+        }
+        if (!state.budget.monthlyCategoryLimits || typeof state.budget.monthlyCategoryLimits !== 'object') {
+          state.budget.monthlyCategoryLimits = {};
         }
 
         // Bi-directional synchronization between categoryBudgets map and categories array
@@ -16086,15 +16091,218 @@ function initSortableWidgets() {
     return Math.round((last - first) / 86400000 / (uniq.length - 1) * 10) / 10;
   }
 
+  function getEffectiveBudgetTargetMonth(monthKey) {
+    return (!monthKey || monthKey === 'ALL' || monthKey === 'all')
+      ? monthKeyFromDate(new Date())
+      : monthKey;
+  }
+
+  function findCategoryLimitEntryInBucket(bucket, catId, catName) {
+    if (!bucket || typeof bucket !== 'object') return null;
+    if (catId && bucket[catId] && typeof bucket[catId] === 'object') return bucket[catId];
+    if (catName && bucket[catName] && typeof bucket[catName] === 'object') return bucket[catName];
+    if (catName) {
+      const targetLower = catName.toLowerCase().trim();
+      for (const k of Object.keys(bucket)) {
+        if (k.toLowerCase().trim() === targetLower && bucket[k] && typeof bucket[k] === 'object') {
+          return bucket[k];
+        }
+      }
+    }
+    return null;
+  }
+
+  function resolveBudgetCategoryRef(catObjOrName) {
+    let catObj = null;
+    let catName = '';
+    if (catObjOrName && typeof catObjOrName === 'object') {
+      catObj = catObjOrName;
+      catName = catObj.name || '';
+    } else if (typeof catObjOrName === 'string') {
+      catName = catObjOrName;
+      const cats = (state.budget && Array.isArray(state.budget.categories)) ? state.budget.categories : [];
+      catObj = cats.find(c => (c.name || '').toLowerCase() === catName.toLowerCase())
+        || cats.find(c => c.id === catName)
+        || null;
+    }
+    return { catObj, catId: (catObj && catObj.id) ? catObj.id : null, catName };
+  }
+
+  function getCategoryLimitForMonth(catObjOrName, monthKey) {
+    const defaultCur = (state.budget && state.budget.incomeCurrency) || 'EUR';
+    const { catObj, catId, catName } = resolveBudgetCategoryRef(catObjOrName);
+    const fallbackLimit = (catObj && catObj.limit !== undefined)
+      ? (parseFloat(catObj.limit) || 0)
+      : ((state.budget && state.budget.categoryBudgets && catName && state.budget.categoryBudgets[catName] !== undefined)
+        ? (parseFloat(state.budget.categoryBudgets[catName]) || 0)
+        : 0);
+    const fallbackCur = (catObj && catObj.currency) || defaultCur;
+    const targetMonth = getEffectiveBudgetTargetMonth(monthKey);
+    const monthlyMap = (state.budget && state.budget.monthlyCategoryLimits && typeof state.budget.monthlyCategoryLimits === 'object')
+      ? state.budget.monthlyCategoryLimits
+      : null;
+
+    if (monthlyMap) {
+      const exact = findCategoryLimitEntryInBucket(monthlyMap[targetMonth], catId, catName);
+      if (exact) {
+        return {
+          limit: parseFloat(exact.limit) || 0,
+          currency: exact.currency || fallbackCur,
+          scope: exact.scope || 'forward',
+          isExact: true
+        };
+      }
+
+      const sortedMonthsDesc = Object.keys(monthlyMap)
+        .filter(m => /^\d{4}-\d{2}$/.test(m) && m < targetMonth)
+        .sort()
+        .reverse();
+
+      for (const m of sortedMonthsDesc) {
+        const entry = findCategoryLimitEntryInBucket(monthlyMap[m], catId, catName);
+        if (entry && entry.scope !== 'month') {
+          return {
+            limit: parseFloat(entry.limit) || 0,
+            currency: entry.currency || fallbackCur,
+            scope: 'forward',
+            isExact: false
+          };
+        }
+      }
+    }
+
+    return {
+      limit: fallbackLimit,
+      currency: fallbackCur,
+      scope: 'forward',
+      isExact: false
+    };
+  }
+
+  function getCategoryLimitTotalForPeriod(catObjOrName, monthKey, cur) {
+    if (!monthKey || monthKey === 'ALL' || monthKey === 'all') {
+      const months = getActiveBudgetMonthsList(monthKey);
+      return months.reduce((sum, m) => {
+        const res = getCategoryLimitForMonth(catObjOrName, m);
+        return sum + (res.limit > 0 ? convertCurrency(res.limit, res.currency, cur) : 0);
+      }, 0);
+    }
+    const res = getCategoryLimitForMonth(catObjOrName, monthKey);
+    return res.limit > 0 ? convertCurrency(res.limit, res.currency, cur) : 0;
+  }
+
+  function setCategoryLimitForMonth(catObjOrName, monthKey, limitVal, currency, scope = 'month') {
+    if (!state.budget) return;
+    if (!state.budget.monthlyCategoryLimits || typeof state.budget.monthlyCategoryLimits !== 'object') {
+      state.budget.monthlyCategoryLimits = {};
+    }
+    const targetMonth = getEffectiveBudgetTargetMonth(monthKey);
+    const { catObj, catId, catName } = resolveBudgetCategoryRef(catObjOrName);
+    const storageKey = catId || catName;
+    if (!storageKey) return;
+
+    const cleanScope = scope === 'forward' ? 'forward' : 'month';
+    const cleanLimit = Math.max(0, parseFloat(limitVal) || 0);
+    const cleanCur = currency || (catObj && catObj.currency) || state.budget.incomeCurrency || 'EUR';
+
+    const removeMatchingKeys = (bucket) => {
+      if (!bucket || typeof bucket !== 'object') return;
+      if (bucket[storageKey]) delete bucket[storageKey];
+      if (catName) {
+        const lower = catName.toLowerCase().trim();
+        Object.keys(bucket).forEach(k => {
+          if (k === catName || k.toLowerCase().trim() === lower) {
+            delete bucket[k];
+          }
+        });
+      }
+    };
+
+    const existingBucket = state.budget.monthlyCategoryLimits[targetMonth];
+    const existingEntry = findCategoryLimitEntryInBucket(existingBucket, catId, catName);
+    if (cleanScope === 'month' && existingEntry && existingEntry.scope !== 'month') {
+      const nextMonth = shiftMonthKey(targetMonth, 1);
+      if (!state.budget.monthlyCategoryLimits[nextMonth]) {
+        state.budget.monthlyCategoryLimits[nextMonth] = {};
+      }
+      const nextBucket = state.budget.monthlyCategoryLimits[nextMonth];
+      if (!findCategoryLimitEntryInBucket(nextBucket, catId, catName)) {
+        nextBucket[storageKey] = {
+          limit: parseFloat(existingEntry.limit) || 0,
+          currency: existingEntry.currency || cleanCur,
+          scope: 'forward'
+        };
+      }
+    }
+
+    if (!state.budget.monthlyCategoryLimits[targetMonth]) {
+      state.budget.monthlyCategoryLimits[targetMonth] = {};
+    }
+    removeMatchingKeys(state.budget.monthlyCategoryLimits[targetMonth]);
+    state.budget.monthlyCategoryLimits[targetMonth][storageKey] = {
+      limit: cleanLimit,
+      currency: cleanCur,
+      scope: cleanScope
+    };
+
+    if (cleanScope === 'forward') {
+      Object.keys(state.budget.monthlyCategoryLimits).forEach(m => {
+        if (/^\d{4}-\d{2}$/.test(m) && m > targetMonth) {
+          const b = state.budget.monthlyCategoryLimits[m];
+          if (!b || typeof b !== 'object') return;
+          const fut = findCategoryLimitEntryInBucket(b, catId, catName);
+          if (fut && fut.scope !== 'month') {
+            removeMatchingKeys(b);
+            if (Object.keys(b).length === 0) {
+              delete state.budget.monthlyCategoryLimits[m];
+            }
+          }
+        }
+      });
+    }
+  }
+
+  function migrateCategoryMonthlyLimitKeys(catObj, origName) {
+    if (!state.budget || !state.budget.monthlyCategoryLimits || !catObj || !catObj.id || !origName) return;
+    const origLower = origName.toLowerCase().trim();
+    Object.values(state.budget.monthlyCategoryLimits).forEach(bucket => {
+      if (!bucket || typeof bucket !== 'object') return;
+      Object.keys(bucket).forEach(k => {
+        if (k !== catObj.id && (k === origName || k.toLowerCase().trim() === origLower)) {
+          if (!bucket[catObj.id]) {
+            bucket[catObj.id] = bucket[k];
+          }
+          delete bucket[k];
+        }
+      });
+    });
+  }
+
+  function deleteCategoryMonthlyLimits(catObj, origName) {
+    if (!state.budget || !state.budget.monthlyCategoryLimits) return;
+    const catId = catObj && catObj.id ? catObj.id : null;
+    const origLower = (origName || (catObj && catObj.name) || '').toLowerCase().trim();
+    Object.keys(state.budget.monthlyCategoryLimits).forEach(m => {
+      const bucket = state.budget.monthlyCategoryLimits[m];
+      if (!bucket || typeof bucket !== 'object') return;
+      if (catId && bucket[catId]) delete bucket[catId];
+      if (origLower) {
+        Object.keys(bucket).forEach(k => {
+          if (k.toLowerCase().trim() === origLower) delete bucket[k];
+        });
+      }
+      if (Object.keys(bucket).length === 0) {
+        delete state.budget.monthlyCategoryLimits[m];
+      }
+    });
+  }
+
   function getCategoryBudgetSummary(monthKey, cur, stats) {
     const configuredCategories = state.budget.categories || [];
     let totalBudgetLimit = 0;
     let totalSpentInBudgeted = 0;
     let budgetedCategoriesCount = 0;
     const totalAllEverydaySpent = Object.values(stats || {}).reduce((s, c) => s + (c.total || 0), 0);
-    const monthsMultiplier = (!monthKey || monthKey === 'ALL' || monthKey === 'all')
-      ? Math.max(1, getActiveBudgetMonthsList(monthKey).length)
-      : 1;
 
     const seenCats = new Set();
     configuredCategories.forEach(catObj => {
@@ -16104,11 +16312,7 @@ function initSortableWidgets() {
       if (seenCats.has(catKey)) return;
       seenCats.add(catKey);
 
-      const rawLimit = (catObj.limit !== undefined && parseFloat(catObj.limit) > 0)
-        ? parseFloat(catObj.limit)
-        : ((state.budget.categoryBudgets && state.budget.categoryBudgets[cat] > 0) ? parseFloat(state.budget.categoryBudgets[cat]) : 0);
-      const limitCurrency = catObj.currency || state.budget.incomeCurrency || 'EUR';
-      const targetBudget = rawLimit > 0 ? convertCurrency(rawLimit, limitCurrency, cur) * monthsMultiplier : 0;
+      const targetBudget = getCategoryLimitTotalForPeriod(catObj, monthKey, cur);
       const s = findCategoryStats(stats, cat);
 
       if (targetBudget > 0) {
@@ -16126,8 +16330,9 @@ function initSortableWidgets() {
     };
   }
 
-  function getSurvivalFoodBaseline(cur, stats, avgs) {
+  function getSurvivalFoodBaseline(cur, stats, avgs, monthKey) {
     const categories = (state.budget && Array.isArray(state.budget.categories)) ? state.budget.categories : [];
+    const targetMonth = getEffectiveBudgetTargetMonth(monthKey !== undefined ? monthKey : getBudgetMonthKey());
 
     // 1. Look for configured category matching groceries, food, supermarket, essentials
     const foodCat = categories.find(c => {
@@ -16137,14 +16342,11 @@ function initSortableWidgets() {
 
     if (foodCat) {
       const catName = foodCat.name;
-      const rawLimit = (foodCat.limit !== undefined && parseFloat(foodCat.limit) > 0)
-        ? parseFloat(foodCat.limit)
-        : ((state.budget.categoryBudgets && state.budget.categoryBudgets[catName] > 0) ? parseFloat(state.budget.categoryBudgets[catName]) : 0);
+      const resolvedLimit = getCategoryLimitForMonth(foodCat, targetMonth);
 
       // If user configured a budget limit, that is their planned monthly food baseline!
-      if (rawLimit > 0) {
-        const limitCur = foodCat.currency || state.budget.incomeCurrency || 'EUR';
-        return convertCurrency(rawLimit, limitCur, cur);
+      if (resolvedLimit.limit > 0) {
+        return convertCurrency(resolvedLimit.limit, resolvedLimit.currency, cur);
       }
 
       // Check historical 3-month average
@@ -16465,7 +16667,7 @@ function initSortableWidgets() {
     // Survival Baseline Calculation
     if (runwayText) {
       const { avgs } = getHistoricalAverages(monthKey, cur);
-      const foodBaseline = getSurvivalFoodBaseline(cur, stats, avgs);
+      const foodBaseline = getSurvivalFoodBaseline(cur, stats, avgs, monthKey);
       const monthlyFixedBills = isAllTime
         ? (fixedBills / Math.max(1, getActiveBudgetMonthsList(monthKey).length))
         : fixedBills;
@@ -17048,21 +17250,13 @@ function initSortableWidgets() {
     }
     if (empty) empty.classList.add('hidden');
 
-    const monthsMultiplier = (!monthKey || monthKey === 'ALL' || monthKey === 'all')
-      ? Math.max(1, getActiveBudgetMonthsList(monthKey).length)
-      : 1;
-
     list.innerHTML = configuredCategories.map(catObj => {
       const cat = catObj.name;
       const icon = catObj.icon || getCategoryLucideIcon(cat);
       const color = catObj.color || getCategoryColor(cat);
       const s = findCategoryStats(stats, cat);
       const a = avgs[cat] || (avgs && Object.entries(avgs).find(([k]) => k.toLowerCase() === (cat || '').toLowerCase())?.[1]);
-      const rawLimit = (catObj.limit !== undefined && parseFloat(catObj.limit) > 0)
-        ? parseFloat(catObj.limit)
-        : ((state.budget.categoryBudgets && state.budget.categoryBudgets[cat] > 0) ? parseFloat(state.budget.categoryBudgets[cat]) : 0);
-      const limitCurrency = catObj.currency || state.budget.incomeCurrency || 'EUR';
-      const targetBudget = rawLimit > 0 ? convertCurrency(rawLimit, limitCurrency, cur) * monthsMultiplier : 0;
+      const targetBudget = getCategoryLimitTotalForPeriod(catObj, monthKey, cur);
       const avgTrip = s.count > 0 ? s.total / s.count : 0;
       const gap = averageGapDays(s.dates);
       const projected = ctx.isCurrent && ctx.daysElapsed > 0 ? (s.total / ctx.daysElapsed) * ctx.daysInMonth : s.total;
@@ -18253,6 +18447,35 @@ function initSortableWidgets() {
       lucide.createIcons();
     };
 
+    const applyLimitScopeButtonStyles = (wrapId, btnSelector, activeScope) => {
+      const wrap = byId(wrapId);
+      if (!wrap) return;
+      wrap.querySelectorAll(btnSelector).forEach(btn => {
+        const isActive = btn.getAttribute('data-scope') === activeScope;
+        btn.classList.toggle('bg-white', isActive);
+        btn.classList.toggle('text-slate-900', isActive);
+        btn.classList.toggle('shadow-2xs', isActive);
+        btn.classList.toggle('font-semibold', isActive);
+        btn.classList.toggle('text-slate-600', !isActive);
+        btn.classList.toggle('font-medium', !isActive);
+      });
+    };
+
+    let editCategoryLimitScope = 'month';
+    const setEditCategoryLimitScope = (scope) => {
+      editCategoryLimitScope = scope === 'forward' ? 'forward' : 'month';
+      applyLimitScopeButtonStyles('editCategoryScopeWrap', '.cat-limit-scope-btn', editCategoryLimitScope);
+    };
+
+    const editCatScopeWrap = byId('editCategoryScopeWrap');
+    if (editCatScopeWrap) {
+      editCatScopeWrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.cat-limit-scope-btn');
+        if (!btn) return;
+        setEditCategoryLimitScope(btn.getAttribute('data-scope'));
+      });
+    }
+
     const showEditCategoryModal = (catName = '') => {
       if (!modalEditCategory) return;
       const isNew = !catName;
@@ -18265,18 +18488,31 @@ function initSortableWidgets() {
         limit: 0
       };
 
-      const limitCurrency = catObj.currency || state.budget.incomeCurrency || 'EUR';
+      const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
+      const resolved = isNew
+        ? { limit: 0, currency: state.displayCurrency || state.budget.incomeCurrency || 'EUR' }
+        : getCategoryLimitForMonth(catObj, targetMonth);
+      const limitCurrency = resolved.currency || state.budget.incomeCurrency || 'EUR';
       const cur = state.displayCurrency || 'EUR';
-      const convertedLimit = catObj.limit > 0 ? (Math.round(convertCurrency(catObj.limit, limitCurrency, cur) * 100) / 100) : '';
+      const convertedLimit = resolved.limit > 0 ? (Math.round(convertCurrency(resolved.limit, limitCurrency, cur) * 100) / 100) : '';
+      const initialLimitStr = convertedLimit !== '' ? String(convertedLimit) : '';
 
       byId('editCategoryId').value = catObj.id || ('cat_' + Date.now());
       byId('editCategoryOriginalName').value = catName;
       byId('editCategoryNameInput').value = catObj.name || '';
-      byId('editCategoryLimitInput').value = convertedLimit !== '' ? convertedLimit : '';
+      const limitInputEl = byId('editCategoryLimitInput');
+      limitInputEl.value = initialLimitStr;
+      limitInputEl.dataset.initialVal = initialLimitStr;
       byId('editCategoryIconValue').value = catObj.icon || 'tag';
       byId('editCategoryColorValue').value = catObj.color || '#6366f1';
       byId('editCategoryCurrencyBadge').textContent = cur;
       byId('editCategoryModalTitle').textContent = isNew ? 'Create New Category' : `Edit "${catObj.name}"`;
+
+      const scopeLabelEl = byId('editCategoryScopeLabel');
+      if (scopeLabelEl) {
+        scopeLabelEl.textContent = `Apply to (${formatMonthLabel(targetMonth)}):`;
+      }
+      setEditCategoryLimitScope('month');
 
       if (deleteCategoryBtn) {
         if (!isNew && categories.length > 1) {
@@ -18342,8 +18578,13 @@ function initSortableWidgets() {
         const newName = byId('editCategoryNameInput').value.trim();
         const icon = byId('editCategoryIconValue').value;
         const color = byId('editCategoryColorValue').value;
-        const limitVal = parseFloat(byId('editCategoryLimitInput').value) || 0;
+        const limitInputEl = byId('editCategoryLimitInput');
+        const rawLimitStr = (limitInputEl.value || '').trim();
+        const initialLimitStr = limitInputEl.dataset.initialVal || '';
+        const limitVal = parseFloat(rawLimitStr) || 0;
+        const limitChanged = rawLimitStr !== initialLimitStr;
         const catId = byId('editCategoryId').value;
+        const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
 
         if (!newName) {
           alert('Please enter a category name.');
@@ -18364,6 +18605,7 @@ function initSortableWidgets() {
         const isRenaming = origName && origName.toLowerCase() !== newName.toLowerCase();
 
         const cur = state.displayCurrency || state.budget.incomeCurrency || 'EUR';
+        let savedCatObj = null;
 
         if (origName) {
           // Editing existing category
@@ -18372,13 +18614,13 @@ function initSortableWidgets() {
             found.name = newName;
             found.icon = icon;
             found.color = color;
-            found.limit = limitVal;
-            found.currency = cur;
+            savedCatObj = found;
           } else {
-            state.budget.categories.push({ id: catId, name: newName, icon, color, limit: limitVal, currency: cur });
+            savedCatObj = { id: catId, name: newName, icon, color, limit: 0, currency: cur };
+            state.budget.categories.push(savedCatObj);
           }
 
-          // If renamed, update past expenses
+          // If renamed, update past expenses and migrate legacy budget map key
           if (isRenaming) {
             (state.expenses || []).forEach(exp => {
               if ((exp.category || '').toLowerCase() === origName.toLowerCase()) {
@@ -18386,24 +18628,33 @@ function initSortableWidgets() {
               }
             });
             saveExpenses();
-            if (state.budget.categoryBudgets) {
+            if (state.budget.categoryBudgets && Object.prototype.hasOwnProperty.call(state.budget.categoryBudgets, origName)) {
+              state.budget.categoryBudgets[newName] = state.budget.categoryBudgets[origName];
               delete state.budget.categoryBudgets[origName];
             }
+            migrateCategoryMonthlyLimitKeys(savedCatObj, origName);
+          }
+
+          if (limitChanged || editCategoryLimitScope === 'forward') {
+            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, editCategoryLimitScope);
           }
         } else {
-          // Creating brand new category
-          state.budget.categories.push({ id: catId, name: newName, icon, color, limit: limitVal, currency: cur });
+          // Creating brand new category (base limit stays 0 so earlier months stay unaffected)
+          savedCatObj = { id: catId, name: newName, icon, color, limit: 0, currency: cur };
+          state.budget.categories.push(savedCatObj);
+          if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
+          state.budget.categoryBudgets[newName] = 0;
+          if (limitVal > 0 || limitChanged) {
+            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, editCategoryLimitScope);
+          }
         }
-
-        if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
-        state.budget.categoryBudgets[newName] = limitVal;
 
         saveBudget();
         hideEditCategoryModal();
         syncCategoryDropdowns();
         renderBudgetInputs();
         renderBudgetView();
-        showToast('Category Saved! ✨', `"${newName}" customized with chosen icon.`, 'success');
+        showToast('Category Saved! ✨', `"${newName}" updated for ${formatMonthLabel(targetMonth)}.`, 'success');
       });
     }
 
@@ -18413,10 +18664,12 @@ function initSortableWidgets() {
         const origName = byId('editCategoryOriginalName').value.trim();
         if (!origName) return;
         if (await confirmAction(`Delete the category "${origName}"? Any existing transactions will stay in your ledger.`)) {
+          const targetCat = (state.budget.categories || []).find(c => c.name.toLowerCase() === origName.toLowerCase());
           state.budget.categories = (state.budget.categories || []).filter(c => c.name.toLowerCase() !== origName.toLowerCase());
           if (state.budget.categoryBudgets) {
             delete state.budget.categoryBudgets[origName];
           }
+          deleteCategoryMonthlyLimits(targetCat, origName);
           saveBudget();
           hideEditCategoryModal();
           syncCategoryDropdowns();
@@ -18470,16 +18723,33 @@ function initSortableWidgets() {
       }
     };
 
+    let adjustBudgetsLimitScope = 'month';
+    const setAdjustBudgetsLimitScope = (scope) => {
+      adjustBudgetsLimitScope = scope === 'forward' ? 'forward' : 'month';
+      applyLimitScopeButtonStyles('adjustBudgetsScopeWrap', '.budgets-limit-scope-btn', adjustBudgetsLimitScope);
+    };
+
+    const adjustScopeWrap = byId('adjustBudgetsScopeWrap');
+    if (adjustScopeWrap) {
+      adjustScopeWrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.budgets-limit-scope-btn');
+        if (!btn) return;
+        setAdjustBudgetsLimitScope(btn.getAttribute('data-scope'));
+      });
+    }
+
     const renderBudgetInputs = () => {
       const container = byId('categoryBudgetInputsContainer');
       if (!container) return;
       const categories = state.budget.categories || [];
       const cur = state.displayCurrency;
+      const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
 
       container.innerHTML = categories.map(catObj => {
         const cat = catObj.name;
-        const rawVal = catObj.limit > 0 ? catObj.limit : (state.budget.categoryBudgets[cat] || 0);
-        const limitCurrency = catObj.currency || state.budget.incomeCurrency || 'EUR';
+        const resolved = getCategoryLimitForMonth(catObj, targetMonth);
+        const rawVal = resolved.limit || 0;
+        const limitCurrency = resolved.currency || state.budget.incomeCurrency || 'EUR';
         const convertedVal = rawVal > 0 ? (Math.round(convertCurrency(rawVal, limitCurrency, cur) * 100) / 100) : '';
         const color = catObj.color || getCategoryColor(cat);
         const icon = catObj.icon || getCategoryLucideIcon(cat);
@@ -18497,7 +18767,7 @@ function initSortableWidgets() {
             </div>
             <div class="flex items-center gap-1 shrink-0 w-24">
               <span class="text-xs text-slate-400 font-mono">${CURRENCY_SYMBOLS[cur] || cur}</span>
-              <input type="number" step="any" min="0" placeholder="0" class="cat-budget-input w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-900 font-mono text-right focus:outline-none" data-cat="${escapeHtml(cat)}" value="${convertedVal}">
+              <input type="number" step="any" min="0" placeholder="0" class="cat-budget-input w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-900 font-mono text-right focus:outline-none" data-cat="${escapeHtml(cat)}" data-initial-val="${convertedVal}" value="${convertedVal}">
             </div>
           </div>
         `;
@@ -18511,6 +18781,12 @@ function initSortableWidgets() {
         : 0;
       const validTax = isNaN(curTax) ? 0 : Math.max(0, curTax);
       updateTaxDisplayAndPills(validTax);
+      const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
+      const scopeLabel = byId('adjustBudgetsScopeLabel');
+      if (scopeLabel) {
+        scopeLabel.textContent = `Apply limit changes (${formatMonthLabel(targetMonth)}):`;
+      }
+      setAdjustBudgetsLimitScope('month');
       renderBudgetInputs();
       modalBudgets.classList.remove('hidden');
       modalBudgets.classList.add('flex');
@@ -18584,24 +18860,30 @@ function initSortableWidgets() {
     if (saveBudgetsBtn) {
       saveBudgetsBtn.addEventListener('click', () => {
         const cur = state.displayCurrency || state.budget.incomeCurrency || 'EUR';
+        const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
         if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
         document.querySelectorAll('.cat-budget-input').forEach(input => {
           const cat = input.getAttribute('data-cat');
-          const val = parseFloat(input.value) || 0;
-          state.budget.categoryBudgets[cat] = val;
-          const found = (state.budget.categories || []).find(c => (c.name || '').toLowerCase() === (cat || '').toLowerCase());
-          if (found) {
-            found.limit = val;
-            found.currency = cur;
-          } else {
-            state.budget.categories.push({
+          const rawStr = (input.value || '').trim();
+          const initialVal = input.getAttribute('data-initial-val') || '';
+          const val = parseFloat(rawStr) || 0;
+          const changedVal = rawStr !== initialVal;
+          let found = (state.budget.categories || []).find(c => (c.name || '').toLowerCase() === (cat || '').toLowerCase());
+          if (!found) {
+            found = {
               id: 'cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
               name: cat,
               icon: getCategoryLucideIcon(cat),
               color: getCategoryColor(cat),
-              limit: val,
+              limit: 0,
               currency: cur
-            });
+            };
+            state.budget.categories.push(found);
+          }
+          const curBucket = state.budget.monthlyCategoryLimits && state.budget.monthlyCategoryLimits[targetMonth];
+          const curEntry = findCategoryLimitEntryInBucket(curBucket, found.id, cat);
+          if (changedVal || (adjustBudgetsLimitScope === 'forward' && curEntry && curEntry.scope === 'month')) {
+            setCategoryLimitForMonth(found, targetMonth, val, cur, adjustBudgetsLimitScope);
           }
         });
         let chosenTax = 0;
@@ -18616,20 +18898,21 @@ function initSortableWidgets() {
         saveBudget();
         hideBudgetsModal();
         renderBudgetView();
-        showToast('Budgets Updated', `Category limits and ${chosenTax}% tax reserve saved.`, 'success');
+        const scopeDesc = adjustBudgetsLimitScope === 'forward'
+          ? `${formatMonthLabel(targetMonth)} & future months`
+          : formatMonthLabel(targetMonth);
+        showToast('Budgets Updated', `Limits saved for ${scopeDesc} (${chosenTax}% tax reserve).`, 'success');
       });
     }
 
     // Auto-calculate budgets based on past 3-month spending history + current month activity
-    const executeAutoSuggestBudgets = () => {
+    const executeAutoSuggestBudgets = (scopeOverride) => {
       const cur = state.displayCurrency;
       const monthKey = getBudgetMonthKey();
-      const targetMonth = (!monthKey || monthKey === 'ALL' || monthKey === 'all')
-        ? monthKeyFromDate(new Date())
-        : monthKey;
+      const targetMonth = getEffectiveBudgetTargetMonth(monthKey);
+      const chosenScope = scopeOverride === 'forward' ? 'forward' : 'month';
       const { avgs } = getHistoricalAverages(targetMonth, cur);
       const currentStats = getFlexibleStats(targetMonth, cur);
-      if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
 
       let count = 0;
       (state.budget.categories || []).forEach(catObj => {
@@ -18642,9 +18925,7 @@ function initSortableWidgets() {
         if (baseline > 0) {
           // Baseline + 10% safety margin rounded up to nearest 10
           const suggested = Math.ceil((baseline * 1.10) / 10) * 10;
-          catObj.limit = suggested;
-          catObj.currency = cur;
-          state.budget.categoryBudgets[cat] = suggested;
+          setCategoryLimitForMonth(catObj, targetMonth, suggested, cur, chosenScope);
           count++;
         }
       });
@@ -18652,11 +18933,11 @@ function initSortableWidgets() {
       saveBudget();
       renderBudgetInputs();
       renderBudgetView();
-      showToast('Smart Budgets Set! ✨', `Auto-calculated ${count} category budgets from your spending patterns.`, 'success');
+      showToast('Smart Budgets Set! ✨', `Auto-calculated ${count} category budgets for ${formatMonthLabel(targetMonth)}.`, 'success');
     };
 
-    if (autoCalcBtn) autoCalcBtn.addEventListener('click', executeAutoSuggestBudgets);
-    if (modalAutoSuggestBtn) modalAutoSuggestBtn.addEventListener('click', executeAutoSuggestBudgets);
+    if (autoCalcBtn) autoCalcBtn.addEventListener('click', () => executeAutoSuggestBudgets('month'));
+    if (modalAutoSuggestBtn) modalAutoSuggestBtn.addEventListener('click', () => executeAutoSuggestBudgets(adjustBudgetsLimitScope));
 
     // 8. Quick Log Purchase: opens window of this month's transactions
     const quickLogPurchaseModalBtn = byId('openQuickPurchaseModalBtn');
@@ -48092,6 +48373,8 @@ ${sectionsText}
   window._renderReportsView = renderReportsView;
   window._renderBudgetView = renderBudgetView;
   window._getCategoryBudgetSummary = getCategoryBudgetSummary;
+  window._getCategoryLimitForMonth = getCategoryLimitForMonth;
+  window._setCategoryLimitForMonth = setCategoryLimitForMonth;
   window._getMonthlyFixedCommitments = getMonthlyFixedCommitments;
   window._findCategoryStats = findCategoryStats;
   window._isFlexibleExpense = isFlexibleExpense;
