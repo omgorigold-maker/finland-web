@@ -16603,8 +16603,11 @@ function initSortableWidgets() {
             <!-- Amount & Payment Status -->
             <div class="mt-2.5 space-y-1.5">
               <div class="flex items-baseline justify-between gap-2">
-                <div class="flex items-baseline gap-2 flex-wrap min-w-0">
-                  <span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>
+                <div class="flex items-baseline gap-1.5 flex-wrap min-w-0">
+                  ${isPartial
+                    ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-lg font-bold text-slate-400"><span class="text-slate-300 font-normal">/</span> ${formatMoney(totalAmt, projCur)}</span>`
+                    : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
+                  }
                   ${projCur !== cur ? `
                     <span class="text-xs font-mono font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg" title="Converted to ${cur} at current exchange rate">
                       ≈ ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}
