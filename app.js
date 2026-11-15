@@ -17021,19 +17021,19 @@ function initSortableWidgets() {
 
             <!-- Amount & Payment Status -->
             <div class="mt-2.5 space-y-1.5">
-              <div class="flex items-baseline justify-between gap-2">
-                <div class="flex items-baseline shrink-0 whitespace-nowrap">
+              <div class="flex items-baseline justify-between gap-x-2 gap-y-1 flex-wrap min-w-0">
+                <div class="flex items-baseline min-w-0 flex-wrap">
                   ${isPartial
-                    ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-slate-300 font-normal text-lg mx-1.5">/</span><span class="font-mono text-lg font-bold text-slate-400">${formatMoney(totalAmt, projCur)}</span>`
-                    : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
+                    ? `<span class="font-mono text-xl font-bold text-slate-900 whitespace-nowrap">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-slate-300 font-normal text-lg mx-1.5">/</span><span class="font-mono text-lg font-bold text-slate-400 whitespace-nowrap">${formatMoney(totalAmt, projCur)}</span>`
+                    : `<span class="font-mono text-xl font-bold text-slate-900 whitespace-nowrap">${formatMoney(totalAmt, projCur)}</span>`
                   }
                 </div>
                 ${projCur !== cur
-                  ? `<span class="text-xs font-mono whitespace-nowrap shrink-0 text-right" title="Converted to ${cur} at current exchange rate">${isPartial
+                  ? `<span class="text-xs font-mono min-w-0 max-w-full break-words" title="Converted to ${cur} at current exchange rate">${isPartial
                       ? `<span class="text-slate-300 mr-1.5">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)}</span><span class="font-mono text-slate-300 font-normal mx-1.5">/</span><span class="font-bold text-slate-400">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
                       : `<span class="text-slate-300 mr-1.5">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
                     }</span>`
-                  : (equivHtml ? `<span class="text-xs font-mono text-slate-400 whitespace-nowrap shrink-0 text-right">${equivHtml}</span>` : '')
+                  : (equivHtml ? `<span class="text-xs font-mono text-slate-400 min-w-0 max-w-full break-words">${equivHtml}</span>` : '')
                 }
               </div>
 
@@ -17262,9 +17262,9 @@ function initSortableWidgets() {
                 </div>
               </div>
 
-              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 gap-2">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 gap-2 flex-wrap min-w-0">
                 <span class="whitespace-nowrap shrink-0">${inc.method ? escapeHtml(inc.method) : 'Direct'}</span>
-                <span class="font-mono shrink-0">${equivHtml}</span>
+                <span class="font-mono min-w-0 max-w-full break-words">${equivHtml}</span>
               </div>
             </div>
           </div>
@@ -35315,9 +35315,9 @@ ${sectionsText}
           const payLabel = pay.notes || pay.method || 'Payment';
           return `
             <div class="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-slate-50/80 hover:bg-slate-100/70 rounded-xl border border-slate-200/50 text-xs transition-colors group/pay">
-              <div class="flex items-center gap-2 min-w-0">
+              <div class="flex items-center gap-2 min-w-0 flex-wrap">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Deposited"></span>
-                <span class="font-semibold text-slate-900 font-mono text-[13px] shrink-0">+${formatMoney(payAmt, payCur)}${payEquiv}</span>
+                <span class="font-semibold text-slate-900 font-mono text-[13px] min-w-0 break-words">+${formatMoney(payAmt, payCur)}${payEquiv}</span>
                 <span class="text-[11px] text-slate-400 truncate">· ${escapeHtml(payLabel)}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
