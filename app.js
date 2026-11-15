@@ -16323,7 +16323,7 @@ function initSortableWidgets() {
           const b = state.budget.monthlyCategoryLimits[m];
           if (!b || typeof b !== 'object') return;
           const fut = findCategoryLimitEntryInBucket(b, catId, catName);
-          if (fut && fut.scope !== 'month') {
+          if (fut) {
             removeMatchingKeys(b);
             if (Object.keys(b).length === 0) {
               delete state.budget.monthlyCategoryLimits[m];
