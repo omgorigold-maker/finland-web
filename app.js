@@ -16554,7 +16554,7 @@ function initSortableWidgets() {
       const targetCur1 = (cur !== projCur) ? cur : otherCurs[0];
       const targetCur2 = (cur !== projCur) ? otherCurs.find(c => c !== cur) : otherCurs[1];
       const equivHtml = (projCur !== cur)
-        ? `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`
+        ? ''
         : `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`;
 
       const statusBadge = isPaid
@@ -16612,7 +16612,7 @@ function initSortableWidgets() {
                       : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
                     }
                   </div>
-                  <span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>
+                  ${equivHtml ? `<span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>` : ''}
                 </div>
                 ${projCur !== cur ? `
                   <div class="text-xs font-mono text-slate-500 mt-0.5" title="Converted to ${cur} at current exchange rate">
