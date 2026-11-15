@@ -17025,7 +17025,7 @@ function initSortableWidgets() {
       const recLabel = p.receiptNumber ? `<span class="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded text-[10px] font-mono">Rec #${escapeHtml(p.receiptNumber)}</span>` : '';
 
       return `
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group cursor-grab active:cursor-grabbing select-none" data-id="${p.id}">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group cursor-pointer select-none" data-id="${p.id}">
           <div>
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
@@ -17038,12 +17038,6 @@ function initSortableWidgets() {
               </div>
 
               <div class="flex items-center gap-1 shrink-0">
-                <button class="edit-freelance-proj-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-all cursor-pointer" data-id="${p.id}" title="Edit Project">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="delete-freelance-proj-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-300 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all cursor-pointer" data-id="${p.id}" title="Delete Project">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
                 <i data-lucide="grip-vertical" class="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors cursor-grab active:cursor-grabbing card-drag-handle ml-0.5" title="Drag to reorder"></i>
               </div>
             </div>
@@ -18350,6 +18344,12 @@ function initSortableWidgets() {
         if (e.target.closest('.log-project-payment-btn')) {
           openRecordPaymentModal(proj);
           return;
+        }
+
+        // F. Clicking anywhere else on the project card opens the Project Detail page
+        if (e.target.closest('.card-drag-handle')) return;
+        if (typeof openProjectDetailPage === 'function') {
+          openProjectDetailPage(id);
         }
       });
     }
