@@ -17245,31 +17245,21 @@ function initSortableWidgets() {
       const targetCur2 = (cur !== incCur) ? otherCurs.find(c => c !== cur) : otherCurs[1];
       const equivHtml = `≈ ${formatMoney(convertCurrency(amt, incCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(amt, incCur, targetCur2), targetCur2)}`;
 
-      // Tag styling based on type
-      let typeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
-      if (incType === 'Odd Job' || incType === 'Side Gig') {
-        typeBg = 'bg-blue-50 text-blue-700 border-blue-200/60';
-      } else if (incType === 'Reimbursement') {
-        typeBg = 'bg-amber-50 text-amber-700 border-amber-200/60';
-      } else if (incType === 'Bonus / Windfall') {
-        typeBg = 'bg-purple-50 text-purple-700 border-purple-200/60';
-      }
-
       const subtitleText = inc.notes
         ? `${inc.method ? inc.method + ' • ' : ''}${inc.notes}`
         : (inc.method || 'Direct');
+      const typeTagHtml = `<span class="px-2 py-1 text-[11px] font-medium rounded-lg border bg-slate-100 text-slate-600 border-slate-200/80 whitespace-nowrap shrink-0">${escapeHtml(incType)}</span>`;
 
       return `
         <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group" data-id="${escapeHtml(inc.id)}">
           <div>
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5 min-w-0 flex-nowrap">
-                  <h4 class="font-bold text-sm text-slate-900 truncate" title="${escapeHtml(inc.title || 'Income Source')}">${escapeHtml(inc.title || 'Income Source')}</h4>
-                  <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full border shrink-0 whitespace-nowrap ${typeBg}">${escapeHtml(incType)}</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h4 class="font-bold text-sm text-slate-900 break-words leading-snug">${escapeHtml(inc.title || 'Income Source')}</h4>
                   ${isExpected ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-amber-50 text-amber-700 border-amber-200/70 inline-flex items-center gap-1 shrink-0 whitespace-nowrap"><i data-lucide="clock" class="w-3 h-3 text-amber-600"></i> Expected</span>` : ''}
                 </div>
-                <p class="text-xs text-slate-500 truncate mt-0.5" title="${escapeHtml(subtitleText)}">${escapeHtml(subtitleText)}</p>
+                <p class="text-xs text-slate-500 break-words mt-0.5">${escapeHtml(subtitleText)}</p>
               </div>
 
               <div class="flex items-center gap-1 shrink-0">
@@ -17292,22 +17282,26 @@ function initSortableWidgets() {
             </div>
           </div>
 
-          <!-- Card Footer: Status & Actions -->
+          <!-- Card Footer: Status, Category Tag & Actions -->
           <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
             ${isExpected ? `
               <div class="inline-flex items-center gap-1.5 text-[11px] text-amber-700 font-medium bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-200/70 whitespace-nowrap min-w-0 max-w-full">
                 <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
                 <span class="truncate">Expected: ${escapeHtml(inc.date || 'Pending')}</span>
               </div>
-              <button type="button" class="mark-misc-income-received-btn text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0" data-id="${escapeHtml(inc.id)}">
-                <i data-lucide="check" class="w-3 h-3"></i>
-                <span>Mark Received</span>
-              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" class="mark-misc-income-received-btn text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0" data-id="${escapeHtml(inc.id)}">
+                  <i data-lucide="check" class="w-3 h-3"></i>
+                  <span>Mark Received</span>
+                </button>
+                ${typeTagHtml}
+              </div>
             ` : `
               <div class="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200/70 whitespace-nowrap min-w-0 max-w-full">
                 <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
                 <span class="truncate">Received: ${escapeHtml(inc.date || 'Recorded')}</span>
               </div>
+              ${typeTagHtml}
             `}
           </div>
         </div>
