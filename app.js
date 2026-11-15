@@ -16653,8 +16653,8 @@ function initSortableWidgets() {
             </div>
 
             ${!isPaid
-              ? `<button class="log-project-payment-btn px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-2xs inline-flex items-center justify-center gap-1 leading-tight transition-all cursor-pointer whitespace-nowrap shrink-0 ml-auto" data-id="${p.id}" title="Record incoming payment from client">
-                  <i data-lucide="arrow-down-left" class="w-3 h-3 shrink-0"></i>
+              ? `<button class="log-project-payment-btn pl-2.5 pr-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 leading-none transition-all cursor-pointer whitespace-nowrap shrink-0 ml-auto" data-id="${p.id}" title="Record incoming payment from client">
+                  <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 shrink-0"></i>
                   <span>Log Payment</span>
                 </button>`
               : ''
