@@ -1038,50 +1038,50 @@
              Box 1: Collected Income | Pending Invoices
              Box 2: Bills & Tax | Budget Spending
              Box 3: Safe to Spend | After Budgets -->
-        <div id="budgetMetricsGrid" class="grid grid-cols-1 lg:grid-cols-[1.58fr_1.80fr_1.62fr] gap-2 pt-1">
+        <div id="budgetMetricsGrid" class="grid grid-cols-1 lg:grid-cols-[1.48fr_1.62fr_1.90fr] gap-2 pt-1">
           <!-- Box 1: Collected Income & Pending Invoices (Shared Box) -->
           <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-2">
             <!-- 1. Cash In Hand -->
-            <div class="px-3 py-3 min-w-0 flex flex-col justify-between border-r border-slate-200/80">
+            <div class="px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between border-r border-slate-200/80">
               <div>
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Collected Income">Collected Income</span>
                   <span id="budgetCollectedTag" class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">In Hand</span>
                 </div>
-                <div id="budgetIncomePrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+                <div id="budgetIncomePrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono whitespace-nowrap">€0.00</div>
               </div>
               <div id="budgetIncomeEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">Projects €0.00 • Misc €0.00</div>
             </div>
 
             <!-- 2. Pending Invoices / Receivables -->
-            <div class="px-3 py-3 min-w-0 flex flex-col justify-between">
+            <div class="px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Pending Receivables">Pending Invoices</span>
                   <span id="budgetPendingTag" class="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium shrink-0">Invoiced</span>
                 </div>
-                <div id="budgetPendingPrimary" class="text-lg sm:text-xl font-bold text-amber-600 mt-0.5 font-mono">€0.00</div>
+                <div id="budgetPendingPrimary" class="text-lg sm:text-xl font-bold text-amber-600 mt-0.5 font-mono whitespace-nowrap">€0.00</div>
               </div>
               <div id="budgetPendingEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">Total w/ paid: €0.00</div>
             </div>
           </div>
 
           <!-- Box 2: Bills & Tax + Budget Spending (Shared Box) -->
-          <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-1 sm:grid-cols-[0.90fr_1.10fr]">
+          <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-1 sm:grid-cols-[0.82fr_1.18fr]">
             <!-- 3. Fixed Bills & Tax Reserve -->
-            <div class="px-3 py-3 min-w-0 flex flex-col justify-between border-b sm:border-b-0 sm:border-r border-slate-200/80">
+            <div class="px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between border-b sm:border-b-0 sm:border-r border-slate-200/80">
               <div>
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Bills & Tax Reserve">Bills &amp; Tax</span>
                   <span id="budgetTaxRateTag" class="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-medium shrink-0">20% Tax</span>
                 </div>
-                <div id="budgetFixedPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+                <div id="budgetFixedPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono whitespace-nowrap">€0.00</div>
               </div>
               <div id="budgetFixedEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">Bills + Tax buffer</div>
             </div>
 
             <!-- 4. Budget Spending (Everyday Spend vs Limit) -->
-            <div id="budgetCategoryBox" class="hover:bg-slate-100/60 rounded-b-xl sm:rounded-bl-none sm:rounded-r-xl px-3 py-3 min-w-0 flex flex-col justify-between cursor-pointer transition-colors" title="Click to view category budgets breakdown">
+            <div id="budgetCategoryBox" class="hover:bg-slate-100/60 rounded-b-xl sm:rounded-bl-none sm:rounded-r-xl px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between cursor-pointer transition-colors" title="Click to view category budgets breakdown">
               <div>
                 <div class="flex items-center justify-between gap-1">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Budget Spending">Budget Spending</span>
@@ -1099,25 +1099,25 @@
           <!-- Box 3: Safe to Spend (Actual) & After Budgets (Planned) (Shared Box) -->
           <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-2">
             <!-- 5. Safe to Spend (Actual cash left after real spending so far) -->
-            <div class="px-3 py-3 min-w-0 flex flex-col justify-between border-r border-slate-200/80">
+            <div class="px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between border-r border-slate-200/80">
               <div>
-                <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center justify-between gap-1.5">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Actual cash left after Bills, Tax, and what you have spent so far">Safe to Spend</span>
                   <span id="budgetLeftTag" class="text-[10px] text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded font-medium shrink-0">Actual</span>
                 </div>
-                <div id="budgetLeftPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+                <div id="budgetLeftPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono whitespace-nowrap">€0.00</div>
               </div>
               <div id="budgetLeftEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">—</div>
             </div>
 
             <!-- 6. After Budgets (Planned balance including remaining category budget limits) -->
-            <div class="px-3 py-3 min-w-0 flex flex-col justify-between">
+            <div class="px-2.5 xl:px-3 py-3 min-w-0 flex flex-col justify-between">
               <div>
-                <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center justify-between gap-1.5">
                   <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Balance left after reserving remaining planned category budgets">After Budgets</span>
                   <span id="budgetAfterBudgetsTag" class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">In Hand</span>
                 </div>
-                <div id="budgetAfterBudgetsPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+                <div id="budgetAfterBudgetsPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono whitespace-nowrap">€0.00</div>
               </div>
               <div id="budgetAfterBudgetsEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">—</div>
             </div>

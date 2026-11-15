@@ -16652,7 +16652,7 @@ function initSortableWidgets() {
     const leftEl = document.getElementById('budgetLeftPrimary');
     if (leftEl) {
       leftEl.textContent = formatMoney(actualSafeToSpend, cur);
-      leftEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono ${actualSafeToSpend < 0 ? 'text-rose-600' : 'text-slate-900'}`;
+      leftEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono whitespace-nowrap ${actualSafeToSpend < 0 ? 'text-rose-600' : 'text-slate-900'}`;
     }
     const leftTag = document.getElementById('budgetLeftTag');
     if (leftTag) {
@@ -16674,7 +16674,7 @@ function initSortableWidgets() {
     const afterEl = document.getElementById('budgetAfterBudgetsPrimary');
     if (afterEl) {
       afterEl.textContent = formatMoney(afterBudgetsLeft, cur);
-      afterEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono ${afterBudgetsLeft < 0 ? 'text-rose-600' : 'text-slate-900'}`;
+      afterEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono whitespace-nowrap ${afterBudgetsLeft < 0 ? 'text-rose-600' : 'text-slate-900'}`;
     }
     const afterTag = document.getElementById('budgetAfterBudgetsTag');
     if (afterTag) {
