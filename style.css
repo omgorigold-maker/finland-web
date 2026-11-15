@@ -657,15 +657,17 @@ textarea.note-body-box-input,
   }
 }
 
-/* Budget metric tiles: grey subtitles always on one line, tighter tracking, same height everywhere */
+/* Budget metric tiles: crisp proportional sans subtitles, tighter tracking, same height everywhere */
 #budgetIncomeEquiv,
 #budgetPendingEquiv,
 #budgetFixedEquiv,
 #budgetCategoryEquiv,
 #budgetLeftEquiv,
 #budgetAfterBudgetsEquiv {
-  font-size: 10px !important;
-  letter-spacing: -0.02em !important;
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px !important;
+  letter-spacing: -0.01em !important;
   line-height: 14px !important;
   height: 14px;
   margin-top: 4px !important;

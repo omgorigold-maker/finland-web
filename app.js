@@ -16480,16 +16480,16 @@ function initSortableWidgets() {
   // Shrink Budget tile numbers and grey descriptions only when needed so long values never overflow
   function fitBudgetTileText() {
     const equivIds = ['budgetIncomeEquiv', 'budgetPendingEquiv', 'budgetFixedEquiv', 'budgetCategoryEquiv', 'budgetLeftEquiv', 'budgetAfterBudgetsEquiv'];
-    const equivEls = equivIds.map(id => document.getElementById(id)).filter(el => el && el.offsetParent !== null);
-    if (equivEls.length) {
-      let size = 10;
-      const applyEquiv = s => equivEls.forEach(el => el.style.setProperty('font-size', s + 'px', 'important'));
-      applyEquiv(size);
-      while (size > 7.5 && equivEls.some(el => el.scrollWidth > el.clientWidth + 0.5)) {
+    equivIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.offsetParent === null) return;
+      let size = 10.5;
+      el.style.setProperty('font-size', size + 'px', 'important');
+      while (size > 9 && el.scrollWidth > el.clientWidth + 0.5) {
         size = Math.round((size - 0.25) * 100) / 100;
-        applyEquiv(size);
+        el.style.setProperty('font-size', size + 'px', 'important');
       }
-    }
+    });
 
     const basePrimary = (typeof window !== 'undefined' && window.innerWidth >= 1024)
       ? Math.min(20, Math.max(15, Math.round(window.innerWidth * 0.014 * 10) / 10))
@@ -16693,8 +16693,8 @@ function initSortableWidgets() {
             ? `${formatMoney(Math.abs(diff), cur)} over budget`
             : `${formatMoney(diff, cur)} remaining`;
           boxEquiv.className = diff < 0
-            ? 'text-[10px] text-rose-600 font-mono mt-1 whitespace-normal leading-tight font-semibold'
-            : 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+            ? 'text-[10.5px] text-rose-600 font-sans tabular-nums mt-1 whitespace-normal leading-tight font-semibold'
+            : 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
         }
       } else {
         boxPrimary.textContent = formatMoney(totalAllEverydaySpent, cur);
@@ -16705,7 +16705,7 @@ function initSortableWidgets() {
         }
         if (boxEquiv) {
           boxEquiv.textContent = `${catSummary.budgetedCategoriesCount} categories tracked`;
-          boxEquiv.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+          boxEquiv.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
         }
       }
     }
@@ -16730,7 +16730,7 @@ function initSortableWidgets() {
       } else {
         leftEqEl.textContent = eq(actualSafeToSpend);
       }
-      leftEqEl.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+      leftEqEl.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
     }
 
     const afterEl = document.getElementById('budgetAfterBudgetsPrimary');
@@ -16761,7 +16761,7 @@ function initSortableWidgets() {
       } else {
         afterEqEl.textContent = eq(afterBudgetsLeft);
       }
-      afterEqEl.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+      afterEqEl.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
     }
 
     // Fit grey descriptions after all renderers (incl. renderCategoryBudgetsList) have written text
@@ -17430,10 +17430,10 @@ function initSortableWidgets() {
           if (boxEquiv) {
             if (diff < 0) {
               boxEquiv.textContent = `${formatMoney(Math.abs(diff), cur)} over budget`;
-              boxEquiv.className = 'text-[10px] text-rose-600 font-mono mt-1 whitespace-normal leading-tight font-semibold';
+              boxEquiv.className = 'text-[10.5px] text-rose-600 font-sans tabular-nums mt-1 whitespace-normal leading-tight font-semibold';
             } else {
               boxEquiv.textContent = `${formatMoney(diff, cur)} remaining`;
-              boxEquiv.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+              boxEquiv.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
             }
           }
         }
@@ -17474,7 +17474,7 @@ function initSortableWidgets() {
           }
           if (boxEquiv) {
             boxEquiv.textContent = `${configuredCategories.length} categories tracked`;
-            boxEquiv.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+            boxEquiv.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
           }
         }
       }
