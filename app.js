@@ -16607,14 +16607,14 @@ function initSortableWidgets() {
               <div class="flex items-baseline justify-between gap-2">
                 <div class="flex items-baseline shrink-0 whitespace-nowrap">
                   ${isPartial
-                    ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="text-slate-300 font-normal text-lg mx-1">/</span><span class="font-mono text-lg font-bold text-slate-400">${formatMoney(totalAmt, projCur)}</span>`
+                    ? `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(paidAmt, projCur)}</span><span class="font-mono text-slate-300 font-normal text-lg mx-1.5">/</span><span class="font-mono text-lg font-bold text-slate-400">${formatMoney(totalAmt, projCur)}</span>`
                     : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
                   }
                 </div>
                 ${projCur !== cur
                   ? `<span class="text-xs font-mono whitespace-nowrap shrink-0 text-right" title="Converted to ${cur} at current exchange rate">${isPartial
-                      ? `<span class="text-slate-300 mr-1">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)}</span><span class="text-slate-300 font-normal mx-1">/</span><span class="font-bold text-slate-400">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
-                      : `<span class="text-slate-300 mr-1">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
+                      ? `<span class="text-slate-300 mr-1.5">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)}</span><span class="font-mono text-slate-300 font-normal mx-1.5">/</span><span class="font-bold text-slate-400">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
+                      : `<span class="text-slate-300 mr-1.5">≈</span><span class="font-bold text-slate-900">${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
                     }</span>`
                   : (equivHtml ? `<span class="text-xs font-mono text-slate-400 whitespace-nowrap shrink-0 text-right">${equivHtml}</span>` : '')
                 }
@@ -16653,8 +16653,8 @@ function initSortableWidgets() {
             </div>
 
             ${!isPaid
-              ? `<button class="log-project-payment-btn px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ml-auto" data-id="${p.id}" title="Record incoming payment from client">
-                  <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+              ? `<button class="log-project-payment-btn px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-2xs inline-flex items-center justify-center gap-1 leading-tight transition-all cursor-pointer whitespace-nowrap shrink-0 ml-auto" data-id="${p.id}" title="Record incoming payment from client">
+                  <i data-lucide="arrow-down-left" class="w-3 h-3 shrink-0"></i>
                   <span>Log Payment</span>
                 </button>`
               : ''
