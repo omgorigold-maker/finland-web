@@ -3693,12 +3693,20 @@ ${escapeHtml(data || '')}
       const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
       monthsSet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     }
+    if (state.selectedMonth && /^\d{4}-\d{2}$/.test(state.selectedMonth)) {
+      monthsSet.add(state.selectedMonth);
+    }
     return Array.from(monthsSet).sort().reverse();
   }
 
   function setSelectedMonthPeriod(val) {
     state.selectedMonth = val;
     state.budgetMonth = val;
+    try {
+      if (val && (val === 'ALL' || /^\d{4}-\d{2}$/.test(val))) {
+        localStorage.setItem('ft_selected_month', val);
+      }
+    } catch (e) {}
     const select = document.getElementById('monthFilter');
     if (select) {
       select.value = val;
@@ -48312,6 +48320,20 @@ ${sectionsText}
 
     safeInitStep('loadNavConfig', () => loadNavConfig());
     safeInitStep('initProjectFollowupEvents', () => initProjectFollowupEvents());
+    safeInitStep('restoreSelectedMonth', () => {
+      const isDemo = typeof window !== 'undefined' && (
+        window.__FINLAND_DEMO_MODE__ ||
+        (window.location && window.location.pathname && window.location.pathname.indexOf('finland-showcase') !== -1)
+      );
+      if (isDemo) return;
+      try {
+        const savedMonth = localStorage.getItem('ft_selected_month');
+        if (savedMonth && (savedMonth === 'ALL' || /^\d{4}-\d{2}$/.test(savedMonth))) {
+          state.selectedMonth = savedMonth;
+          state.budgetMonth = savedMonth;
+        }
+      } catch (e) {}
+    });
 
     // Check default startup currency from user preferences or saved currency
     safeInitStep('initCurrency', () => {
@@ -48529,6 +48551,7 @@ ${sectionsText}
   window._saveFreelanceProjectsOrder = saveFreelanceProjectsOrder;
   window._loadCalendarPlanData = loadCalendarPlanData;
   window._saveCalendarPlanData = saveCalendarPlanData;
+  window._setSelectedMonthPeriod = setSelectedMonthPeriod;
   window._ensureSavedCustomColorsInPalettes = ensureSavedCustomColorsInPalettes;
 
   if (document.readyState === 'loading') {
