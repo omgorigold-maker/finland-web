@@ -1232,11 +1232,17 @@ button {
 }
 
 .nav-btn svg {
-  width: 19px;
+  display: block;
+  width: auto;
   height: 19px;
+  flex-shrink: 0;
   stroke: var(--tab-accent, var(--ink));
   stroke-width: 1.85;
   transition: stroke-width 0.14s ease, transform 0.14s ease;
+}
+
+.nav-btn svg * {
+  vector-effect: non-scaling-stroke;
 }
 
 .nav-btn.active {
@@ -1266,7 +1272,7 @@ button {
 }
 
 .bottom-nav.nav-icons-only .nav-btn svg {
-  width: 21px;
+  width: auto;
   height: 21px;
 }
 
