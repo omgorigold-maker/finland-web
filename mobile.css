@@ -605,12 +605,12 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 2.5px;
+  bottom: 5.5px;
   height: 6.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 2.5px;
   line-height: 0;
   pointer-events: none;
   z-index: 2;
@@ -628,12 +628,12 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  top: 3px;
-  height: 4.5px;
+  top: 5.5px;
+  height: 6.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 2.5px;
   line-height: 0;
   pointer-events: none;
   z-index: 2;
@@ -641,15 +641,15 @@ button {
 
 .cal-ring-left {
   position: absolute;
-  left: 3px;
+  left: 5.5px;
   top: 0;
   bottom: 0;
-  width: 4.5px;
+  width: 6.5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 2.5px;
   line-height: 0;
   pointer-events: none;
   z-index: 2;
@@ -657,15 +657,15 @@ button {
 
 .cal-ring-right {
   position: absolute;
-  right: 3px;
+  right: 5.5px;
   top: 0;
   bottom: 0;
-  width: 4.5px;
+  width: 6.5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 2.5px;
   line-height: 0;
   pointer-events: none;
   z-index: 2;
