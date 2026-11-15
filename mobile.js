@@ -965,6 +965,8 @@
         const done = isProjectDone(p);
         const steps = Array.isArray(p.steps) ? p.steps : [];
         const doneSteps = steps.filter(isStepDone).length;
+        const nextStep = !done ? steps.find(s => s && !isStepDone(s)) : null;
+        const nextStepTitle = nextStep ? (nextStep.title || nextStep.text || '').trim() : '';
         const due = p.dueDate || p.expectedDate || '';
         const fee = p.amount !== undefined ? p.amount : p.fee;
 
@@ -978,6 +980,7 @@
             el('span', { className: `badge ${done ? 'green' : 'blue'}`, textContent: done ? 'Done' : (p.status || 'Active') })
           ]),
           p.client ? el('p', { className: 'card-sub', textContent: p.client }) : null,
+          nextStepTitle ? el('p', { className: 'card-next-step', textContent: `Next: ${nextStepTitle}` }) : null,
           el('div', { className: 'card-meta' }, [
             due ? el('span', { className: 'mono', textContent: `Due ${due}` }) : null,
             steps.length ? el('span', { textContent: `${doneSteps}/${steps.length} steps` }) : null,
@@ -995,6 +998,8 @@
         const done = isLeadDone(l);
         const steps = Array.isArray(l.steps) ? l.steps : [];
         const doneSteps = steps.filter(isStepDone).length;
+        const nextStep = !done ? steps.find(s => s && !isStepDone(s)) : null;
+        const nextStepTitle = nextStep ? (nextStep.title || nextStep.text || '').trim() : '';
         const due = l.targetDate || l.followUpDate || l.dueDate || '';
 
         nodes.push(el('button', {
@@ -1007,6 +1012,7 @@
             el('span', { className: `badge ${done ? 'green' : 'amber'}`, textContent: done ? (l.status === 'won' ? 'Won' : 'Done') : (l.status || 'Lead') })
           ]),
           l.client ? el('p', { className: 'card-sub', textContent: l.client }) : null,
+          nextStepTitle ? el('p', { className: 'card-next-step', textContent: `Next: ${nextStepTitle}` }) : null,
           el('div', { className: 'card-meta' }, [
             due ? el('span', { className: 'mono', textContent: `Follow-up ${due}` }) : null,
             steps.length ? el('span', { textContent: `${doneSteps}/${steps.length} steps` }) : null
@@ -2034,6 +2040,10 @@
             : el('span', { className: 'note-media-badge', textContent: ext }),
           el('span', { className: 'note-media-name', textContent: att.name || 'Attachment' })
         ]),
+        el('span', {
+          className: `note-media-status${att._uploading ? ' is-uploading' : ''}`,
+          textContent: att._uploading ? 'Uploading...' : 'Attached'
+        }),
         el('button', {
           type: 'button',
           className: 'note-media-remove',
@@ -2054,21 +2064,25 @@
     if (!files.length) return;
     if (!Array.isArray(state.editingNoteAttachments)) state.editingNoteAttachments = [];
     for (const file of files) {
+      const isImg = String(file.type || '').startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|heic)$/i.test(file.name || '');
+      const isPdf = String(file.type || '').includes('pdf') || (file.name || '').toLowerCase().endsWith('.pdf');
+      const attId = uid('att');
+      const meta = {
+        id: attId,
+        name: file.name || (isImg ? 'photo.jpg' : 'file'),
+        type: isImg ? 'image' : (isPdf ? 'pdf' : 'file'),
+        mimeType: file.type || (isImg ? 'image/jpeg' : 'application/octet-stream'),
+        size: file.size || 0,
+        thumbData: '',
+        createdAt: new Date().toISOString(),
+        _uploading: true
+      };
+      state.editingNoteAttachments.push(meta);
+      renderNoteMediaPreview();
       try {
         const dataUrl = await readFileAsDataURL(file);
-        const isImg = String(file.type || '').startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|heic)$/i.test(file.name || '');
-        const isPdf = String(file.type || '').includes('pdf') || (file.name || '').toLowerCase().endsWith('.pdf');
-        const thumbData = isImg ? await createImageThumbDataUrl(dataUrl, 240) : '';
-        const attId = uid('att');
-        const meta = {
-          id: attId,
-          name: file.name || (isImg ? 'photo.jpg' : 'file'),
-          type: isImg ? 'image' : (isPdf ? 'pdf' : 'file'),
-          mimeType: file.type || (isImg ? 'image/jpeg' : 'application/octet-stream'),
-          size: file.size || 0,
-          thumbData,
-          createdAt: new Date().toISOString()
-        };
+        meta.thumbData = isImg ? await createImageThumbDataUrl(dataUrl, 240) : '';
+        renderNoteMediaPreview();
         let uploaded = false;
         if (hasSyncConfig()) {
           try {
@@ -2092,12 +2106,16 @@
         if (!uploaded) {
           meta.data = dataUrl;
         }
-        state.editingNoteAttachments.push(meta);
+        meta._uploading = false;
+        renderNoteMediaPreview();
+        showToast(isImg ? 'Photo attached' : 'File attached');
       } catch {
+        const idx = state.editingNoteAttachments.indexOf(meta);
+        if (idx >= 0) state.editingNoteAttachments.splice(idx, 1);
+        renderNoteMediaPreview();
         showToast(`Could not attach ${file.name || 'file'}`);
       }
     }
-    renderNoteMediaPreview();
   }
 
   function openNoteForm(existing) {
@@ -2590,7 +2608,13 @@
         isDone: isDone,
         completed: isDone,
         done: isDone,
-        attachments: Array.isArray(state.editingNoteAttachments) ? state.editingNoteAttachments.slice() : [],
+        attachments: Array.isArray(state.editingNoteAttachments)
+          ? state.editingNoteAttachments.map(a => {
+              const copy = Object.assign({}, a);
+              delete copy._uploading;
+              return copy;
+            })
+          : [],
         links: Array.isArray(state.editingNoteLinks) ? state.editingNoteLinks.slice() : [],
         updatedAt: new Date().toISOString()
       };
@@ -2603,25 +2627,23 @@
       showToast('Note saved');
     });
 
-    const addPhotoBtn = document.getElementById('noteAddPhotoBtn');
-    const addFileBtn = document.getElementById('noteAddFileBtn');
     const addLinkBtn = document.getElementById('noteAddLinkBtn');
     const photoInput = document.getElementById('notePhotoInput');
     const fileInput = document.getElementById('noteFileInput');
     const linkComposer = document.getElementById('noteLinkComposer');
     const linkSaveBtn = document.getElementById('noteLinkSaveBtn');
-    if (addPhotoBtn && photoInput) {
-      addPhotoBtn.addEventListener('click', () => photoInput.click());
+    if (photoInput) {
       photoInput.addEventListener('change', async (e) => {
-        await handleNoteFilesSelected(e.target.files);
+        const files = Array.from(e.target.files || []);
         e.target.value = '';
+        await handleNoteFilesSelected(files);
       });
     }
-    if (addFileBtn && fileInput) {
-      addFileBtn.addEventListener('click', () => fileInput.click());
+    if (fileInput) {
       fileInput.addEventListener('change', async (e) => {
-        await handleNoteFilesSelected(e.target.files);
+        const files = Array.from(e.target.files || []);
         e.target.value = '';
+        await handleNoteFilesSelected(files);
       });
     }
     if (addLinkBtn && linkComposer) {
