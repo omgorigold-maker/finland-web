@@ -653,7 +653,7 @@ textarea.note-body-box-input,
 @media (min-width: 1024px) {
   #budgetMetricsGrid {
     display: grid !important;
-    grid-template-columns: 1.48fr 1.62fr 1.90fr !important;
+    grid-template-columns: 1.62fr 1.76fr 1.62fr !important;
   }
 }
 
