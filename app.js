@@ -16514,6 +16514,28 @@ function initSortableWidgets() {
       document.getElementById('budgetCategoryValueRow'),
       [document.getElementById('budgetCategoryPrimary'), document.getElementById('budgetCategoryLimit')]
     );
+
+    const flowFooterRow = document.getElementById('budgetFlowFooterRow');
+    const flowTextEl = document.getElementById('budgetFlowText');
+    const runwayTextEl = document.getElementById('budgetRunwayText');
+    if (flowFooterRow && flowTextEl && runwayTextEl && flowFooterRow.offsetParent !== null && (typeof window === 'undefined' || window.innerWidth >= 640)) {
+      let fSize = 11;
+      const applyFlow = (s, tracking) => {
+        [flowTextEl, runwayTextEl].forEach(el => {
+          el.style.setProperty('font-size', s + 'px', 'important');
+          if (tracking) el.style.setProperty('letter-spacing', tracking, 'important');
+          else el.style.removeProperty('letter-spacing');
+        });
+      };
+      applyFlow(fSize, '');
+      if (flowFooterRow.scrollWidth > flowFooterRow.clientWidth + 0.5) {
+        applyFlow(fSize, '-0.02em');
+      }
+      while (fSize > 8 && flowFooterRow.scrollWidth > flowFooterRow.clientWidth + 0.5) {
+        fSize = Math.round((fSize - 0.25) * 100) / 100;
+        applyFlow(fSize, '-0.02em');
+      }
+    }
   }
 
   // Render main Freelancer Budget & Cash Flow view
