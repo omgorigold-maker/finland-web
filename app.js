@@ -1844,7 +1844,9 @@
         currency: expenseItem.currency,
         billingCycle: expenseItem.billingCycle || 'monthly',
         billingDay: expenseDay || new Date().getDate(),
-        lastBilledDate: expenseItem.date || new Date().toISOString().split('T')[0],
+        startDate: expenseItem.date || getCurrentLocalDateStr(),
+        createdAt: new Date().toISOString(),
+        lastBilledDate: expenseItem.date || getCurrentLocalDateStr(),
         paymentMethod: expenseItem.paymentMethod || 'Credit Card',
         cardLast4: expenseItem.cardLast4 || '',
         notes: expenseItem.notes || '',
@@ -3577,6 +3579,37 @@ ${escapeHtml(data || '')}
     return true;
   }
 
+  function collectProjectActiveDates(p) {
+    const dates = [];
+    if (!p) return dates;
+    if (p.startDate) dates.push(String(p.startDate).substring(0, 10));
+    if (p.createdAt) dates.push(String(p.createdAt).substring(0, 10));
+    if (p.dueDate) dates.push(String(p.dueDate).substring(0, 10));
+    if (p.completedAt) dates.push(String(p.completedAt).substring(0, 10));
+    const payDue = getProjectPaymentDueDate(p);
+    if (payDue) dates.push(String(payDue).substring(0, 10));
+    const total = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
+    const paid = parseFloat(p.paidAmount) || 0;
+    if (p.status === 'paid' || paid > 0) {
+      const paidDate = getProjectPaidDate(p);
+      if (paidDate) dates.push(String(paidDate).substring(0, 10));
+    }
+    if (Array.isArray(p.payments)) {
+      p.payments.forEach(pay => {
+        if (pay && pay.date) dates.push(String(pay.date).substring(0, 10));
+      });
+    }
+    if (Array.isArray(p.steps)) {
+      p.steps.forEach(s => {
+        if (!s) return;
+        if (s.completedDate) dates.push(String(s.completedDate).substring(0, 10));
+        if (s.dueDate) dates.push(String(s.dueDate).substring(0, 10));
+        if (s.date) dates.push(String(s.date).substring(0, 10));
+      });
+    }
+    return dates.filter(d => /^\d{4}-\d{2}/.test(d));
+  }
+
   function projectMatchesMonth(p, monthKey) {
     if (!p) return false;
     if (!monthKey || monthKey === 'ALL' || monthKey === 'all') {
@@ -3588,27 +3621,20 @@ ${escapeHtml(data || '')}
     const isDone = (typeof isProjectDone === 'function' && isProjectDone(p)) || isPaid;
     const curMonthKey = monthKeyFromDate(new Date());
 
-    if (isDone) {
-      if (p.completedAt && p.completedAt.startsWith(monthKey)) return true;
-      const paidDate = getProjectPaidDate(p);
-      if (paidDate && paidDate.startsWith(monthKey)) return true;
-      if (Array.isArray(p.payments) && p.payments.some(pay => pay.date && pay.date.startsWith(monthKey))) return true;
-      if (!p.completedAt && !paidDate && p.dueDate && p.dueDate.startsWith(monthKey)) return true;
-      if (!p.completedAt && !paidDate && !p.dueDate && p.createdAt && p.createdAt.startsWith(monthKey)) return true;
-      return false;
-    } else {
-      const payDue = getProjectPaymentDueDate(p);
-      if (payDue && payDue.startsWith(monthKey)) return true;
-      if (p.dueDate && p.dueDate.startsWith(monthKey)) return true;
-      if (Array.isArray(p.payments) && p.payments.some(pay => pay.date && pay.date.startsWith(monthKey))) return true;
-      if (Array.isArray(p.steps) && p.steps.some(s => (s.completedDate && s.completedDate.startsWith(monthKey)) || (s.date && s.date.startsWith(monthKey)))) return true;
-      if (p.createdAt && p.createdAt.startsWith(monthKey)) return true;
-      const startMonth = (p.startDate || p.createdAt || '').substring(0, 7);
-      const endMonth = (payDue || p.dueDate || '').substring(0, 7);
-      if (startMonth && endMonth && startMonth <= monthKey && monthKey <= endMonth) return true;
-      if (!p.dueDate && !p.createdAt && monthKey === curMonthKey) return true;
+    const activeMonths = collectProjectActiveDates(p).map(d => d.substring(0, 7)).sort();
+    if (activeMonths.includes(monthKey)) return true;
+
+    if (activeMonths.length > 0) {
+      const startMonth = activeMonths[0];
+      const latestRecordedMonth = activeMonths[activeMonths.length - 1];
+      const endMonth = isDone
+        ? latestRecordedMonth
+        : (latestRecordedMonth > curMonthKey ? latestRecordedMonth : curMonthKey);
+      if (startMonth <= monthKey && monthKey <= endMonth) return true;
       return false;
     }
+
+    return !isDone && monthKey === curMonthKey;
   }
 
   function projectPaymentMatchesMonth(p, monthKey) {
@@ -3620,7 +3646,12 @@ ${escapeHtml(data || '')}
     const paid = parseFloat(p.paidAmount) || 0;
     const isPaid = p.status === 'paid' || (paid >= total && total > 0);
     if (isPaid) {
-      return projectMatchesMonth(p, monthKey);
+      if (Array.isArray(p.payments) && p.payments.some(pay => pay && pay.date && pay.date.startsWith(monthKey))) return true;
+      const paidDate = getProjectPaidDate(p);
+      if (paidDate) return paidDate.startsWith(monthKey);
+      if (p.completedAt && p.completedAt.startsWith(monthKey)) return true;
+      if (p.dueDate && p.dueDate.startsWith(monthKey)) return true;
+      return !!(p.createdAt && p.createdAt.startsWith(monthKey));
     }
     const explicitPayDue = p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) || '';
     if (explicitPayDue) {
@@ -3948,7 +3979,7 @@ ${escapeHtml(data || '')}
     if (!inc) return false;
     if (inc.status === 'expected' || inc.status === 'pending') return true;
     if (inc.status === 'received') return false;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getCurrentLocalDateStr();
     return !!(inc.date && inc.date > todayStr);
   }
 
@@ -4997,10 +5028,48 @@ ${escapeHtml(data || '')}
     showToast(nextStatus ? 'Marked as Paid ✓' : 'Marked Unpaid', `"${sub.name}" marked ${nextStatus ? 'paid' : 'unpaid'} for ${targetMonth}.`, 'success');
   }
 
+  function getSubscriptionStartMonth(sub) {
+    if (!sub) return '';
+    const months = [];
+    const pushYm = val => {
+      const m = String(val || '').trim().match(/^(\d{4}-\d{2})/);
+      if (m) months.push(m[1]);
+    };
+    pushYm(sub.startDate);
+    pushYm(sub.createdAt);
+    pushYm(sub.lastBilledDate);
+    pushYm(sub.nextBillingDate);
+    if (Array.isArray(sub.history)) {
+      sub.history.forEach(h => { if (h) pushYm(h.date); });
+    }
+    if (Array.isArray(sub.taxReceipts)) {
+      sub.taxReceipts.forEach(r => { if (r) pushYm(r.monthKey || getSubReceiptMonthKey(r)); });
+    }
+    if (sub.manualPaidMonths && typeof sub.manualPaidMonths === 'object') {
+      Object.keys(sub.manualPaidMonths).forEach(ym => {
+        if (sub.manualPaidMonths[ym] === true) pushYm(ym);
+      });
+    }
+    (state.expenses || []).forEach(e => {
+      if (!e || !e.date) return;
+      if (e.subscriptionId === sub.id || e.generatedFromSubId === sub.id) {
+        pushYm(e.date);
+      }
+    });
+    if (months.length === 0) return '';
+    months.sort();
+    return months[0];
+  }
+
   function isSubscriptionCountedInMonth(sub, yearMonthStr) {
     if (!sub) return false;
-    if (!sub.isFrozen) return true;
-    return isSubscriptionPaidInMonth(sub, yearMonthStr);
+    if (isSubscriptionPaidInMonth(sub, yearMonthStr)) return true;
+    if (sub.isFrozen) return false;
+    if (yearMonthStr && /^\d{4}-\d{2}$/.test(yearMonthStr)) {
+      const startMonth = getSubscriptionStartMonth(sub);
+      if (startMonth && yearMonthStr < startMonth) return false;
+    }
+    return true;
   }
 
   function toggleFreezeSubscription(subId) {
@@ -7535,7 +7604,7 @@ ${escapeHtml(data || '')}
     document.getElementById('editSubId').value = '';
     document.getElementById('subFormCurrency').value = state.displayCurrency || 'EUR';
     document.getElementById('subFormBillingDay').value = new Date().getDate();
-    document.getElementById('subFormLastBilledDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('subFormLastBilledDate').value = getCurrentLocalDateStr();
     document.getElementById('subFormPaymentMethod').value = 'Credit Card';
 
     const modalFreezeBtn = document.getElementById('modalFreezeSubBtn');
@@ -12870,6 +12939,7 @@ Status: Paid in Full`;
             state.subscriptions[idx].nextBillingDate = nextInfo.nextBillingDate;
           }
         } else {
+          const localToday = getCurrentLocalDateStr();
           const newSub = {
             id: 'sub_' + Date.now(),
             name,
@@ -12878,14 +12948,16 @@ Status: Paid in Full`;
             recurringType,
             billingCycle,
             billingDay,
-            lastBilledDate: lastBilledDate || new Date().toISOString().split('T')[0],
+            startDate: lastBilledDate || localToday,
+            createdAt: new Date().toISOString(),
+            lastBilledDate: lastBilledDate || localToday,
             paymentMethod,
             cardLast4,
             category,
             notes,
             taxReceipts: [],
             history: [{
-              date: lastBilledDate || new Date().toISOString().split('T')[0],
+              date: lastBilledDate || localToday,
               amount,
               currency,
               changePct: 0
@@ -16705,9 +16777,16 @@ function initSortableWidgets() {
 
     const allProjects = state.budget.projects || [];
     const filter = state.freelanceFilter || 'all';
+    const isAllTime = (!monthKey || monthKey === 'ALL' || monthKey === 'all');
 
-    // 1. Filter by respective payment month or All Time
-    const inMonthProjects = allProjects.filter(p => projectPaymentMatchesMonth(p, monthKey));
+    // 1. Include projects whose payment belongs to this month OR whose work started/due-dated here
+    const inMonthProjects = allProjects.filter(p => projectPaymentMatchesMonth(p, monthKey) || projectMatchesMonth(p, monthKey));
+
+    const formatShortYm = (ym) => {
+      if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return ym || '';
+      const [yy, mm] = ym.split('-').map(Number);
+      return new Date(yy, mm - 1, 1).toLocaleDateString('en-US', { month: 'short' });
+    };
 
     // 2. Filter by status (all, pending, paid)
     const filtered = inMonthProjects.filter(p => {
@@ -16759,7 +16838,15 @@ function initSortableWidgets() {
         ? ''
         : `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`;
 
-      const statusBadge = isPaid
+      const isPaymentInSelectedMonth = isAllTime || projectPaymentMatchesMonth(p, monthKey);
+      const effectivePayDue = getProjectPaymentDueDate(p);
+      const targetPayMonth = isPaid
+        ? (paidDate ? paidDate.substring(0, 7) : '')
+        : (effectivePayDue ? effectivePayDue.substring(0, 7) : '');
+      const isRolledOutFromWorkMonth = !isPaymentInSelectedMonth && !!targetPayMonth && targetPayMonth > monthKey;
+      const targetShort = isRolledOutFromWorkMonth ? formatShortYm(targetPayMonth) : '';
+
+      let statusBadge = isPaid
         ? '<span class="whitespace-nowrap shrink-0">Paid in Full</span>'
         : isPartial
         ? `<span class="whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
@@ -16767,15 +16854,41 @@ function initSortableWidgets() {
         ? '<span class="whitespace-nowrap shrink-0">Invoiced</span>'
         : '<span class="whitespace-nowrap shrink-0">In Progress</span>';
 
-      const dateFooter = isPaid
-        ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
+      if (isRolledOutFromWorkMonth) {
+        statusBadge = isPaid
+          ? `<span class="whitespace-nowrap shrink-0 text-emerald-700 font-semibold">Paid in ${targetShort}</span>`
+          : isPartial
+          ? `<span class="whitespace-nowrap shrink-0 text-amber-700 font-semibold">${percentPaid}% Paid · Rolled → ${targetShort}</span>`
+          : `<span class="whitespace-nowrap shrink-0 text-amber-700 font-semibold">Rolled → ${targetShort}</span>`;
+      }
+
+      let dateFooter = '';
+      if (isRolledOutFromWorkMonth) {
+        const workTag = (p.dueDate && p.dueDate.startsWith(monthKey))
+          ? `${isProjectWorkDone(p) ? 'Work Done' : 'Work Due'} ${escapeHtml(p.dueDate)}`
+          : `Started ${formatShortYm(monthKey)}`;
+        if (isPaid) {
+          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 font-medium whitespace-nowrap">
             <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
-            <span>Paid: ${escapeHtml(paidDate || p.dueDate || 'Settled')}</span>
-          </div>`
-        : `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-            <span>${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due: ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due: ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
+            <span>${workTag} • Paid ${escapeHtml(paidDate || targetShort)}</span>
           </div>`;
+        } else {
+          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
+            <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+            <span>${workTag} • Pay Due: ${escapeHtml(effectivePayDue)}</span>
+          </div>`;
+        }
+      } else {
+        dateFooter = isPaid
+          ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
+              <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+              <span>Paid: ${escapeHtml(paidDate || p.dueDate || 'Settled')}</span>
+            </div>`
+          : `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+              <span>${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due: ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due: ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
+            </div>`;
+      }
 
       const invLabel = p.invoiceNumber ? `<span class="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">#${escapeHtml(p.invoiceNumber)}</span>` : '';
       const recLabel = p.receiptNumber ? `<span class="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded text-[10px] font-mono">Rec #${escapeHtml(p.receiptNumber)}</span>` : '';
@@ -18235,13 +18348,24 @@ function initSortableWidgets() {
       if (!miscIncomeForm) return;
       miscIncomeForm.reset();
       byId('miscIncomeId').value = '';
-      byId('miscIncomeDate').value = new Date().toISOString().split('T')[0];
+      byId('miscIncomeDate').value = getCurrentLocalDateStr();
       byId('miscIncomeCurrency').value = state.displayCurrency || 'EUR';
       byId('miscIncomeType').value = 'Gift';
       byId('miscIncomeMethod').value = 'Cash';
+      if (byId('miscIncomeStatus')) byId('miscIncomeStatus').value = 'received';
       byId('miscIncomeModalTitle').textContent = 'Log Misc Income';
       if (deleteMiscIncomeBtn) deleteMiscIncomeBtn.classList.add('hidden');
     };
+
+    const miscIncomeDateEl = byId('miscIncomeDate');
+    const miscIncomeStatusEl = byId('miscIncomeStatus');
+    if (miscIncomeDateEl && miscIncomeStatusEl) {
+      miscIncomeDateEl.addEventListener('change', () => {
+        const val = miscIncomeDateEl.value;
+        if (!val) return;
+        miscIncomeStatusEl.value = val > getCurrentLocalDateStr() ? 'expected' : 'received';
+      });
+    }
 
     const showMiscIncomeModal = () => {
       if (modalMiscIncome) {
@@ -18272,7 +18396,8 @@ function initSortableWidgets() {
         const title = byId('miscIncomeTitle').value.trim();
         const amount = parseFloat(byId('miscIncomeAmount').value) || 0;
         const currency = byId('miscIncomeCurrency').value || 'EUR';
-        const date = byId('miscIncomeDate').value || new Date().toISOString().split('T')[0];
+        const todayStr = getCurrentLocalDateStr();
+        const date = byId('miscIncomeDate').value || todayStr;
         const type = byId('miscIncomeType').value || 'Gift';
         const method = byId('miscIncomeMethod').value || 'Cash';
         const notes = byId('miscIncomeNotes').value.trim();
@@ -18286,8 +18411,11 @@ function initSortableWidgets() {
         if (!Array.isArray(state.budget.incomes)) state.budget.incomes = [];
 
         const existingIdx = state.budget.incomes.findIndex(i => i.id === id);
-        const todayStr = new Date().toISOString().split('T')[0];
+        const statusInput = byId('miscIncomeStatus');
         const isFuture = date > todayStr;
+        const nextStatus = statusInput && (statusInput.value === 'expected' || statusInput.value === 'received')
+          ? statusInput.value
+          : (isFuture ? 'expected' : 'received');
         const incomeItem = {
           id,
           title,
@@ -18298,7 +18426,7 @@ function initSortableWidgets() {
           category: type,
           method,
           notes,
-          status: isFuture ? 'expected' : (existingIdx !== -1 && state.budget.incomes[existingIdx]?.status === 'expected' && date <= todayStr ? 'received' : (existingIdx !== -1 && state.budget.incomes[existingIdx]?.status ? state.budget.incomes[existingIdx].status : 'received'))
+          status: nextStatus
         };
 
         if (existingIdx !== -1) {
@@ -18339,14 +18467,14 @@ function initSortableWidgets() {
         const inc = (state.budget && Array.isArray(state.budget.incomes)) ? state.budget.incomes.find(i => i.id === id) : null;
         if (!inc) return;
 
-        // Mark Received
+        // Mark Received (preserve original income date unless missing)
         if (e.target.closest('.mark-misc-income-received-btn')) {
-          const todayStr = new Date().toISOString().split('T')[0];
+          const fallbackDate = getCurrentLocalDateStr();
           inc.status = 'received';
-          inc.date = todayStr;
+          if (!inc.date) inc.date = fallbackDate;
           saveBudget();
           renderBudgetView();
-          showToast('Payment Received 🎉', `"${inc.title}" marked as received today (${todayStr}).`, 'success');
+          showToast('Payment Received 🎉', `"${inc.title}" marked as received (${inc.date}).`, 'success');
           return;
         }
 
@@ -18361,6 +18489,7 @@ function initSortableWidgets() {
           byId('miscIncomeDate').value = inc.date || '';
           byId('miscIncomeMethod').value = inc.method || 'Cash';
           byId('miscIncomeNotes').value = inc.notes || '';
+          if (byId('miscIncomeStatus')) byId('miscIncomeStatus').value = isMiscIncomeExpected(inc) ? 'expected' : 'received';
           byId('miscIncomeModalTitle').textContent = `Edit "${inc.title}"`;
           if (deleteMiscIncomeBtn) deleteMiscIncomeBtn.classList.remove('hidden');
           showMiscIncomeModal();
@@ -37087,6 +37216,10 @@ ${sectionsText}
                 p.paidDate = step.completedDate;
               } else if (p.status === 'paid' && parseFloat(p.paidAmount) < total) {
                 p.status = 'invoiced';
+                const dated = Array.isArray(p.payments) ? p.payments.map(x => x.date).filter(Boolean).sort() : [];
+                p.paidDate = dated.length > 0 ? dated[dated.length - 1] : null;
+              } else if (p.status !== 'paid' && (!Array.isArray(p.payments) || p.payments.length === 0)) {
+                p.paidDate = null;
               }
             }
 
