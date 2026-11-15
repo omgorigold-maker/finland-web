@@ -23289,6 +23289,8 @@ function initSortableWidgets() {
     const activeProjects = [];
     const completedProjects = [];
     let totalProjectsMoney = 0;
+    let totalProjectsPaid = 0;
+    let totalProjectsLeft = 0;
     let totalCompletedMoney = 0;
     let dueSoonCount = 0;
     let overdueCount = 0;
@@ -23299,7 +23301,10 @@ function initSortableWidgets() {
     projects.forEach(p => {
       const fee = parseFloat(p.amount !== undefined ? p.amount : p.fee) || 0;
       const paid = parseFloat(p.paidAmount) || 0;
-      const feeConverted = convertCurrency(fee, p.currency || cur, cur);
+      const projCur = p.currency || cur;
+      const feeConverted = convertCurrency(fee, projCur, cur);
+      const paidConverted = convertCurrency(paid, projCur, cur);
+      const leftConverted = convertCurrency(Math.max(0, fee - paid), projCur, cur);
       const done = isProjectDone(p);
 
       if (done) {
@@ -23308,6 +23313,8 @@ function initSortableWidgets() {
       } else {
         activeProjects.push(p);
         totalProjectsMoney += feeConverted;
+        totalProjectsPaid += paidConverted;
+        totalProjectsLeft += leftConverted;
 
         if (!isProjectWorkDone(p) && p.dueDate) {
           const d = new Date(p.dueDate + 'T00:00:00');
@@ -23369,6 +23376,19 @@ function initSortableWidgets() {
     setTxt('followupSummaryLeadsMoney', formatMoney(totalLeadsMoney, cur));
     setTxt('followupSummaryProjectsCount', String(activeProjects.length));
     setTxt('followupSummaryProjectsMoney', formatMoney(totalProjectsMoney, cur));
+    const projectsLabelEl = document.getElementById('followupSummaryProjectsLabel');
+    const projectsBreakdownEl = document.getElementById('followupSummaryProjectsBreakdown');
+    if (projectsLabelEl && projectsBreakdownEl) {
+      if (activeProjects.length > 0) {
+        projectsLabelEl.textContent = 'active';
+        projectsBreakdownEl.textContent = `· ${formatMoney(totalProjectsPaid, cur)} paid · ${formatMoney(totalProjectsLeft, cur)} left`;
+        projectsBreakdownEl.classList.remove('hidden');
+      } else {
+        projectsLabelEl.textContent = 'active in progress';
+        projectsBreakdownEl.textContent = '';
+        projectsBreakdownEl.classList.add('hidden');
+      }
+    }
     setTxt('followupSummaryDueCount', String(dueSoonCount));
     setTxt('followupSummaryCompletedCount', String(completedProjects.length));
     setTxt('followupSummaryCompletedMoney', formatMoney(totalCompletedMoney, cur));
