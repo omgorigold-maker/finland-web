@@ -16611,7 +16611,7 @@ function initSortableWidgets() {
                     </span>
                   ` : ''}
                 </div>
-                ${statusBadge}
+                <span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>
               </div>
 
               <!-- Progress bar for payment -->
@@ -16621,7 +16621,7 @@ function initSortableWidgets() {
 
               <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 gap-2">
                 <span class="whitespace-nowrap shrink-0">${isPaid ? 'Fully settled' : (paidAmt > 0 ? `Paid ${formatMoney(paidAmt, projCur)} • Left ${formatMoney(remainingAmt, projCur)}` : `Left: ${formatMoney(remainingAmt, projCur)}`)}</span>
-                <span class="font-mono min-w-0 truncate text-right">${equivHtml}</span>
+                ${statusBadge}
               </div>
             </div>
           </div>
