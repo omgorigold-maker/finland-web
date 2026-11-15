@@ -245,7 +245,8 @@
           if (d > 0.04) {
             let h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
             h = Math.round(h * 60);
-            bgTint = `hsl(${h}, 98%, 95%)`;
+            const lum = (h >= 315 || h <= 25) ? 97 : 96;
+            bgTint = `hsl(${h}, 96%, ${lum}%)`;
           }
         }
         iconBox.style.backgroundColor = bgTint;
