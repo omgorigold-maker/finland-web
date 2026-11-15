@@ -5166,9 +5166,12 @@
         </button>
       </div>
 
-      <div id="adjustBudgetsScopeWrap" class="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2">
-        <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
-        <span id="adjustBudgetsScopeLabel" class="text-[11px] font-medium text-slate-600">When you save a changed limit, you'll choose whether to apply it to this month only or roll it into future months.</span>
+      <div id="adjustBudgetsScopeWrap" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 border border-slate-200/80 rounded-xl p-2">
+        <span id="adjustBudgetsScopeLabel" class="text-[11px] font-medium text-slate-600 pl-1">Apply limit changes to:</span>
+        <div class="inline-flex items-center bg-slate-200/70 p-0.5 rounded-lg text-[11px] self-start sm:self-auto">
+          <button type="button" class="budgets-limit-scope-btn px-2.5 py-1 rounded-md font-semibold bg-white text-slate-900 shadow-2xs cursor-pointer transition-all" data-scope="month">Only this month</button>
+          <button type="button" class="budgets-limit-scope-btn px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 cursor-pointer transition-all" data-scope="forward">This &amp; future months</button>
+        </div>
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -5216,9 +5219,12 @@
         <div>
           <label for="editCategoryLimitInput" class="block text-xs font-semibold text-slate-700 mb-1">Monthly Budget Limit (<span id="editCategoryCurrencyBadge">€</span>)</label>
           <input type="number" step="any" min="0" id="editCategoryLimitInput" placeholder="0 (No target limit)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          <div id="editCategoryScopeWrap" class="mt-2 flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5">
-            <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
-            <span id="editCategoryScopeLabel" class="text-[11px] font-medium text-slate-600">Saving a changed limit will ask whether to keep it for this month only or roll it forward.</span>
+          <div id="editCategoryScopeWrap" class="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-slate-50 border border-slate-200/80 rounded-xl p-1.5">
+            <span id="editCategoryScopeLabel" class="text-[11px] font-medium text-slate-600 pl-1.5">Apply to:</span>
+            <div class="inline-flex items-center bg-slate-200/70 p-0.5 rounded-lg text-[11px] self-start sm:self-auto">
+              <button type="button" class="cat-limit-scope-btn px-2.5 py-1 rounded-md font-semibold bg-white text-slate-900 shadow-2xs cursor-pointer transition-all" data-scope="month">Only this month</button>
+              <button type="button" class="cat-limit-scope-btn px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 cursor-pointer transition-all" data-scope="forward">This &amp; future months</button>
+            </div>
           </div>
         </div>
 
@@ -5596,39 +5602,6 @@
         </button>
         <button type="button" id="globalConfirmOkBtn" class="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs shadow-rose-600/20">
           Delete
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Budget Limit Scope Prompt Modal -->
-  <div id="budgetScopePromptModal" class="fixed inset-0 bg-slate-900/35 backdrop-blur-xs hidden items-center justify-center p-4 transition-all" style="z-index: 99999;">
-    <div class="modal-card bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 animate-scale-in my-auto">
-      <div class="flex items-start gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200/70 flex items-center justify-center shrink-0">
-          <i data-lucide="calendar-range" class="w-5 h-5"></i>
-        </div>
-        <div class="min-w-0 flex-1">
-          <h3 id="budgetScopePromptTitle" class="font-bold text-base text-slate-900 leading-snug">Apply Budget Limit Change?</h3>
-          <p id="budgetScopePromptMessage" class="text-xs text-slate-500 mt-1 leading-relaxed">Should this updated limit apply only to this month, or also roll into future months?</p>
-        </div>
-        <button type="button" id="budgetScopeCloseBtn" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-      <div class="space-y-2 pt-1">
-        <button type="button" id="budgetScopeOnlyMonthBtn" class="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-indigo-50/70 hover:border-indigo-300 active:scale-[0.99] transition-all cursor-pointer group">
-          <div id="budgetScopeOnlyMonthTitle" class="text-xs font-bold text-slate-900 group-hover:text-indigo-700">Only this month</div>
-          <div class="text-[11px] text-slate-500 mt-0.5">Change this month only. Future months keep the earlier standing limit.</div>
-        </button>
-        <button type="button" id="budgetScopeForwardBtn" class="w-full text-left px-4 py-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/70 hover:border-indigo-400 active:scale-[0.99] transition-all cursor-pointer group">
-          <div id="budgetScopeForwardTitle" class="text-xs font-bold text-indigo-900">This &amp; future months</div>
-          <div class="text-[11px] text-indigo-700/80 mt-0.5">Use this new limit now and automatically roll it over into next months. Past months stay untouched.</div>
-        </button>
-      </div>
-      <div class="flex items-center justify-end pt-2 border-t border-slate-100">
-        <button type="button" id="budgetScopeCancelBtn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer">
-          Back &amp; Keep Editing
         </button>
       </div>
     </div>
