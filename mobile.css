@@ -1263,7 +1263,9 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.024);
+  background: rgba(15, 23, 42, 0.032);
+  box-shadow: 0 0 7px 3px rgba(15, 23, 42, 0.018);
+  filter: blur(3px);
   z-index: -1;
   pointer-events: none;
 }
