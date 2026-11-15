@@ -17248,10 +17248,11 @@ function initSortableWidgets() {
       const subtitleText = inc.notes
         ? `${inc.method ? inc.method + ' • ' : ''}${inc.notes}`
         : (inc.method || 'Direct');
-      const typeTagHtml = `<span class="px-2 py-1 text-[11px] font-medium rounded-lg border bg-slate-100 text-slate-600 border-slate-200/80 whitespace-nowrap shrink-0">${escapeHtml(incType)}</span>`;
+      const bookmarkTagHtml = `<span class="absolute -top-px left-4 px-2.5 pt-1.5 pb-1 rounded-b-lg text-[10px] font-semibold tracking-wide border border-t-0 bg-slate-100/90 text-slate-600 border-slate-200/80 leading-none whitespace-nowrap">${escapeHtml(incType)}</span>`;
 
       return `
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group" data-id="${escapeHtml(inc.id)}">
+        <div class="relative bg-white border border-slate-200/80 rounded-2xl pt-6 px-4 pb-4 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 group" data-id="${escapeHtml(inc.id)}">
+          ${bookmarkTagHtml}
           <div>
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
@@ -17282,26 +17283,22 @@ function initSortableWidgets() {
             </div>
           </div>
 
-          <!-- Card Footer: Status, Category Tag & Actions -->
+          <!-- Card Footer: Status & Actions -->
           <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
             ${isExpected ? `
               <div class="inline-flex items-center gap-1.5 text-[11px] text-amber-700 font-medium bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-200/70 whitespace-nowrap min-w-0 max-w-full">
                 <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
                 <span class="truncate">Expected: ${escapeHtml(inc.date || 'Pending')}</span>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" class="mark-misc-income-received-btn text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0" data-id="${escapeHtml(inc.id)}">
-                  <i data-lucide="check" class="w-3 h-3"></i>
-                  <span>Mark Received</span>
-                </button>
-                ${typeTagHtml}
-              </div>
+              <button type="button" class="mark-misc-income-received-btn text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0" data-id="${escapeHtml(inc.id)}">
+                <i data-lucide="check" class="w-3 h-3"></i>
+                <span>Mark Received</span>
+              </button>
             ` : `
               <div class="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200/70 whitespace-nowrap min-w-0 max-w-full">
                 <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
                 <span class="truncate">Received: ${escapeHtml(inc.date || 'Recorded')}</span>
               </div>
-              ${typeTagHtml}
             `}
           </div>
         </div>
