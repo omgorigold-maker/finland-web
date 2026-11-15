@@ -1109,10 +1109,11 @@
       return el('button', {
         type: 'button',
         className: `step-row${sDone ? ' done' : ''}`,
-        onClick: async () => {
-          await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_project_step', projectId, stepIdx: idx });
+        onClick: () => {
+          const pushPromise = smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_project_step', projectId, stepIdx: idx });
           openProjectDetail(projectId);
           renderAll();
+          pushPromise.catch(() => {});
         }
       }, [
         el('span', { className: `check-circle${sDone ? ' checked' : ''}`, textContent: sDone ? '✓' : '' }),
@@ -1162,10 +1163,11 @@
       return el('button', {
         type: 'button',
         className: `step-row${sDone ? ' done' : ''}`,
-        onClick: async () => {
-          await smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_lead_step', leadId, stepIdx: idx });
+        onClick: () => {
+          const pushPromise = smartMutateAndPush(KEYS.BUDGET, { type: 'toggle_lead_step', leadId, stepIdx: idx });
           openLeadDetail(leadId);
           renderAll();
+          pushPromise.catch(() => {});
         }
       }, [
         el('span', { className: `check-circle${sDone ? ' checked' : ''}`, textContent: sDone ? '✓' : '' }),

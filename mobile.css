@@ -1702,6 +1702,9 @@ dialog::backdrop {
   background: var(--surface);
   text-align: left;
   width: 100%;
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .step-row.done .step-title {
