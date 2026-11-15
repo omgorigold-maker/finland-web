@@ -16612,14 +16612,14 @@ function initSortableWidgets() {
                       : `<span class="font-mono text-xl font-bold text-slate-900">${formatMoney(totalAmt, projCur)}</span>`
                     }
                   </div>
-                  ${equivHtml ? `<span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>` : ''}
+                  ${!isPartial && projCur !== cur
+                    ? `<span class="text-xs font-mono text-slate-500 whitespace-nowrap shrink-0 text-right" title="Converted to ${cur} at current exchange rate">≈ ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}</span>`
+                    : (equivHtml ? `<span class="text-[11px] font-mono text-slate-400 min-w-0 truncate text-right">${equivHtml}</span>` : '')
+                  }
                 </div>
-                ${projCur !== cur ? `
+                ${isPartial && projCur !== cur ? `
                   <div class="text-xs font-mono text-slate-500 mt-0.5" title="Converted to ${cur} at current exchange rate">
-                    ${isPartial
-                      ? `≈ ${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)} <span class="text-slate-300">/</span> ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}`
-                      : `≈ ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}`
-                    }
+                    ≈ ${formatMoney(convertCurrency(paidAmt, projCur, cur), cur)} <span class="text-slate-300">/</span> ${formatMoney(convertCurrency(totalAmt, projCur, cur), cur)}
                   </div>
                 ` : ''}
               </div>
