@@ -1580,11 +1580,20 @@
       const bodyStr = n.body || (Array.isArray(n.bodyBlocks) ? n.bodyBlocks.filter(Boolean).join(' ') : '') || n.content || '';
       const preview = bodyStr.length > 110 ? bodyStr.slice(0, 110) + '...' : bodyStr;
       const nColor = getNoteColor(n);
-      return el('button', {
-        type: 'button',
+      const links = Array.isArray(n.links) ? n.links.filter(l => l && l.url) : [];
+      const atts = Array.isArray(n.attachments) ? n.attachments.filter(Boolean) : [];
+      return el('div', {
+        role: 'button',
+        tabIndex: 0,
         className: `card note-card-colored${done ? ' is-done' : ''}`,
         style: `border-left-color:${nColor}`,
-        onClick: () => openNoteForm(n)
+        onClick: () => openNoteForm(n),
+        onKeydown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openNoteForm(n);
+          }
+        }
       }, [
         el('div', { className: 'card-top' }, [
           el('h3', { className: 'card-title', textContent: n.title || 'Untitled Note' }),
@@ -1597,6 +1606,36 @@
               }) : null)
         ]),
         preview ? el('p', { className: 'card-sub', textContent: preview }) : null,
+        links.length ? el('div', { className: 'note-card-links' }, links.map(l => {
+          const safeUrl = normalizeNoteUrl(l.url);
+          const disp = (l.title || '').trim() || formatNoteLinkLabel(safeUrl);
+          return el('a', {
+            href: safeUrl,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            className: 'note-card-link-pill',
+            onClick: (e) => e.stopPropagation()
+          }, [
+            el('span', { textContent: disp })
+          ]);
+        })) : null,
+        atts.length ? el('div', { className: 'note-card-thumbs' }, atts.map(att => {
+          const isImg = isImageAttachment(att);
+          const thumbSrc = att.thumbData || att.data || att.dataUrl || '';
+          return el('button', {
+            type: 'button',
+            className: 'note-card-thumb-btn',
+            title: att.name || 'Attachment',
+            onClick: (e) => {
+              e.stopPropagation();
+              openNoteAttachment(att);
+            }
+          }, [
+            (isImg && thumbSrc)
+              ? el('img', { src: thumbSrc, alt: att.name || 'Photo' })
+              : el('span', { className: 'note-card-file-pill', textContent: att.name || 'File' })
+          ]);
+        })) : null,
         n.dueDate ? el('div', { className: 'card-meta' }, [
           el('span', { className: 'mono', textContent: `Due ${n.dueDate}` })
         ]) : null
@@ -1700,7 +1739,21 @@
       return;
     }
 
-    const nodes = monthTx.map(t => {
+    const now = new Date();
+    const todayYMD = toYMD(now);
+    const currentYear = now.getFullYear();
+
+    const formatTxBatchDate = (ymd) => {
+      if (!ymd) return 'No Date';
+      const [ty, tm, td] = ymd.split('-').map(Number);
+      if (!ty || !tm || !td) return ymd;
+      const dt = new Date(ty, tm - 1, td);
+      return dt.toLocaleDateString('en-US', ty === currentYear
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const buildTxRow = (t) => {
       const isInc = t.type === 'income';
       return el('button', {
         type: 'button',
@@ -1716,9 +1769,33 @@
           textContent: `${isInc ? '+' : '-'}${formatMoney(t.amount, t.currency || 'EUR')}`
         })
       ]);
+    };
+
+    const todayTx = [];
+    const pastDateMap = new Map();
+    monthTx.forEach(t => {
+      const dKey = String(t.date || '').trim();
+      if (dKey === todayYMD) {
+        todayTx.push(t);
+      } else {
+        if (!pastDateMap.has(dKey)) pastDateMap.set(dKey, []);
+        pastDateMap.get(dKey).push(t);
+      }
     });
 
-    listEl.replaceChildren(...nodes);
+    const out = [];
+    if (todayTx.length) {
+      out.push(el('div', { className: 'section-label', textContent: 'Today' }));
+      todayTx.forEach(t => out.push(buildTxRow(t)));
+    }
+
+    const sortedDates = [...pastDateMap.keys()].sort((a, b) => (a > b ? -1 : 1));
+    sortedDates.forEach(dKey => {
+      out.push(el('div', { className: 'section-label', textContent: formatTxBatchDate(dKey) }));
+      pastDateMap.get(dKey).forEach(t => out.push(buildTxRow(t)));
+    });
+
+    listEl.replaceChildren(...out);
   }
 
   // ---------- Forms: Transaction, Calendar Item, Note ----------
@@ -1756,6 +1833,218 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
+  function normalizeNoteUrl(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  }
+
+  function formatNoteLinkLabel(url) {
+    try {
+      const u = new URL(normalizeNoteUrl(url));
+      return u.hostname.replace(/^www\./i, '') + (u.pathname && u.pathname !== '/' ? u.pathname : '');
+    } catch {
+      return url;
+    }
+  }
+
+  function isImageAttachment(att) {
+    if (!att) return false;
+    return att.type === 'image'
+      || (att.type && String(att.type).startsWith('image/'))
+      || (att.mimeType && String(att.mimeType).startsWith('image/'))
+      || /\.(png|jpe?g|gif|webp|svg|bmp|heic)$/i.test(att.name || '');
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error || new Error('Failed to read file'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  function createImageThumbDataUrl(dataUrl, maxDim = 240) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+          const w = Math.max(1, Math.round((img.width || 1) * scale));
+          const h = Math.max(1, Math.round((img.height || 1) * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(dataUrl);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.78));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  async function openNoteAttachment(att) {
+    if (!att) return;
+    const inlineSrc = att.data || att.dataUrl || att.thumbData || '';
+    if (att.id && hasSyncConfig()) {
+      try {
+        const res = await fetch(`${getSyncBaseUrl()}/api/attachments/${encodeURIComponent(att.id)}`, {
+          headers: apiHeaders()
+        });
+        if (res.ok) {
+          const payload = await res.json();
+          const dataSrc = payload.data || payload.dataUrl || inlineSrc;
+          if (dataSrc) {
+            const w = window.open('', '_blank');
+            if (w && isImageAttachment(att)) {
+              w.document.write(`<title>${att.name || 'Photo'}</title><body style="margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;"><img src="${dataSrc}" style="max-width:100%;max-height:100vh;object-fit:contain;"></body>`);
+              w.document.close();
+              return;
+            }
+            const a = document.createElement('a');
+            a.href = dataSrc;
+            a.download = att.name || 'attachment';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            return;
+          }
+        }
+      } catch {
+        // Fallback to inline source below
+      }
+    }
+    if (inlineSrc) {
+      const a = document.createElement('a');
+      a.href = inlineSrc;
+      a.download = att.name || 'attachment';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      showToast('Connect sync to view file');
+    }
+  }
+
+  function renderNoteMediaPreview() {
+    const listEl = document.getElementById('noteMediaPreview');
+    if (!listEl) return;
+    const links = Array.isArray(state.editingNoteLinks) ? state.editingNoteLinks : [];
+    const atts = Array.isArray(state.editingNoteAttachments) ? state.editingNoteAttachments : [];
+    if (links.length === 0 && atts.length === 0) {
+      listEl.hidden = true;
+      listEl.replaceChildren();
+      return;
+    }
+    listEl.hidden = false;
+    const items = [];
+    links.forEach((l, idx) => {
+      const safeUrl = normalizeNoteUrl(l.url);
+      items.push(el('div', { className: 'note-media-item' }, [
+        el('div', { className: 'note-media-main' }, [
+          el('span', { className: 'note-media-badge', textContent: 'URL' }),
+          el('span', { className: 'note-media-name', textContent: (l.title || '').trim() || formatNoteLinkLabel(safeUrl) })
+        ]),
+        el('button', {
+          type: 'button',
+          className: 'note-media-remove',
+          'aria-label': 'Remove link',
+          textContent: '×',
+          onClick: () => {
+            state.editingNoteLinks.splice(idx, 1);
+            renderNoteMediaPreview();
+          }
+        })
+      ]));
+    });
+    atts.forEach((att, idx) => {
+      const isImg = isImageAttachment(att);
+      const thumbSrc = att.thumbData || att.data || att.dataUrl || '';
+      const ext = (att.name || '').split('.').pop().toUpperCase().slice(0, 4) || 'FILE';
+      items.push(el('div', { className: 'note-media-item' }, [
+        el('div', {
+          className: 'note-media-main',
+          onClick: () => openNoteAttachment(att)
+        }, [
+          (isImg && thumbSrc)
+            ? el('img', { className: 'note-media-thumb', src: thumbSrc, alt: att.name || 'Photo' })
+            : el('span', { className: 'note-media-badge', textContent: ext }),
+          el('span', { className: 'note-media-name', textContent: att.name || 'Attachment' })
+        ]),
+        el('button', {
+          type: 'button',
+          className: 'note-media-remove',
+          'aria-label': 'Remove attachment',
+          textContent: '×',
+          onClick: () => {
+            state.editingNoteAttachments.splice(idx, 1);
+            renderNoteMediaPreview();
+          }
+        })
+      ]));
+    });
+    listEl.replaceChildren(...items);
+  }
+
+  async function handleNoteFilesSelected(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    if (!Array.isArray(state.editingNoteAttachments)) state.editingNoteAttachments = [];
+    for (const file of files) {
+      try {
+        const dataUrl = await readFileAsDataURL(file);
+        const isImg = String(file.type || '').startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|heic)$/i.test(file.name || '');
+        const isPdf = String(file.type || '').includes('pdf') || (file.name || '').toLowerCase().endsWith('.pdf');
+        const thumbData = isImg ? await createImageThumbDataUrl(dataUrl, 240) : '';
+        const attId = uid('att');
+        const meta = {
+          id: attId,
+          name: file.name || (isImg ? 'photo.jpg' : 'file'),
+          type: isImg ? 'image' : (isPdf ? 'pdf' : 'file'),
+          mimeType: file.type || (isImg ? 'image/jpeg' : 'application/octet-stream'),
+          size: file.size || 0,
+          thumbData,
+          createdAt: new Date().toISOString()
+        };
+        let uploaded = false;
+        if (hasSyncConfig()) {
+          try {
+            const res = await fetch(`${getSyncBaseUrl()}/api/attachments/${encodeURIComponent(attId)}`, {
+              method: 'POST',
+              headers: apiHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({
+                id: attId,
+                name: meta.name,
+                type: meta.type,
+                mimeType: meta.mimeType,
+                size: meta.size,
+                data: dataUrl
+              })
+            });
+            uploaded = res.ok;
+          } catch {
+            uploaded = false;
+          }
+        }
+        if (!uploaded) {
+          meta.data = dataUrl;
+        }
+        state.editingNoteAttachments.push(meta);
+      } catch {
+        showToast(`Could not attach ${file.name || 'file'}`);
+      }
+    }
+    renderNoteMediaPreview();
+  }
+
   function openNoteForm(existing) {
     const isEdit = !!existing;
     document.getElementById('noteDialogTitle').textContent = isEdit ? 'Edit Note' : 'New Note';
@@ -1768,6 +2057,15 @@
     document.getElementById('notePinnedInput').checked = isEdit ? !!(existing.isPinned || existing.pinned) : false;
     document.getElementById('noteDoneInput').checked = isEdit ? isNoteDone(existing) : false;
     document.getElementById('noteDeleteBtn').hidden = !isEdit;
+    state.editingNoteAttachments = isEdit && Array.isArray(existing.attachments) ? existing.attachments.map(a => ({ ...a })) : [];
+    state.editingNoteLinks = isEdit && Array.isArray(existing.links) ? existing.links.map(l => ({ ...l })) : [];
+    const linkComp = document.getElementById('noteLinkComposer');
+    if (linkComp) linkComp.hidden = true;
+    const linkUrlEl = document.getElementById('noteLinkUrlInput');
+    const linkTitleEl = document.getElementById('noteLinkTitleInput');
+    if (linkUrlEl) linkUrlEl.value = '';
+    if (linkTitleEl) linkTitleEl.value = '';
+    renderNoteMediaPreview();
 
     const known = getAllKnownLabels();
     const initialLabel = isEdit ? (existing.label || 'General') : (known[0] ? known[0].name : 'General');
@@ -2227,6 +2525,8 @@
         isDone: isDone,
         completed: isDone,
         done: isDone,
+        attachments: Array.isArray(state.editingNoteAttachments) ? state.editingNoteAttachments.slice() : [],
+        links: Array.isArray(state.editingNoteLinks) ? state.editingNoteLinks.slice() : [],
         updatedAt: new Date().toISOString()
       };
 
@@ -2237,6 +2537,50 @@
       renderAll();
       showToast('Note saved');
     });
+
+    const addPhotoBtn = document.getElementById('noteAddPhotoBtn');
+    const addFileBtn = document.getElementById('noteAddFileBtn');
+    const addLinkBtn = document.getElementById('noteAddLinkBtn');
+    const photoInput = document.getElementById('notePhotoInput');
+    const fileInput = document.getElementById('noteFileInput');
+    const linkComposer = document.getElementById('noteLinkComposer');
+    const linkSaveBtn = document.getElementById('noteLinkSaveBtn');
+    if (addPhotoBtn && photoInput) {
+      addPhotoBtn.addEventListener('click', () => photoInput.click());
+      photoInput.addEventListener('change', async (e) => {
+        await handleNoteFilesSelected(e.target.files);
+        e.target.value = '';
+      });
+    }
+    if (addFileBtn && fileInput) {
+      addFileBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', async (e) => {
+        await handleNoteFilesSelected(e.target.files);
+        e.target.value = '';
+      });
+    }
+    if (addLinkBtn && linkComposer) {
+      addLinkBtn.addEventListener('click', () => {
+        linkComposer.hidden = !linkComposer.hidden;
+      });
+    }
+    if (linkSaveBtn && linkComposer) {
+      linkSaveBtn.addEventListener('click', () => {
+        const urlEl = document.getElementById('noteLinkUrlInput');
+        const titleEl = document.getElementById('noteLinkTitleInput');
+        const url = normalizeNoteUrl(urlEl ? urlEl.value : '');
+        if (!url) {
+          showToast('Enter a link URL');
+          return;
+        }
+        if (!Array.isArray(state.editingNoteLinks)) state.editingNoteLinks = [];
+        state.editingNoteLinks.push({ url, title: (titleEl ? titleEl.value : '').trim() });
+        if (urlEl) urlEl.value = '';
+        if (titleEl) titleEl.value = '';
+        linkComposer.hidden = true;
+        renderNoteMediaPreview();
+      });
+    }
 
     const noteCatBtn = document.getElementById('noteCategoryBtn');
     const noteCatMenu = document.getElementById('noteCategoryMenu');
