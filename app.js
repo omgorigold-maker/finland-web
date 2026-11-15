@@ -16623,32 +16623,22 @@ function initSortableWidgets() {
                 <span class="whitespace-nowrap shrink-0">${isPaid ? 'Fully settled' : (paidAmt > 0 ? `Paid ${formatMoney(paidAmt, projCur)} • Left ${formatMoney(remainingAmt, projCur)}` : `Left: ${formatMoney(remainingAmt, projCur)}`)}</span>
                 <span class="font-mono min-w-0 truncate text-right">${equivHtml}</span>
               </div>
-
-              <div class="pt-1.5">
-                ${dateFooter}
-              </div>
             </div>
           </div>
 
-          <!-- Card Footer: Invoice Attachment & Payment Action -->
+          <!-- Card Footer: Due/Paid Date, Receipt Attachment & Payment Action -->
           <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5 min-w-0">
-              ${(p.hasDepositProformaDoc || p.depositProforma || p.hasProformaDoc || p.proformaInvoice)
-                ? `<button class="view-project-proforma-btn px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium border border-indigo-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Deposit Proforma Invoice">
-                    <i data-lucide="file-text" class="w-3 h-3 text-indigo-600 shrink-0"></i>
-                    <span>Proforma</span>
-                  </button>`
-                : ''
-              }
+              ${dateFooter}
               ${(p.hasInvoiceDoc || p.hasReceiptDoc) 
-                ? `<button class="view-project-invoice-btn px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium border border-blue-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Attached Receipt Document">
+                ? `<button class="view-project-invoice-btn px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium border border-blue-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Attached Receipt Document">
                     <i data-lucide="paperclip" class="w-3 h-3 text-blue-600 shrink-0"></i>
                     <span>Receipt</span>
                   </button>`
                 : ''
               }
               ${(isPaid || paidAmt > 0) && (!p.hasInvoiceDoc && !p.hasReceiptDoc && !p.hasProformaDoc)
-                ? `<button class="attach-project-invoice-btn px-2.5 py-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-medium border border-slate-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="Attach receipt document or PDF">
+                ? `<button class="attach-project-invoice-btn px-2 py-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-medium border border-slate-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="Attach receipt document or PDF">
                     <i data-lucide="upload" class="w-3 h-3 shrink-0"></i>
                     <span>Attach</span>
                   </button>`
