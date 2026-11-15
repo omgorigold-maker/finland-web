@@ -16862,31 +16862,42 @@ function initSortableWidgets() {
           : `<span class="whitespace-nowrap shrink-0 text-amber-700 font-semibold">Rolled → ${targetShort}</span>`;
       }
 
+      const formatShortMonthDay = (isoDate) => {
+        if (!isoDate || !/^\d{4}-\d{2}-\d{2}/.test(isoDate)) return isoDate || '';
+        const [yy, mm, dd] = isoDate.substring(0, 10).split('-').map(Number);
+        return new Date(yy, mm - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      };
+
       let dateFooter = '';
       if (isRolledOutFromWorkMonth) {
         const workTag = (p.dueDate && p.dueDate.startsWith(monthKey))
-          ? `${isProjectWorkDone(p) ? 'Work Done' : 'Work Due'} ${escapeHtml(p.dueDate)}`
+          ? `${isProjectWorkDone(p) ? 'Done' : 'Due'} ${escapeHtml(formatShortMonthDay(p.dueDate))}`
           : `Started ${formatShortYm(monthKey)}`;
+        const fullWorkTitle = (p.dueDate && p.dueDate.startsWith(monthKey))
+          ? `${isProjectWorkDone(p) ? 'Work Done' : 'Work Due'} ${p.dueDate}`
+          : `Started ${monthKey}`;
         if (isPaid) {
-          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 font-medium whitespace-nowrap">
+          const paidShort = paidDate ? formatShortMonthDay(paidDate) : targetShort;
+          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 font-medium whitespace-nowrap min-w-0 max-w-full" title="${escapeHtml(fullWorkTitle + ' • Paid ' + (paidDate || targetShort))}">
             <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
-            <span>${workTag} • Paid ${escapeHtml(paidDate || targetShort)}</span>
+            <span class="truncate">${workTag} • Paid ${escapeHtml(paidShort)}</span>
           </div>`;
         } else {
-          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
+          const payDueShort = effectivePayDue ? formatShortMonthDay(effectivePayDue) : targetShort;
+          dateFooter = `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap min-w-0 max-w-full" title="${escapeHtml(fullWorkTitle + ' • Pay Due: ' + (effectivePayDue || targetShort))}">
             <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-            <span>${workTag} • Pay Due: ${escapeHtml(effectivePayDue)}</span>
+            <span class="truncate">${workTag} • Due ${escapeHtml(payDueShort)}</span>
           </div>`;
         }
       } else {
         dateFooter = isPaid
-          ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
+          ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap min-w-0 max-w-full">
               <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
-              <span>Paid: ${escapeHtml(paidDate || p.dueDate || 'Settled')}</span>
+              <span class="truncate">Paid: ${escapeHtml(paidDate || p.dueDate || 'Settled')}</span>
             </div>`
-          : `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap">
+          : `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-700 font-medium whitespace-nowrap min-w-0 max-w-full">
               <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-              <span>${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due: ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due: ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
+              <span class="truncate">${p.paymentDueDate || (p.proformaInvoice && p.proformaInvoice.validUntil) ? 'Payment Due: ' + escapeHtml(getProjectPaymentDueDate(p)) : 'Due: ' + escapeHtml(p.dueDate ? p.dueDate : 'No date set')}</span>
             </div>`;
       }
 
@@ -16949,7 +16960,7 @@ function initSortableWidgets() {
 
           <!-- Card Footer: Due/Paid Date, Receipt Attachment & Payment Action -->
           <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-1.5 min-w-0">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
               ${dateFooter}
               ${(p.hasInvoiceDoc || p.hasReceiptDoc) 
                 ? `<button class="view-project-invoice-btn px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium border border-blue-200/80 flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0" data-id="${p.id}" title="View Attached Receipt Document">
