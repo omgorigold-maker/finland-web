@@ -216,6 +216,14 @@
         btn.style.setProperty('--tab-accent', tabColor);
       });
     }
+    const calHeaderIcon = document.getElementById('calHeaderIcon');
+    if (calHeaderIcon) {
+      const calColor = (mp.tabColors && mp.tabColors.calendar) || mp.navColor || '#0f172a';
+      calHeaderIcon.style.color = calColor;
+      const calIconKey = (mp.tabIcons && mp.tabIcons.calendar) || DEFAULT_MOBILE_PREFS.tabIcons.calendar;
+      const calMarkup = MOBILE_TAB_ICONS.calendar && MOBILE_TAB_ICONS.calendar[calIconKey];
+      if (calMarkup) calHeaderIcon.innerHTML = calMarkup;
+    }
     if (document.body) {
       document.body.classList.toggle('density-compact', mp.density === 'compact');
     }
