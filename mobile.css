@@ -2283,6 +2283,19 @@ body.density-compact .tx-row {
   position: relative;
 }
 
+#noteTitleInput,
+#noteBodyInput,
+.note-card-colored .card-title,
+.note-card-colored .card-sub {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.note-card-colored .card-title {
+  flex: 1;
+  min-width: 0;
+}
+
 .card-meta .card-price {
   margin-left: auto;
   font-size: 14px;

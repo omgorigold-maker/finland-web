@@ -1722,7 +1722,7 @@
         }
       }, [
         el('div', { className: 'card-top' }, [
-          el('h3', { className: 'card-title', textContent: n.title || 'Untitled Note' }),
+          el('h3', { className: 'card-title', dir: 'auto', textContent: n.title || 'Untitled Note' }),
           done
             ? el('span', { className: 'badge green', textContent: 'Done' })
             : (n.label ? el('span', {
@@ -1731,7 +1731,7 @@
                 textContent: n.label
               }) : null)
         ]),
-        preview ? el('p', { className: 'card-sub', textContent: preview }) : null,
+        preview ? el('p', { className: 'card-sub', dir: 'auto', textContent: preview }) : null,
         links.length ? el('div', { className: 'note-card-links' }, links.map(l => {
           const safeUrl = normalizeNoteUrl(l.url);
           const disp = (l.title || '').trim() || formatNoteLinkLabel(safeUrl);
