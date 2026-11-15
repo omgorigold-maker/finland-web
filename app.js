@@ -16084,8 +16084,9 @@ function initSortableWidgets() {
     return Array.from(monthsSet);
   }
 
-  function getMonthlyFixedCommitments(cur, monthKey) {
-    let total = 0;
+  function getMonthlyFixedBreakdown(cur, monthKey) {
+    let bills = 0;
+    let subscriptions = 0;
     const isAll = (!monthKey || monthKey === 'ALL' || monthKey === 'all');
     const activeMonths = getActiveBudgetMonthsList(monthKey);
 
@@ -16093,7 +16094,12 @@ function initSortableWidgets() {
       (state.subscriptions || []).forEach(sub => {
         if (!isSubscriptionCountedInMonth(sub, mKey)) return;
         const v = convertCurrency(parseFloat(sub.amount) || 0, sub.currency || 'EUR', cur);
-        total += sub.billingCycle === 'yearly' ? v / 12 : v;
+        const monthlyAmt = sub.billingCycle === 'yearly' ? v / 12 : v;
+        if (String(sub.category || '').trim().toLowerCase() === 'subscriptions') {
+          subscriptions += monthlyAmt;
+        } else {
+          bills += monthlyAmt;
+        }
       });
     });
 
@@ -16103,10 +16109,19 @@ function initSortableWidgets() {
       if (!exp || exp.isSubscription || exp.isIncome || exp.type === 'income' || exp.category === 'Income') return;
       if (!FIXED_CATEGORIES.includes(exp.category)) return;
       if (!exp.date || (!isAll && !exp.date.startsWith(monthKey))) return;
-      total += convertCurrency(parseFloat(exp.amount) || 0, exp.currency || 'EUR', cur);
+      const amt = convertCurrency(parseFloat(exp.amount) || 0, exp.currency || 'EUR', cur);
+      if (String(exp.category || '').trim().toLowerCase() === 'subscriptions') {
+        subscriptions += amt;
+      } else {
+        bills += amt;
+      }
     });
 
-    return total;
+    return { bills, subscriptions, total: bills + subscriptions };
+  }
+
+  function getMonthlyFixedCommitments(cur, monthKey) {
+    return getMonthlyFixedBreakdown(cur, monthKey).total;
   }
 
   function findCategoryStats(stats, catName) {
@@ -16562,7 +16577,8 @@ function initSortableWidgets() {
     });
 
     // C. Fixed Commitments & Freelance Tax Reserve
-    const fixedBills = getMonthlyFixedCommitments(cur, monthKey);
+    const fixedBreakdown = getMonthlyFixedBreakdown(cur, monthKey);
+    const fixedBills = fixedBreakdown.total;
     const curTax = (state.budget && state.budget.taxReservePercent !== undefined && state.budget.taxReservePercent !== null)
       ? parseInt(state.budget.taxReservePercent, 10)
       : 0;
@@ -16709,7 +16725,7 @@ function initSortableWidgets() {
       window.addEventListener('resize', fitBudgetTileText);
     }
 
-    // Cash-Flow Allocation Bar (Bills | Tax | Spent So Far | Budget Plan Left | Free Room out of Total Expected Income)
+    // Cash-Flow Allocation Bar (Bills | Subscriptions | Tax | Budget Spending | Surplus or Deficit out of Total Expected Income)
     const bar = document.getElementById('budgetFlowBar');
     const flowText = document.getElementById('budgetFlowText');
     const runwayText = document.getElementById('budgetRunwayText');
@@ -16719,53 +16735,67 @@ function initSortableWidgets() {
       if (expectedTotalIncome > 0) {
         const totalExpectedCommitments = fixedBills + projectedTax + categoryBudgetDeduction;
         const isExpectedDeficit = afterBudgetsProjectedIfClear < 0;
+        const segments = [];
+        if (fixedBreakdown.bills > 0 || (fixedBreakdown.subscriptions <= 0 && fixedBills > 0)) {
+          segments.push({ label: 'Bills', title: 'Bills', amount: fixedBreakdown.bills, barClass: 'bg-slate-400', textClass: 'text-slate-500' });
+        }
+        if (fixedBreakdown.subscriptions > 0) {
+          segments.push({ label: 'Subscriptions', title: 'Subscriptions', amount: fixedBreakdown.subscriptions, barClass: 'bg-amber-400', textClass: 'text-amber-600' });
+        }
+        if (taxRate > 0) {
+          segments.push({ label: `Tax (${taxRate}%)`, title: 'Tax Reserve', amount: projectedTax, barClass: 'bg-blue-500', textClass: 'text-blue-600' });
+        }
+        if (categoryBudgetDeduction > 0) {
+          segments.push({ label: 'Budget Spending', title: 'Budget Spending', amount: categoryBudgetDeduction, barClass: 'bg-indigo-500', textClass: 'text-indigo-600' });
+        }
 
         if (!isExpectedDeficit) {
-          // Normal/Surplus against Total Expected Income (Collected + Pending Invoices)
-          const fP = Math.max(0, (fixedBills / expectedTotalIncome) * 100);
-          const tP = Math.max(0, (projectedTax / expectedTotalIncome) * 100);
-          const sP = Math.max(0, (totalAllEverydaySpent / expectedTotalIncome) * 100);
-          const rP = Math.max(0, (remainingPlannedBudget / expectedTotalIncome) * 100);
-          const lP = Math.max(0, 100 - fP - tP - sP - rP);
-          bar.innerHTML = `
-            <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}%)"></div>
-            ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}%)"></div>` : ''}
-            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}%)"></div>` : ''}
-            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Budget Left (${Math.round(rP)}%)"></div>` : ''}
-            <div class="h-full bg-emerald-400" style="width:${lP}%" title="Free Room (${Math.round(lP)}%)"></div>`;
+          bar.classList.remove('ring-1', 'ring-rose-300');
+          let usedPct = 0;
+          const renderSegs = segments.map(seg => {
+            const pct = Math.max(0, (seg.amount / expectedTotalIncome) * 100);
+            usedPct += pct;
+            return { ...seg, widthPct: pct, displayPct: Math.round(pct) };
+          });
+          const surplusPct = Math.max(0, 100 - usedPct);
+          renderSegs.push({
+            label: 'Surplus',
+            title: 'Surplus',
+            widthPct: surplusPct,
+            displayPct: Math.round(surplusPct),
+            barClass: 'bg-emerald-400',
+            textClass: 'text-emerald-600'
+          });
+
+          bar.innerHTML = renderSegs
+            .map(seg => `<div class="h-full ${seg.barClass}" style="width:${seg.widthPct}%" title="${seg.title} (${seg.displayPct}%)"></div>`)
+            .join('');
 
           if (flowText) {
-            const parts = [];
-            parts.push(`<span class="text-slate-500">Bills: ${Math.round(fP)}%</span>`);
-            if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
-            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
-            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
-            parts.push(`<span class="text-emerald-600">Free Room: ${Math.round(lP)}%</span>`);
+            const parts = renderSegs.map(seg => `<span class="${seg.textClass}">${seg.label}: ${seg.displayPct}%</span>`);
             flowText.innerHTML = `${parts.join(' <span class="text-slate-300">•</span> ')} <span class="text-slate-400">(out of ${formatMoney(expectedTotalIncome, cur)} total expected income for ${escapeHtml(periodIncomeLabel)})</span>`;
           }
         } else {
-          // Even with pending invoices, commitments exceed Total Expected Income
+          bar.classList.add('ring-1', 'ring-rose-300');
           const denom = totalExpectedCommitments > 0 ? totalExpectedCommitments : expectedTotalIncome;
-          const fP = (fixedBills / denom) * 100;
-          const tP = (projectedTax / denom) * 100;
-          const sP = (totalAllEverydaySpent / denom) * 100;
-          const rP = (remainingPlannedBudget / denom) * 100;
-          bar.innerHTML = `
-            <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}%)"></div>
-            ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}%)"></div>` : ''}
-            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}%)"></div>` : ''}
-            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Budget Left (${Math.round(rP)}%)"></div>` : ''}`;
+          const renderSegs = segments.map(seg => {
+            const widthPct = Math.max(0, (seg.amount / denom) * 100);
+            const displayPct = Math.round(Math.max(0, (seg.amount / expectedTotalIncome) * 100));
+            return { ...seg, widthPct, displayPct };
+          });
+          bar.innerHTML = renderSegs
+            .map(seg => `<div class="h-full ${seg.barClass}" style="width:${seg.widthPct}%" title="${seg.title} (${seg.displayPct}% of expected income)"></div>`)
+            .join('');
 
           if (flowText) {
-            const parts = [];
-            parts.push(`<span class="text-slate-500">Bills: ${Math.round(fP)}%</span>`);
-            if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
-            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
-            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
-            flowText.innerHTML = `${parts.join(' <span class="text-slate-300">•</span> ')} <span class="text-rose-500">(exceeds ${formatMoney(expectedTotalIncome, cur)} total expected income for ${escapeHtml(periodIncomeLabel)})</span>`;
+            const parts = renderSegs.map(seg => `<span class="${seg.textClass}">${seg.label}: ${seg.displayPct}%</span>`);
+            const deficitPct = Math.max(1, Math.round((Math.abs(afterBudgetsProjectedIfClear) / expectedTotalIncome) * 100));
+            parts.push(`<span class="text-rose-600 font-medium">Deficit: -${deficitPct}%</span>`);
+            flowText.innerHTML = `${parts.join(' <span class="text-slate-300">•</span> ')} <span class="text-rose-500">(out of ${formatMoney(expectedTotalIncome, cur)} total expected income for ${escapeHtml(periodIncomeLabel)})</span>`;
           }
         }
       } else {
+        bar.classList.remove('ring-1', 'ring-rose-300');
         bar.innerHTML = '<div class="h-full bg-slate-200 w-full"></div>';
         if (flowText) {
           flowText.textContent = 'Add upcoming client projects or log income to track your cash flow split.';
