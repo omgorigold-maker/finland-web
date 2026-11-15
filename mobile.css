@@ -2147,3 +2147,49 @@ body.density-compact .tx-row {
 .custom-actions .btn-secondary {
   width: 100%;
 }
+
+/* Centered Confirmation Modal */
+.confirm-dialog {
+  margin: auto;
+  width: calc(100vw - 40px);
+  max-width: 340px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 20px;
+  box-shadow: var(--shadow-dock);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.confirm-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.confirm-message {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirm-actions .btn-primary,
+.confirm-actions .btn-danger {
+  width: 100%;
+  flex: none;
+}

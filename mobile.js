@@ -151,8 +151,8 @@
     const dlg = document.getElementById('mobileCustomDialog');
     if (!dlg || !dlg.open) return true;
     if (isMobileCustomDirty()) {
-      const ok = window.confirm('Are you sure you want to leave without saving changes?');
-      if (!ok) return false;
+      openDialog('mobileConfirmDialog');
+      return false;
     }
     state.mobileCustomDraft = null;
     applyMobilePrefs(state.mobilePrefs);
@@ -283,6 +283,20 @@
         }
       });
     });
+    const confirmKeepBtn = document.getElementById('mobileConfirmKeepBtn');
+    const confirmDiscardBtn = document.getElementById('mobileConfirmDiscardBtn');
+    if (confirmKeepBtn) {
+      confirmKeepBtn.addEventListener('click', () => closeDialog('mobileConfirmDialog'));
+    }
+    if (confirmDiscardBtn) {
+      confirmDiscardBtn.addEventListener('click', () => {
+        closeDialog('mobileConfirmDialog');
+        state.mobileCustomDraft = null;
+        applyMobilePrefs(state.mobilePrefs);
+        renderCalendar();
+        closeDialog('mobileCustomDialog');
+      });
+    }
   }
 
   function openDialog(id) {
