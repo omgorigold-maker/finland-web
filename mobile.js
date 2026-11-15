@@ -2405,14 +2405,21 @@
       let dragging = false;
       let dragDy = 0;
       let startAt = 0;
+      const hasScrolledInner = (el) => {
+        let cur = el && el.nodeType === 1 ? el : (el && el.parentElement);
+        while (cur && cur !== dlg) {
+          if (cur.scrollTop > 0) return true;
+          cur = cur.parentElement;
+        }
+        return dlg.scrollTop > 0;
+      };
       dlg.addEventListener('touchstart', (e) => {
         if (!dlg.open || e.touches.length !== 1) return;
         const target = e.target;
-        // Allow scrolling inside category menu or textarea unless starting at top
+        // Allow scrolling inside category menu, textarea, or inner scroll lists unless at top
         if (target && target.closest && target.closest('.cat-select-menu')) return;
-        if (target && target.tagName === 'TEXTAREA' && target.scrollTop > 0) return;
         const onHeader = !!(target && target.closest && target.closest('.sheet-handle, .sheet-header'));
-        if (!onHeader && dlg.scrollTop > 0) return;
+        if (!onHeader && hasScrolledInner(target)) return;
         sX = e.touches[0].clientX;
         sY = e.touches[0].clientY;
         dragDy = 0;
@@ -2427,7 +2434,8 @@
           if (dragDy === 0) dragging = false;
           return;
         }
-        if (dlg.scrollTop > 0 && !(e.target && e.target.closest && e.target.closest('.sheet-handle, .sheet-header'))) {
+        const onHeader = !!(e.target && e.target.closest && e.target.closest('.sheet-handle, .sheet-header'));
+        if (!onHeader && hasScrolledInner(e.target)) {
           dragging = false;
           dlg.style.transform = '';
           return;
