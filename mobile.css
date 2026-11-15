@@ -1233,11 +1233,12 @@ button {
 
 .nav-btn svg {
   display: block;
+  overflow: visible;
   width: auto;
   height: 19px;
   flex-shrink: 0;
   stroke: var(--tab-accent, var(--ink));
-  stroke-width: 1.85;
+  stroke-width: 1.46;
   transition: stroke-width 0.14s ease, transform 0.14s ease;
 }
 
@@ -1274,6 +1275,7 @@ button {
 .bottom-nav.nav-icons-only .nav-btn svg {
   width: auto;
   height: 21px;
+  stroke-width: 1.62;
 }
 
 .fab-btn {

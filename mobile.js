@@ -184,16 +184,34 @@
       const order = Array.isArray(mp.tabOrder)
         ? [...new Set([...mp.tabOrder.filter(t => validTabs.includes(t)), ...validTabs])]
         : validTabs;
-      order.forEach(tab => {
+      const fab = nav.querySelector('#quickAddBtn');
+      const orderedEls = [];
+      order.forEach((tab, idx) => {
+        if (idx === 2 && fab) orderedEls.push(fab);
         const btn = nav.querySelector(`.nav-btn[data-tab="${tab}"]`);
-        if (btn) nav.appendChild(btn);
+        if (btn) orderedEls.push(btn);
       });
+      orderedEls.forEach(node => nav.appendChild(node));
       nav.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
         const tab = btn.getAttribute('data-tab');
         const svg = btn.querySelector('svg');
         const iconKey = (mp.tabIcons && mp.tabIcons[tab]) || DEFAULT_MOBILE_PREFS.tabIcons[tab];
         const markup = MOBILE_TAB_ICONS[tab] && MOBILE_TAB_ICONS[tab][iconKey];
-        if (svg && markup) svg.innerHTML = markup;
+        if (svg && markup) {
+          svg.innerHTML = markup;
+          try {
+            if (typeof svg.getBBox === 'function') {
+              const bb = svg.getBBox();
+              if (bb && bb.height > 0) {
+                const vbH = bb.height * (24 / 22);
+                const vbY = bb.y - (vbH - bb.height) / 2;
+                const vbW = Math.max(vbH, bb.width + vbH * (2 / 24));
+                const vbX = bb.x + bb.width / 2 - vbW / 2;
+                svg.setAttribute('viewBox', `${vbX.toFixed(3)} ${vbY.toFixed(3)} ${vbW.toFixed(3)} ${vbH.toFixed(3)}`);
+              }
+            }
+          } catch {}
+        }
         const tabColor = (mp.tabColors && mp.tabColors[tab]) || mp.navColor || '#0f172a';
         btn.style.setProperty('--tab-accent', tabColor);
       });
