@@ -605,8 +605,8 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 3px;
-  height: 4.5px;
+  bottom: 2.5px;
+  height: 6.5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -617,8 +617,8 @@ button {
 }
 
 .cal-note-dot {
-  width: 4.5px;
-  height: 4.5px;
+  width: 6.5px;
+  height: 6.5px;
   border-radius: 9999px;
   flex-shrink: 0;
   display: block;
@@ -1240,7 +1240,7 @@ button {
 }
 
 .nav-btn.active {
-  background: rgba(15, 23, 42, 0.045);
+  background: rgba(15, 23, 42, 0.024);
   color: var(--ink);
   font-weight: 700;
 }

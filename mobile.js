@@ -10,7 +10,8 @@
     CALENDAR_PLAN: 'finland_calendar_plan_v1',
     DISPLAY_CURRENCY: 'finland_display_currency_v1',
     RATES_CACHE: 'finland_rates_cache_v1',
-    APP_PREFS: 'finland_app_prefs_v1'
+    APP_PREFS: 'finland_app_prefs_v1',
+    MOBILE_PREFS: 'finland_mobile_prefs_v1'
   };
 
   const CURRENCIES = ['EUR', 'USD', 'ILS'];
@@ -295,15 +296,14 @@
     }
     if (confirmSaveBtn) {
       confirmSaveBtn.addEventListener('click', () => {
-        if (state.mobileCustomDraft) {
-          state.mobilePrefs = cloneMobilePrefs(state.mobileCustomDraft);
-          state.mobileCustomDraft = null;
-          saveMobilePrefs();
-          applyMobilePrefs(state.mobilePrefs);
-          renderCalendar();
-        }
+        state.mobilePrefs = cloneMobilePrefs(state.mobileCustomDraft);
+        state.mobileCustomDraft = null;
+        saveMobilePrefs();
+        applyMobilePrefs(state.mobilePrefs);
+        renderCalendar();
         closeDialog('mobileConfirmDialog');
         closeDialog('mobileCustomDialog');
+        smartMutateAndPush(KEYS.MOBILE_PREFS, { type: 'set_mobile_prefs', prefs: state.mobilePrefs });
         showToast('Customization saved');
       });
     }
@@ -450,6 +450,12 @@
     state.noteLabels = parseJSON(mCacheGet(KEYS.NOTE_LABELS), []);
     state.calendarPlan = parseJSON(mCacheGet(KEYS.CALENDAR_PLAN), { items: [], sources: {} });
     if (!Array.isArray(state.calendarPlan.items)) state.calendarPlan.items = [];
+    const syncedMobilePrefs = parseJSON(mCacheGet(KEYS.MOBILE_PREFS), null);
+    if (syncedMobilePrefs && typeof syncedMobilePrefs === 'object') {
+      state.mobilePrefs = cloneMobilePrefs(syncedMobilePrefs);
+      saveMobilePrefs();
+      applyMobilePrefs(state.mobilePrefs);
+    }
     document.getElementById('currencyBtn').textContent = state.displayCurrency;
   }
 
@@ -507,6 +513,13 @@
         else list.push(op.label);
       }
       return list;
+    }
+
+    if (key === KEYS.MOBILE_PREFS) {
+      if (op.type === 'set_mobile_prefs' && op.prefs) {
+        return cloneMobilePrefs(op.prefs);
+      }
+      return currentVal;
     }
 
     if (key === KEYS.CALENDAR_PLAN) {
@@ -2383,6 +2396,7 @@
         applyMobilePrefs(state.mobilePrefs);
         renderCalendar();
         closeDialog('mobileCustomDialog');
+        smartMutateAndPush(KEYS.MOBILE_PREFS, { type: 'set_mobile_prefs', prefs: state.mobilePrefs });
         showToast('Customization saved');
       }
     });
