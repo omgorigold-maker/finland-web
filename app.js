@@ -16556,12 +16556,12 @@ function initSortableWidgets() {
       const equivHtml = `≈ ${formatMoney(convertCurrency(totalAmt, projCur, targetCur1), targetCur1)} • ${formatMoney(convertCurrency(totalAmt, projCur, targetCur2), targetCur2)}`;
 
       const statusBadge = isPaid
-        ? '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">Paid in Full</span>'
+        ? '<span class="whitespace-nowrap shrink-0">Paid in Full</span>'
         : isPartial
-        ? `<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
+        ? `<span class="whitespace-nowrap shrink-0">${percentPaid}% Paid</span>`
         : p.status === 'invoiced'
-        ? '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">Invoiced</span>'
-        : '<span class="text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">In Progress</span>';
+        ? '<span class="whitespace-nowrap shrink-0">Invoiced</span>'
+        : '<span class="whitespace-nowrap shrink-0">In Progress</span>';
 
       const dateFooter = isPaid
         ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/70 text-[11px] text-emerald-700 font-medium whitespace-nowrap">
@@ -16619,7 +16619,7 @@ function initSortableWidgets() {
                 <div class="h-full rounded-full transition-all duration-300 ${isPaid ? 'bg-emerald-500' : isPartial ? 'bg-amber-500' : 'bg-slate-300'}" style="width: ${percentPaid}%"></div>
               </div>
 
-              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 gap-2">
+              <div class="flex items-baseline justify-between text-[11px] text-slate-400 pt-0.5 gap-2">
                 <span class="whitespace-nowrap shrink-0">${isPaid ? 'Fully settled' : (paidAmt > 0 ? `Paid ${formatMoney(paidAmt, projCur)} • Left ${formatMoney(remainingAmt, projCur)}` : `Left: ${formatMoney(remainingAmt, projCur)}`)}</span>
                 ${statusBadge}
               </div>
