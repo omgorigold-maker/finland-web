@@ -17038,10 +17038,10 @@ function initSortableWidgets() {
               </div>
 
               <div class="flex items-center gap-1 shrink-0">
-                <button class="edit-freelance-proj-btn text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" data-id="${p.id}" title="Edit Project">
+                <button class="edit-freelance-proj-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-all cursor-pointer" data-id="${p.id}" title="Edit Project">
                   <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                 </button>
-                <button class="delete-freelance-proj-btn text-slate-300 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" data-id="${p.id}" title="Delete Project">
+                <button class="delete-freelance-proj-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-300 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all cursor-pointer" data-id="${p.id}" title="Delete Project">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
                 <i data-lucide="grip-vertical" class="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors cursor-grab active:cursor-grabbing card-drag-handle ml-0.5" title="Drag to reorder"></i>
@@ -17263,7 +17263,7 @@ function initSortableWidgets() {
                 <p class="text-xs text-slate-500 break-words mt-0.5">${escapeHtml(subtitleText)}</p>
               </div>
 
-              <div class="flex items-center gap-1 shrink-0">
+              <div class="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button class="edit-misc-income-btn text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" data-id="${escapeHtml(inc.id)}" title="Edit Income">
                   <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                 </button>
