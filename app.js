@@ -16709,28 +16709,30 @@ function initSortableWidgets() {
       window.addEventListener('resize', fitBudgetTileText);
     }
 
-    // Cash-Flow Allocation Bar (Bills | Tax | Spent So Far | Budget Plan Left | Surplus)
+    // Cash-Flow Allocation Bar (Bills | Tax | Spent So Far | Budget Plan Left | Free Room out of Total Expected Income)
     const bar = document.getElementById('budgetFlowBar');
     const flowText = document.getElementById('budgetFlowText');
     const runwayText = document.getElementById('budgetRunwayText');
     if (bar) {
-      if (collectedIncome > 0) {
-        const totalObligations = fixedBills + taxReserve + categoryBudgetDeduction;
-        const isPlanDeficit = afterBudgetsLeft < 0;
+      const expectedTotalIncome = projectedCollected;
+      const periodIncomeLabel = isAllTime ? 'All Time' : formatMonthLabel(monthKey);
+      if (expectedTotalIncome > 0) {
+        const totalExpectedCommitments = fixedBills + projectedTax + categoryBudgetDeduction;
+        const isExpectedDeficit = afterBudgetsProjectedIfClear < 0;
 
-        if (!isPlanDeficit) {
-          // Normal/Surplus: Bills, spent, AND planned budget all fit within collected income
-          const fP = Math.max(0, (fixedBills / collectedIncome) * 100);
-          const tP = Math.max(0, (taxReserve / collectedIncome) * 100);
-          const sP = Math.max(0, (totalAllEverydaySpent / collectedIncome) * 100);
-          const rP = Math.max(0, (remainingPlannedBudget / collectedIncome) * 100);
+        if (!isExpectedDeficit) {
+          // Normal/Surplus against Total Expected Income (Collected + Pending Invoices)
+          const fP = Math.max(0, (fixedBills / expectedTotalIncome) * 100);
+          const tP = Math.max(0, (projectedTax / expectedTotalIncome) * 100);
+          const sP = Math.max(0, (totalAllEverydaySpent / expectedTotalIncome) * 100);
+          const rP = Math.max(0, (remainingPlannedBudget / expectedTotalIncome) * 100);
           const lP = Math.max(0, 100 - fP - tP - sP - rP);
           bar.innerHTML = `
             <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}%)"></div>
             ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}%)"></div>` : ''}
             ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}%)"></div>` : ''}
-            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Planned Budget Left (${Math.round(rP)}%)"></div>` : ''}
-            <div class="h-full bg-emerald-400" style="width:${lP}%" title="Surplus (${Math.round(lP)}%)"></div>`;
+            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Budget Left (${Math.round(rP)}%)"></div>` : ''}
+            <div class="h-full bg-emerald-400" style="width:${lP}%" title="Free Room (${Math.round(lP)}%)"></div>`;
 
           if (flowText) {
             const parts = [];
@@ -16738,21 +16740,21 @@ function initSortableWidgets() {
             if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
             if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
             if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
-            parts.push(`<span class="text-emerald-500">Surplus: +${formatMoney(afterBudgetsLeft, cur)} (${Math.round(lP)}%)</span>`);
-            flowText.innerHTML = parts.join(' <span class="text-slate-300">•</span> ');
+            parts.push(`<span class="text-emerald-600">Free Room: ${Math.round(lP)}%</span>`);
+            flowText.innerHTML = `${parts.join(' <span class="text-slate-300">•</span> ')} <span class="text-slate-400">(out of ${formatMoney(expectedTotalIncome, cur)} total expected income for ${escapeHtml(periodIncomeLabel)})</span>`;
           }
         } else {
-          // Deficit: Commitments exceed collected income
-          const denom = totalObligations > 0 ? totalObligations : collectedIncome;
+          // Even with pending invoices, commitments exceed Total Expected Income
+          const denom = totalExpectedCommitments > 0 ? totalExpectedCommitments : expectedTotalIncome;
           const fP = (fixedBills / denom) * 100;
-          const tP = (taxReserve / denom) * 100;
+          const tP = (projectedTax / denom) * 100;
           const sP = (totalAllEverydaySpent / denom) * 100;
           const rP = (remainingPlannedBudget / denom) * 100;
           bar.innerHTML = `
-            <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}% of commitments)"></div>
-            ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}% of commitments)"></div>` : ''}
-            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}% of commitments)"></div>` : ''}
-            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Planned Budget Left (${Math.round(rP)}% of commitments)"></div>` : ''}`;
+            <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}%)"></div>
+            ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}%)"></div>` : ''}
+            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}%)"></div>` : ''}
+            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Budget Left (${Math.round(rP)}%)"></div>` : ''}`;
 
           if (flowText) {
             const parts = [];
@@ -16760,15 +16762,13 @@ function initSortableWidgets() {
             if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
             if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
             if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
-            flowText.innerHTML = parts.join(' <span class="text-slate-300">•</span> ');
+            flowText.innerHTML = `${parts.join(' <span class="text-slate-300">•</span> ')} <span class="text-rose-500">(exceeds ${formatMoney(expectedTotalIncome, cur)} total expected income for ${escapeHtml(periodIncomeLabel)})</span>`;
           }
         }
       } else {
         bar.innerHTML = '<div class="h-full bg-slate-200 w-full"></div>';
         if (flowText) {
-          flowText.textContent = pendingReceivables > 0 
-            ? `No cash deposited yet this month. ${formatMoney(pendingReceivables, cur)} pending in invoices.`
-            : 'Add upcoming client projects or log income to track your cash flow split.';
+          flowText.textContent = 'Add upcoming client projects or log income to track your cash flow split.';
         }
       }
     }
