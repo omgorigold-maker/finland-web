@@ -605,7 +605,7 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 5.5px;
+  bottom: calc(25% - 5.5px);
   height: 6.5px;
   display: flex;
   align-items: center;
@@ -628,7 +628,7 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  top: 5.5px;
+  top: calc(25% - 5.5px);
   height: 6.5px;
   display: flex;
   align-items: center;
@@ -641,7 +641,7 @@ button {
 
 .cal-ring-left {
   position: absolute;
-  left: 5.5px;
+  left: calc(25% - 6.5px);
   top: 0;
   bottom: 0;
   width: 6.5px;
@@ -657,7 +657,7 @@ button {
 
 .cal-ring-right {
   position: absolute;
-  right: 5.5px;
+  right: calc(25% - 6.5px);
   top: 0;
   bottom: 0;
   width: 6.5px;
