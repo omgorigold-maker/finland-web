@@ -1002,7 +1002,7 @@ button {
 
 .swatch-btn.active {
   border-color: var(--ink);
-  box-shadow: 0 0 0 2px #ffffff inset;
+  box-shadow: none;
 }
 
 .new-label-row {
@@ -1858,7 +1858,7 @@ body.density-compact .tx-row {
 
 .tab-color-dot.active {
   border-color: var(--ink);
-  box-shadow: 0 0 0 2px #ffffff inset;
+  box-shadow: none;
 }
 
 .tab-color-picker-wrap {
