@@ -2442,52 +2442,82 @@
       ? [...new Set([...mp.tabOrder.filter(t => validTabs.includes(t)), ...validTabs])]
       : [...validTabs];
 
-    const tabOrderRow = el('div', { className: 'tab-order-list' }, currentOrder.map((tabKey, idx) => {
-      const dotColor = (mp.tabColors && mp.tabColors[tabKey]) || '#0f172a';
-      const move = (delta) => {
-        const nextIdx = idx + delta;
-        if (nextIdx < 0 || nextIdx >= currentOrder.length) return;
-        const copy = [...currentOrder];
-        const [item] = copy.splice(idx, 1);
-        copy.splice(nextIdx, 0, item);
-        mp.tabOrder = copy;
-        applyMobilePrefs(mp);
-        renderMobileCustomSheet();
-      };
-      return el('div', { className: 'tab-order-item' }, [
-        el('span', { className: 'tab-order-left' }, [
-          el('span', { className: 'label-dot', style: `background:${dotColor}` }),
-          el('span', { textContent: tabLabelMap[tabKey] || tabKey })
-        ]),
-        el('div', { className: 'tab-order-arrows' }, [
-          el('button', {
-            type: 'button',
-            className: 'tab-order-btn',
-            disabled: idx === 0,
-            'aria-label': `Move ${tabLabelMap[tabKey]} up`,
-            textContent: '↑',
-            onClick: () => move(-1)
-          }),
-          el('button', {
-            type: 'button',
-            className: 'tab-order-btn',
-            disabled: idx === currentOrder.length - 1,
-            'aria-label': `Move ${tabLabelMap[tabKey]} down`,
-            textContent: '↓',
-            onClick: () => move(1)
-          })
-        ])
-      ]);
-    }));
+    const tabOrderSeg = el('div', { className: 'custom-seg cols-4 tab-order-seg' });
+    const tabBtns = new Map();
+
+    const syncTabOrderSeg = () => {
+      currentOrder.forEach(k => {
+        const b = tabBtns.get(k);
+        if (b) tabOrderSeg.appendChild(b);
+      });
+    };
+
+    currentOrder.forEach(tabKey => {
+      const btn = el('button', {
+        type: 'button',
+        className: 'custom-seg-btn tab-drag-btn' + ((mp.startTab || 'followups') === tabKey ? ' active' : ''),
+        textContent: tabLabelMap[tabKey] || tabKey
+      });
+      btn.setAttribute('data-tab-key', tabKey);
+
+      btn.addEventListener('pointerdown', (e) => {
+        if (e.button && e.button !== 0) return;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        let dragging = false;
+
+        const onMove = (ev) => {
+          if (!dragging && (Math.abs(ev.clientX - startX) > 6 || Math.abs(ev.clientY - startY) > 6)) {
+            dragging = true;
+            btn.classList.add('is-dragging');
+          }
+          if (!dragging) return;
+          const orderedBtns = currentOrder.map(k => tabBtns.get(k)).filter(Boolean);
+          const fromIdx = currentOrder.indexOf(tabKey);
+          let targetIdx = fromIdx;
+          for (let i = 0; i < orderedBtns.length; i++) {
+            const rect = orderedBtns[i].getBoundingClientRect();
+            const mid = rect.left + rect.width / 2;
+            if (ev.clientX < mid) {
+              targetIdx = i;
+              break;
+            }
+            targetIdx = i;
+          }
+          if (targetIdx !== fromIdx && targetIdx >= 0 && targetIdx < currentOrder.length) {
+            currentOrder.splice(fromIdx, 1);
+            currentOrder.splice(targetIdx, 0, tabKey);
+            mp.tabOrder = [...currentOrder];
+            syncTabOrderSeg();
+            applyMobilePrefs(mp);
+          }
+        };
+
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+          btn.classList.remove('is-dragging');
+          if (!dragging) {
+            mp.startTab = tabKey;
+            tabBtns.forEach((b, k) => b.classList.toggle('active', k === tabKey));
+            setTab(tabKey);
+          }
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+      });
+
+      tabBtns.set(tabKey, btn);
+    });
+    syncTabOrderSeg();
 
     body.replaceChildren(
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Tab Icons & Colors' }),
         iconRows
-      ]),
-      el('div', { className: 'custom-group' }, [
-        el('span', { className: 'custom-label', textContent: 'Tab Order' }),
-        tabOrderRow
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Bottom Bar Labels' }),
@@ -2511,16 +2541,8 @@
         ], mp.weekStart || 'sunday', (v) => { mp.weekStart = v; })
       ]),
       el('div', { className: 'custom-group' }, [
-        el('span', { className: 'custom-label', textContent: 'Starting Tab' }),
-        makeSeg([
-          { val: 'followups', label: 'Follow-Ups' },
-          { val: 'calendar', label: 'Calendar' },
-          { val: 'notes', label: 'Notes' },
-          { val: 'money', label: 'Money' }
-        ], mp.startTab || 'followups', (v) => {
-          mp.startTab = v;
-          setTab(v);
-        }, true)
+        el('span', { className: 'custom-label', textContent: 'Tab Order (drag to reorder)' }),
+        tabOrderSeg
       ]),
       el('div', { className: 'custom-group' }, [
         el('span', { className: 'custom-label', textContent: 'Card Density' }),
