@@ -16464,7 +16464,7 @@ function initSortableWidgets() {
 
   // Shrink all Budget tile grey descriptions to one shared size where every line fits fully (no truncation)
   function fitBudgetTileText() {
-    const ids = ['budgetIncomeEquiv', 'budgetPendingEquiv', 'budgetFixedEquiv', 'budgetCategoryEquiv', 'budgetLeftEquiv'];
+    const ids = ['budgetIncomeEquiv', 'budgetPendingEquiv', 'budgetFixedEquiv', 'budgetCategoryEquiv', 'budgetLeftEquiv', 'budgetAfterBudgetsEquiv'];
     const els = ids.map(id => document.getElementById(id)).filter(el => el && el.offsetParent !== null);
     if (!els.length) return;
     const MAX = 10, MIN = 8.5;
@@ -16572,29 +16572,29 @@ function initSortableWidgets() {
 
     // D. Everyday Living Expenses & Category Budgets
     const stats = getFlexibleStats(monthKey, cur);
-    const flexibleSpent = Object.values(stats).reduce((s, c) => s + c.total, 0);
     const catSummary = getCategoryBudgetSummary(monthKey, cur, stats);
     const totalBudgetLimit = catSummary.totalBudgetLimit;
     const totalSpentInBudgeted = catSummary.totalSpentInBudgeted;
     const totalAllEverydaySpent = catSummary.totalAllEverydaySpent;
 
-    // Effective living deduction factoring in category budget limit:
-    // If limits are configured, reserve the budget limit (or actual spend if over budget)
-    // plus any unbudgeted spending. If no limits are set, deduct flexibleSpent.
-    const reservedForBudgeted = Math.max(totalBudgetLimit, totalSpentInBudgeted);
-    const unbudgetedSpent = Math.max(0, totalAllEverydaySpent - totalSpentInBudgeted);
-    const categoryBudgetDeduction = totalBudgetLimit > 0
-      ? (reservedForBudgeted + unbudgetedSpent)
-      : flexibleSpent;
+    // Split Actual Spending vs Remaining Planned Category Budgets cleanly:
+    // - Safe to Spend (Actual): deducts ONLY real money actually spent so far (totalAllEverydaySpent)
+    // - After Budgets (Planned): also reserves any unspent room left inside configured category budgets
+    const remainingPlannedBudget = totalBudgetLimit > 0
+      ? Math.max(0, totalBudgetLimit - totalSpentInBudgeted)
+      : 0;
+    const categoryBudgetDeduction = totalAllEverydaySpent + remainingPlannedBudget;
 
-    // E. Safe to Spend (Cash In Hand basis factoring in Bills, Tax & Category Budget)
-    const safeLeftForLiving = collectedIncome - totalReserved - categoryBudgetDeduction;
-    const perDaySafe = ctx.daysLeft > 0 ? (safeLeftForLiving / ctx.daysLeft) : 0;
-
-    // Projected if all pending invoices clear:
+    // E. Safe to Spend (Actual) & After Budgets (Planned)
     const projectedCollected = collectedIncome + pendingReceivables;
     const projectedTax = projectedCollected * (taxRate / 100);
-    const projectedLeftForLiving = projectedCollected - (fixedBills + projectedTax) - categoryBudgetDeduction;
+    const actualSafeToSpend = collectedIncome - totalReserved - totalAllEverydaySpent;
+    const actualPerDaySafe = ctx.daysLeft > 0 ? (actualSafeToSpend / ctx.daysLeft) : 0;
+    const actualProjectedIfClear = projectedCollected - (fixedBills + projectedTax) - totalAllEverydaySpent;
+
+    const afterBudgetsLeft = collectedIncome - totalReserved - categoryBudgetDeduction;
+    const afterBudgetsPerDay = ctx.daysLeft > 0 ? (afterBudgetsLeft / ctx.daysLeft) : 0;
+    const afterBudgetsProjectedIfClear = projectedCollected - (fixedBills + projectedTax) - categoryBudgetDeduction;
 
     // Update 5 Metric Tiles
     setText('budgetIncomePrimary', formatMoney(collectedIncome, cur));
@@ -16648,32 +16648,58 @@ function initSortableWidgets() {
       }
     }
 
-    // Box 5: Safe to Spend
+    // Box 5: Safe to Spend (Actual) & Box 6: After Budgets (Planned)
     const leftEl = document.getElementById('budgetLeftPrimary');
     if (leftEl) {
-      leftEl.textContent = formatMoney(safeLeftForLiving, cur);
-      leftEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono ${safeLeftForLiving < 0 ? 'text-rose-600' : 'text-slate-900'}`;
+      leftEl.textContent = formatMoney(actualSafeToSpend, cur);
+      leftEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono ${actualSafeToSpend < 0 ? 'text-rose-600' : 'text-slate-900'}`;
     }
     const leftTag = document.getElementById('budgetLeftTag');
     if (leftTag) {
-      if (safeLeftForLiving < 0) {
-        leftTag.textContent = 'Deficit';
-        leftTag.className = 'text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium shrink-0';
-      } else {
-        leftTag.textContent = 'In Hand';
-        leftTag.className = 'text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0';
-      }
+      leftTag.textContent = 'Actual';
+      leftTag.className = 'text-[10px] text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded font-medium shrink-0';
     }
     const leftEqEl = document.getElementById('budgetLeftEquiv');
     if (leftEqEl) {
-      if (ctx.daysLeft > 0 && safeLeftForLiving > 0) {
-        leftEqEl.textContent = `≈ ${formatMoney(perDaySafe, cur)}/day (${ctx.daysLeft}d left)`;
+      if (ctx.daysLeft > 0 && actualSafeToSpend > 0) {
+        leftEqEl.textContent = `≈ ${formatMoney(actualPerDaySafe, cur)}/day (${ctx.daysLeft}d left)`;
       } else if (pendingReceivables > 0) {
-        leftEqEl.textContent = `If invoices clear: ${formatMoney(projectedLeftForLiving, cur)}`;
+        leftEqEl.textContent = `If invoices clear: ${formatMoney(actualProjectedIfClear, cur)}`;
       } else {
-        leftEqEl.textContent = eq(safeLeftForLiving);
+        leftEqEl.textContent = eq(actualSafeToSpend);
       }
-      leftEqEl.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-nowrap';
+      leftEqEl.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
+    }
+
+    const afterEl = document.getElementById('budgetAfterBudgetsPrimary');
+    if (afterEl) {
+      afterEl.textContent = formatMoney(afterBudgetsLeft, cur);
+      afterEl.className = `text-lg sm:text-xl font-bold mt-0.5 font-mono ${afterBudgetsLeft < 0 ? 'text-rose-600' : 'text-slate-900'}`;
+    }
+    const afterTag = document.getElementById('budgetAfterBudgetsTag');
+    if (afterTag) {
+      if (afterBudgetsLeft < 0) {
+        afterTag.textContent = 'Deficit';
+        afterTag.className = 'text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium shrink-0';
+      } else {
+        afterTag.textContent = 'In Hand';
+        afterTag.className = 'text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0';
+      }
+    }
+    const afterEqEl = document.getElementById('budgetAfterBudgetsEquiv');
+    if (afterEqEl) {
+      if (ctx.daysLeft > 0 && afterBudgetsLeft > 0) {
+        afterEqEl.textContent = remainingPlannedBudget > 0
+          ? `Reserves ${formatMoney(remainingPlannedBudget, cur)} planned`
+          : `≈ ${formatMoney(afterBudgetsPerDay, cur)}/day (${ctx.daysLeft}d left)`;
+      } else if (pendingReceivables > 0) {
+        afterEqEl.textContent = `If invoices clear: ${formatMoney(afterBudgetsProjectedIfClear, cur)}`;
+      } else if (remainingPlannedBudget > 0) {
+        afterEqEl.textContent = `Reserves ${formatMoney(remainingPlannedBudget, cur)} planned`;
+      } else {
+        afterEqEl.textContent = eq(afterBudgetsLeft);
+      }
+      afterEqEl.className = 'text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight';
     }
 
     // Fit grey descriptions after all renderers (incl. renderCategoryBudgetsList) have written text
@@ -16683,33 +16709,36 @@ function initSortableWidgets() {
       window.addEventListener('resize', fitBudgetTileText);
     }
 
-    // Cash-Flow Allocation Bar
+    // Cash-Flow Allocation Bar (Bills | Tax | Spent So Far | Budget Plan Left | Surplus)
     const bar = document.getElementById('budgetFlowBar');
     const flowText = document.getElementById('budgetFlowText');
     const runwayText = document.getElementById('budgetRunwayText');
     if (bar) {
       if (collectedIncome > 0) {
         const totalObligations = fixedBills + taxReserve + categoryBudgetDeduction;
-        const isDeficit = safeLeftForLiving < 0;
+        const isPlanDeficit = afterBudgetsLeft < 0;
 
-        if (!isDeficit) {
-          // Normal/Surplus: All commitments fit within collected income
+        if (!isPlanDeficit) {
+          // Normal/Surplus: Bills, spent, AND planned budget all fit within collected income
           const fP = Math.max(0, (fixedBills / collectedIncome) * 100);
           const tP = Math.max(0, (taxReserve / collectedIncome) * 100);
-          const xP = Math.max(0, (categoryBudgetDeduction / collectedIncome) * 100);
-          const lP = Math.max(0, 100 - fP - tP - xP);
+          const sP = Math.max(0, (totalAllEverydaySpent / collectedIncome) * 100);
+          const rP = Math.max(0, (remainingPlannedBudget / collectedIncome) * 100);
+          const lP = Math.max(0, 100 - fP - tP - sP - rP);
           bar.innerHTML = `
             <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}%)"></div>
             ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}%)"></div>` : ''}
-            <div class="h-full bg-slate-700" style="width:${xP}%" title="Category Budget (${Math.round(xP)}%)"></div>
+            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}%)"></div>` : ''}
+            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Planned Budget Left (${Math.round(rP)}%)"></div>` : ''}
             <div class="h-full bg-emerald-400" style="width:${lP}%" title="Surplus (${Math.round(lP)}%)"></div>`;
 
           if (flowText) {
             const parts = [];
             parts.push(`<span class="text-slate-500">Bills: ${Math.round(fP)}%</span>`);
             if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round(tP)}%</span>`);
-            if (categoryBudgetDeduction > 0) parts.push(`<span class="text-slate-700">Category Budget: ${Math.round(xP)}%</span>`);
-            parts.push(`<span class="text-emerald-500">Surplus: +${formatMoney(safeLeftForLiving, cur)} (${Math.round(lP)}%)</span>`);
+            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${Math.round(sP)}%</span>`);
+            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${Math.round(rP)}%</span>`);
+            parts.push(`<span class="text-emerald-500">Surplus: +${formatMoney(afterBudgetsLeft, cur)} (${Math.round(lP)}%)</span>`);
             flowText.innerHTML = parts.join(' <span class="text-slate-300">•</span> ');
           }
         } else {
@@ -16717,20 +16746,32 @@ function initSortableWidgets() {
           const denom = totalObligations > 0 ? totalObligations : collectedIncome;
           const fP = (fixedBills / denom) * 100;
           const tP = (taxReserve / denom) * 100;
-          const xP = (categoryBudgetDeduction / denom) * 100;
+          const sP = (totalAllEverydaySpent / denom) * 100;
+          const rP = (remainingPlannedBudget / denom) * 100;
           bar.innerHTML = `
             <div class="h-full bg-slate-400" style="width:${fP}%" title="Fixed Bills (${Math.round(fP)}% of commitments)"></div>
             ${taxRate > 0 ? `<div class="h-full bg-blue-500" style="width:${tP}%" title="Tax Reserve (${Math.round(tP)}% of commitments)"></div>` : ''}
-            <div class="h-full bg-slate-700" style="width:${xP}%" title="Category Budget (${Math.round(xP)}% of commitments)"></div>`;
+            ${totalAllEverydaySpent > 0 ? `<div class="h-full bg-slate-700" style="width:${sP}%" title="Spent So Far (${Math.round(sP)}% of commitments)"></div>` : ''}
+            ${remainingPlannedBudget > 0 ? `<div class="h-full bg-indigo-300" style="width:${rP}%" title="Planned Budget Left (${Math.round(rP)}% of commitments)"></div>` : ''}`;
 
           if (flowText) {
             const billsPct = Math.round((fixedBills / collectedIncome) * 100);
-            const catPct = Math.round((categoryBudgetDeduction / collectedIncome) * 100);
+            const spentPct = Math.round((totalAllEverydaySpent / collectedIncome) * 100);
+            const remPct = Math.round((remainingPlannedBudget / collectedIncome) * 100);
             const parts = [];
             parts.push(`<span class="text-slate-500">Bills: ${billsPct}%</span>`);
             if (taxRate > 0) parts.push(`<span class="text-blue-600">Tax (${taxRate}%): ${Math.round((taxReserve / collectedIncome) * 100)}%</span>`);
-            if (categoryBudgetDeduction > 0) parts.push(`<span class="text-slate-700">Category Budget: ${catPct}%</span>`);
-            parts.push(`<span class="text-red-500">Deficit: -${formatMoney(Math.abs(safeLeftForLiving), cur)}</span>`);
+            if (totalAllEverydaySpent > 0) parts.push(`<span class="text-slate-700">Spent: ${spentPct}%</span>`);
+            if (remainingPlannedBudget > 0) parts.push(`<span class="text-indigo-500">Budget Left: ${remPct}%</span>`);
+            if (actualSafeToSpend >= 0) {
+              parts.push(`<span class="text-emerald-600">Actual: +${formatMoney(actualSafeToSpend, cur)}</span>`);
+              parts.push(`<span class="text-red-500">After Budgets: -${formatMoney(Math.abs(afterBudgetsLeft), cur)}</span>`);
+            } else {
+              parts.push(`<span class="text-red-500">Actual Deficit: -${formatMoney(Math.abs(actualSafeToSpend), cur)}</span>`);
+              if (remainingPlannedBudget > 0) {
+                parts.push(`<span class="text-red-400">After Budgets: -${formatMoney(Math.abs(afterBudgetsLeft), cur)}</span>`);
+              }
+            }
             flowText.innerHTML = parts.join(' <span class="text-slate-300">•</span> ');
           }
         }

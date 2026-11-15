@@ -1037,8 +1037,8 @@
         <!-- 3-Box Freelancer Cash Flow Metrics:
              Box 1: Collected Income | Pending Invoices
              Box 2: Bills & Tax | Budget Spending
-             Box 3: Safe to Spend -->
-        <div id="budgetMetricsGrid" class="grid grid-cols-1 lg:grid-cols-[1.82fr_2.08fr_1.10fr] gap-2 pt-1">
+             Box 3: Safe to Spend | After Budgets -->
+        <div id="budgetMetricsGrid" class="grid grid-cols-1 lg:grid-cols-[1.58fr_1.80fr_1.62fr] gap-2 pt-1">
           <!-- Box 1: Collected Income & Pending Invoices (Shared Box) -->
           <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-2">
             <!-- 1. Cash In Hand -->
@@ -1096,16 +1096,31 @@
             </div>
           </div>
 
-          <!-- Box 3: Safe Left for Living -->
-          <div class="bg-slate-50/70 border border-slate-100 rounded-xl px-3 py-3 min-w-0 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between gap-1">
-                <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Safe Left for Living">Safe to Spend</span>
-                <span id="budgetLeftTag" class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">In Hand</span>
+          <!-- Box 3: Safe to Spend (Actual) & After Budgets (Planned) (Shared Box) -->
+          <div class="bg-slate-50/70 border border-slate-100 rounded-xl min-w-0 grid grid-cols-2">
+            <!-- 5. Safe to Spend (Actual cash left after real spending so far) -->
+            <div class="px-3 py-3 min-w-0 flex flex-col justify-between border-r border-slate-200/80">
+              <div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Actual cash left after Bills, Tax, and what you have spent so far">Safe to Spend</span>
+                  <span id="budgetLeftTag" class="text-[10px] text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded font-medium shrink-0">Actual</span>
+                </div>
+                <div id="budgetLeftPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
               </div>
-              <div id="budgetLeftPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+              <div id="budgetLeftEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">—</div>
             </div>
-            <div id="budgetLeftEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-nowrap">—</div>
+
+            <!-- 6. After Budgets (Planned balance including remaining category budget limits) -->
+            <div class="px-3 py-3 min-w-0 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap" title="Balance left after reserving remaining planned category budgets">After Budgets</span>
+                  <span id="budgetAfterBudgetsTag" class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium shrink-0">In Hand</span>
+                </div>
+                <div id="budgetAfterBudgetsPrimary" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5 font-mono">€0.00</div>
+              </div>
+              <div id="budgetAfterBudgetsEquiv" class="text-[10px] text-slate-400 font-mono mt-1 whitespace-normal leading-tight">—</div>
+            </div>
           </div>
         </div>
 
