@@ -1033,6 +1033,80 @@
     });
   }
 
+  function askBudgetLimitScope({ targetMonth, title, message } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('budgetScopePromptModal');
+      const monthLabel = typeof formatMonthLabel === 'function' && targetMonth
+        ? formatMonthLabel(targetMonth)
+        : (targetMonth || 'this month');
+
+      if (!modal) {
+        resolve('forward');
+        return;
+      }
+
+      const titleEl = document.getElementById('budgetScopePromptTitle');
+      const msgEl = document.getElementById('budgetScopePromptMessage');
+      const onlyBtn = document.getElementById('budgetScopeOnlyMonthBtn');
+      const forwardBtn = document.getElementById('budgetScopeForwardBtn');
+      const onlyTitleEl = document.getElementById('budgetScopeOnlyMonthTitle');
+      const forwardTitleEl = document.getElementById('budgetScopeForwardTitle');
+      const cancelBtn = document.getElementById('budgetScopeCancelBtn');
+      const closeBtn = document.getElementById('budgetScopeCloseBtn');
+
+      if (titleEl) titleEl.textContent = title || 'Apply Budget Limit Change?';
+      if (msgEl) {
+        msgEl.textContent = message || `Should this limit change apply only to ${monthLabel}, or also roll forward to future months?`;
+      }
+      if (onlyTitleEl) onlyTitleEl.textContent = `Only ${monthLabel}`;
+      if (forwardTitleEl) forwardTitleEl.textContent = `${monthLabel} & future months`;
+
+      let settled = false;
+      const cleanup = (choice) => {
+        if (settled) return;
+        settled = true;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.removeEventListener('click', handleBackdrop);
+        window.removeEventListener('keydown', handleKey, true);
+        if (onlyBtn) onlyBtn.onclick = null;
+        if (forwardBtn) forwardBtn.onclick = null;
+        if (cancelBtn) cancelBtn.onclick = null;
+        if (closeBtn) closeBtn.onclick = null;
+        resolve(choice);
+      };
+
+      const handleBackdrop = (e) => {
+        if (e.target === modal || !e.target.closest('#budgetScopePromptModal .modal-card')) {
+          cleanup(null);
+        }
+      };
+
+      const handleKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(null);
+        }
+      };
+
+      if (onlyBtn) onlyBtn.onclick = (e) => { e.preventDefault(); cleanup('month'); };
+      if (forwardBtn) forwardBtn.onclick = (e) => { e.preventDefault(); cleanup('forward'); };
+      if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); cleanup(null); };
+      if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); cleanup(null); };
+      modal.addEventListener('click', handleBackdrop);
+      window.addEventListener('keydown', handleKey, true);
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (forwardBtn) forwardBtn.focus();
+    });
+  }
+  if (typeof window !== 'undefined') window._askBudgetLimitScope = askBudgetLimitScope;
+
 
   function showVaultAuthModal(forceShow = false) {
     if (isDemoMode()) {
@@ -16323,7 +16397,7 @@ function initSortableWidgets() {
           const b = state.budget.monthlyCategoryLimits[m];
           if (!b || typeof b !== 'object') return;
           const fut = findCategoryLimitEntryInBucket(b, catId, catName);
-          if (fut && fut.scope !== 'month') {
+          if (fut) {
             removeMatchingKeys(b);
             if (Object.keys(b).length === 0) {
               delete state.budget.monthlyCategoryLimits[m];
@@ -18587,35 +18661,6 @@ function initSortableWidgets() {
       lucide.createIcons();
     };
 
-    const applyLimitScopeButtonStyles = (wrapId, btnSelector, activeScope) => {
-      const wrap = byId(wrapId);
-      if (!wrap) return;
-      wrap.querySelectorAll(btnSelector).forEach(btn => {
-        const isActive = btn.getAttribute('data-scope') === activeScope;
-        btn.classList.toggle('bg-white', isActive);
-        btn.classList.toggle('text-slate-900', isActive);
-        btn.classList.toggle('shadow-2xs', isActive);
-        btn.classList.toggle('font-semibold', isActive);
-        btn.classList.toggle('text-slate-600', !isActive);
-        btn.classList.toggle('font-medium', !isActive);
-      });
-    };
-
-    let editCategoryLimitScope = 'month';
-    const setEditCategoryLimitScope = (scope) => {
-      editCategoryLimitScope = scope === 'forward' ? 'forward' : 'month';
-      applyLimitScopeButtonStyles('editCategoryScopeWrap', '.cat-limit-scope-btn', editCategoryLimitScope);
-    };
-
-    const editCatScopeWrap = byId('editCategoryScopeWrap');
-    if (editCatScopeWrap) {
-      editCatScopeWrap.addEventListener('click', (e) => {
-        const btn = e.target.closest('.cat-limit-scope-btn');
-        if (!btn) return;
-        setEditCategoryLimitScope(btn.getAttribute('data-scope'));
-      });
-    }
-
     const showEditCategoryModal = (catName = '') => {
       if (!modalEditCategory) return;
       const isNew = !catName;
@@ -18650,9 +18695,8 @@ function initSortableWidgets() {
 
       const scopeLabelEl = byId('editCategoryScopeLabel');
       if (scopeLabelEl) {
-        scopeLabelEl.textContent = `Apply to (${formatMonthLabel(targetMonth)}):`;
+        scopeLabelEl.textContent = `Saving a changed limit in ${formatMonthLabel(targetMonth)} will ask whether to apply it to this month only or roll it forward.`;
       }
-      setEditCategoryLimitScope('month');
 
       if (deleteCategoryBtn) {
         if (!isNew && categories.length > 1) {
@@ -18712,7 +18756,7 @@ function initSortableWidgets() {
 
     // Save Category Form Handler
     if (editCategoryForm) {
-      editCategoryForm.addEventListener('submit', (e) => {
+      editCategoryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const origName = byId('editCategoryOriginalName').value.trim();
         const newName = byId('editCategoryNameInput').value.trim();
@@ -18722,7 +18766,8 @@ function initSortableWidgets() {
         const rawLimitStr = (limitInputEl.value || '').trim();
         const initialLimitStr = limitInputEl.dataset.initialVal || '';
         const limitVal = parseFloat(rawLimitStr) || 0;
-        const limitChanged = rawLimitStr !== initialLimitStr;
+        const initialLimitNum = parseFloat(initialLimitStr) || 0;
+        const limitChanged = Math.abs(limitVal - initialLimitNum) > 0.001;
         const catId = byId('editCategoryId').value;
         const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
 
@@ -18740,6 +18785,17 @@ function initSortableWidgets() {
         if (existingWithNewName) {
           alert(`A category named "${newName}" already exists. Please choose a different name.`);
           return;
+        }
+
+        let chosenScope = null;
+        const needsScopePrompt = origName ? limitChanged : (limitVal > 0 || limitChanged);
+        if (needsScopePrompt) {
+          chosenScope = await askBudgetLimitScope({
+            targetMonth,
+            title: 'Apply Budget Limit Change?',
+            message: `Should the new ${newName} limit apply only to ${formatMonthLabel(targetMonth)}, or also roll into future months?`
+          });
+          if (!chosenScope) return;
         }
 
         const isRenaming = origName && origName.toLowerCase() !== newName.toLowerCase();
@@ -18775,8 +18831,8 @@ function initSortableWidgets() {
             migrateCategoryMonthlyLimitKeys(savedCatObj, origName);
           }
 
-          if (limitChanged || editCategoryLimitScope === 'forward') {
-            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, editCategoryLimitScope);
+          if (limitChanged && chosenScope) {
+            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, chosenScope);
           }
         } else {
           // Creating brand new category (base limit stays 0 so earlier months stay unaffected)
@@ -18784,8 +18840,8 @@ function initSortableWidgets() {
           state.budget.categories.push(savedCatObj);
           if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
           state.budget.categoryBudgets[newName] = 0;
-          if (limitVal > 0 || limitChanged) {
-            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, editCategoryLimitScope);
+          if ((limitVal > 0 || limitChanged) && chosenScope) {
+            setCategoryLimitForMonth(savedCatObj, targetMonth, limitVal, cur, chosenScope);
           }
         }
 
@@ -18794,7 +18850,10 @@ function initSortableWidgets() {
         syncCategoryDropdowns();
         renderBudgetInputs();
         renderBudgetView();
-        showToast('Category Saved! ✨', `"${newName}" updated for ${formatMonthLabel(targetMonth)}.`, 'success');
+        const scopeSuffix = chosenScope === 'forward'
+          ? `${formatMonthLabel(targetMonth)} & future months`
+          : formatMonthLabel(targetMonth);
+        showToast('Category Saved! ✨', `"${newName}" updated for ${scopeSuffix}.`, 'success');
       });
     }
 
@@ -18863,21 +18922,6 @@ function initSortableWidgets() {
       }
     };
 
-    let adjustBudgetsLimitScope = 'month';
-    const setAdjustBudgetsLimitScope = (scope) => {
-      adjustBudgetsLimitScope = scope === 'forward' ? 'forward' : 'month';
-      applyLimitScopeButtonStyles('adjustBudgetsScopeWrap', '.budgets-limit-scope-btn', adjustBudgetsLimitScope);
-    };
-
-    const adjustScopeWrap = byId('adjustBudgetsScopeWrap');
-    if (adjustScopeWrap) {
-      adjustScopeWrap.addEventListener('click', (e) => {
-        const btn = e.target.closest('.budgets-limit-scope-btn');
-        if (!btn) return;
-        setAdjustBudgetsLimitScope(btn.getAttribute('data-scope'));
-      });
-    }
-
     const renderBudgetInputs = () => {
       const container = byId('categoryBudgetInputsContainer');
       if (!container) return;
@@ -18924,9 +18968,8 @@ function initSortableWidgets() {
       const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
       const scopeLabel = byId('adjustBudgetsScopeLabel');
       if (scopeLabel) {
-        scopeLabel.textContent = `Apply limit changes (${formatMonthLabel(targetMonth)}):`;
+        scopeLabel.textContent = `Saving changed limits in ${formatMonthLabel(targetMonth)} will ask whether to keep them for this month only or roll them forward.`;
       }
-      setAdjustBudgetsLimitScope('month');
       renderBudgetInputs();
       modalBudgets.classList.remove('hidden');
       modalBudgets.classList.add('flex');
@@ -18998,16 +19041,38 @@ function initSortableWidgets() {
     }
 
     if (saveBudgetsBtn) {
-      saveBudgetsBtn.addEventListener('click', () => {
+      saveBudgetsBtn.addEventListener('click', async () => {
         const cur = state.displayCurrency || state.budget.incomeCurrency || 'EUR';
         const targetMonth = getEffectiveBudgetTargetMonth(getBudgetMonthKey());
         if (!state.budget.categoryBudgets) state.budget.categoryBudgets = {};
+
+        const changedItems = [];
         document.querySelectorAll('.cat-budget-input').forEach(input => {
           const cat = input.getAttribute('data-cat');
           const rawStr = (input.value || '').trim();
           const initialVal = input.getAttribute('data-initial-val') || '';
           const val = parseFloat(rawStr) || 0;
-          const changedVal = rawStr !== initialVal;
+          const initialNum = parseFloat(initialVal) || 0;
+          if (Math.abs(val - initialNum) > 0.001) {
+            changedItems.push({ cat, val });
+          }
+        });
+
+        let chosenScope = 'month';
+        if (changedItems.length > 0) {
+          const changedNames = changedItems.map(item => item.cat).filter(Boolean);
+          const summaryName = changedNames.length === 1
+            ? changedNames[0]
+            : `${changedNames.length} categories`;
+          chosenScope = await askBudgetLimitScope({
+            targetMonth,
+            title: 'Apply Budget Limit Change?',
+            message: `Should your updated limit for ${summaryName} apply only to ${formatMonthLabel(targetMonth)}, or also roll into future months?`
+          });
+          if (!chosenScope) return;
+        }
+
+        changedItems.forEach(({ cat, val }) => {
           let found = (state.budget.categories || []).find(c => (c.name || '').toLowerCase() === (cat || '').toLowerCase());
           if (!found) {
             found = {
@@ -19020,12 +19085,9 @@ function initSortableWidgets() {
             };
             state.budget.categories.push(found);
           }
-          const curBucket = state.budget.monthlyCategoryLimits && state.budget.monthlyCategoryLimits[targetMonth];
-          const curEntry = findCategoryLimitEntryInBucket(curBucket, found.id, cat);
-          if (changedVal || (adjustBudgetsLimitScope === 'forward' && curEntry && curEntry.scope === 'month')) {
-            setCategoryLimitForMonth(found, targetMonth, val, cur, adjustBudgetsLimitScope);
-          }
+          setCategoryLimitForMonth(found, targetMonth, val, cur, chosenScope);
         });
+
         let chosenTax = 0;
         if (taxNumInput && taxNumInput.value !== '') {
           const pt = parseInt(taxNumInput.value, 10);
@@ -19038,7 +19100,7 @@ function initSortableWidgets() {
         saveBudget();
         hideBudgetsModal();
         renderBudgetView();
-        const scopeDesc = adjustBudgetsLimitScope === 'forward'
+        const scopeDesc = changedItems.length > 0 && chosenScope === 'forward'
           ? `${formatMonthLabel(targetMonth)} & future months`
           : formatMonthLabel(targetMonth);
         showToast('Budgets Updated', `Limits saved for ${scopeDesc} (${chosenTax}% tax reserve).`, 'success');
@@ -19046,15 +19108,14 @@ function initSortableWidgets() {
     }
 
     // Auto-calculate budgets based on past 3-month spending history + current month activity
-    const executeAutoSuggestBudgets = (scopeOverride) => {
+    const executeAutoSuggestBudgets = async () => {
       const cur = state.displayCurrency;
       const monthKey = getBudgetMonthKey();
       const targetMonth = getEffectiveBudgetTargetMonth(monthKey);
-      const chosenScope = scopeOverride === 'forward' ? 'forward' : 'month';
       const { avgs } = getHistoricalAverages(targetMonth, cur);
       const currentStats = getFlexibleStats(targetMonth, cur);
 
-      let count = 0;
+      const suggestions = [];
       (state.budget.categories || []).forEach(catObj => {
         const cat = catObj.name;
         const a = avgs[cat] || (avgs && Object.entries(avgs).find(([k]) => k.toLowerCase() === (cat || '').toLowerCase())?.[1]);
@@ -19065,19 +19126,37 @@ function initSortableWidgets() {
         if (baseline > 0) {
           // Baseline + 10% safety margin rounded up to nearest 10
           const suggested = Math.ceil((baseline * 1.10) / 10) * 10;
-          setCategoryLimitForMonth(catObj, targetMonth, suggested, cur, chosenScope);
-          count++;
+          suggestions.push({ catObj, suggested });
         }
+      });
+
+      if (suggestions.length === 0) {
+        showToast('No Past Spend Found', `Log some expenses first so Finland can suggest limits for ${formatMonthLabel(targetMonth)}.`, 'info');
+        return;
+      }
+
+      const chosenScope = await askBudgetLimitScope({
+        targetMonth,
+        title: 'Apply Suggested Limits?',
+        message: `Apply these ${suggestions.length} suggested limits only to ${formatMonthLabel(targetMonth)}, or roll them into future months too?`
+      });
+      if (!chosenScope) return;
+
+      suggestions.forEach(({ catObj, suggested }) => {
+        setCategoryLimitForMonth(catObj, targetMonth, suggested, cur, chosenScope);
       });
 
       saveBudget();
       renderBudgetInputs();
       renderBudgetView();
-      showToast('Smart Budgets Set! ✨', `Auto-calculated ${count} category budgets for ${formatMonthLabel(targetMonth)}.`, 'success');
+      const scopeDesc = chosenScope === 'forward'
+        ? `${formatMonthLabel(targetMonth)} & future months`
+        : formatMonthLabel(targetMonth);
+      showToast('Smart Budgets Set! ✨', `Auto-calculated ${suggestions.length} category budgets for ${scopeDesc}.`, 'success');
     };
 
-    if (autoCalcBtn) autoCalcBtn.addEventListener('click', () => executeAutoSuggestBudgets('month'));
-    if (modalAutoSuggestBtn) modalAutoSuggestBtn.addEventListener('click', () => executeAutoSuggestBudgets(adjustBudgetsLimitScope));
+    if (autoCalcBtn) autoCalcBtn.addEventListener('click', () => executeAutoSuggestBudgets());
+    if (modalAutoSuggestBtn) modalAutoSuggestBtn.addEventListener('click', () => executeAutoSuggestBudgets());
 
     // 8. Quick Log Purchase: opens window of this month's transactions
     const quickLogPurchaseModalBtn = byId('openQuickPurchaseModalBtn');
