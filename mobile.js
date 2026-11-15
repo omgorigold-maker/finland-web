@@ -216,13 +216,28 @@
         btn.style.setProperty('--tab-accent', tabColor);
       });
     }
+    const centerSvgViewBox = (svg) => {
+      try {
+        if (svg && typeof svg.getBBox === 'function') {
+          const bb = svg.getBBox();
+          if (bb && bb.width > 0 && bb.height > 0) {
+            const vbX = (bb.x + bb.width / 2) - 12;
+            const vbY = (bb.y + bb.height / 2) - 12;
+            svg.setAttribute('viewBox', `${vbX.toFixed(3)} ${vbY.toFixed(3)} 24 24`);
+          }
+        }
+      } catch {}
+    };
     const calHeaderIcon = document.getElementById('calHeaderIcon');
     if (calHeaderIcon) {
       const calColor = (mp.tabColors && mp.tabColors.calendar) || mp.navColor || '#0f172a';
       calHeaderIcon.style.color = calColor;
       const calIconKey = (mp.tabIcons && mp.tabIcons.calendar) || DEFAULT_MOBILE_PREFS.tabIcons.calendar;
       const calMarkup = MOBILE_TAB_ICONS.calendar && MOBILE_TAB_ICONS.calendar[calIconKey];
-      if (calMarkup) calHeaderIcon.innerHTML = calMarkup;
+      if (calMarkup) {
+        calHeaderIcon.innerHTML = calMarkup;
+        centerSvgViewBox(calHeaderIcon);
+      }
     }
     const qaMap = { transaction: 'money', calendar: 'calendar', note: 'notes' };
     Object.keys(qaMap).forEach(formKey => {
@@ -251,7 +266,10 @@
         }
         iconBox.style.backgroundColor = bgTint;
       }
-      if (svg && markup) svg.innerHTML = markup;
+      if (svg && markup) {
+        svg.innerHTML = markup;
+        centerSvgViewBox(svg);
+      }
     });
     if (document.body) {
       document.body.classList.toggle('density-compact', mp.density === 'compact');
