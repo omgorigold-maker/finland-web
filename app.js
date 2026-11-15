@@ -16484,11 +16484,13 @@ function initSortableWidgets() {
       const el = document.getElementById(id);
       if (!el || el.offsetParent === null) return;
       let size = 10.5;
+      el.style.setProperty('white-space', 'nowrap', 'important');
       el.style.setProperty('font-size', size + 'px', 'important');
       while (size > 9 && el.scrollWidth > el.clientWidth + 0.5) {
         size = Math.round((size - 0.25) * 100) / 100;
         el.style.setProperty('font-size', size + 'px', 'important');
       }
+      el.style.removeProperty('white-space');
     });
 
     const basePrimary = (typeof window !== 'undefined' && window.innerWidth >= 1024)
@@ -16770,8 +16772,6 @@ function initSortableWidgets() {
       afterEqEl.className = 'text-[10.5px] text-slate-500 font-sans tabular-nums mt-1 whitespace-normal leading-tight';
     }
 
-    // Fit grey descriptions after all renderers (incl. renderCategoryBudgetsList) have written text
-    setTimeout(fitBudgetTileText, 0);
     if (!window.__budgetFitResizeBound) {
       window.__budgetFitResizeBound = true;
       window.addEventListener('resize', fitBudgetTileText);
@@ -16885,6 +16885,7 @@ function initSortableWidgets() {
     renderCategoryBudgetsList(monthKey, cur, stats, ctx);
 
     lucide.createIcons();
+    fitBudgetTileText();
   }
 
   // Render Projects List
