@@ -45590,13 +45590,13 @@ ${sectionsText}
 
     const isRedundantTimeLabel = (entry.time === 'Deadline' || entry.time === 'Payment Due' || entry.time === 'Bill');
     const timeBadge = (entry.time && !isRedundantTimeLabel)
-      ? `<span class="text-[9px] font-mono font-bold ${isCompact ? 'px-1 py-0' : 'px-1.5 py-0.2'} rounded shrink-0" style="${isDone ? 'background:#f1f5f9;color:#94a3b8;' : (styleMode === 'badge' ? 'background:rgba(255,255,255,0.2);color:#fff;' : `background:${color}18;color:${color};`)}">${escapeHtml(entry.time)}</span>`
+      ? `<span class="text-[9px] font-mono font-bold ${isCompact ? 'px-1 py-0' : 'px-1.5 py-0.2'} rounded shrink-0 mt-0.5" style="${isDone ? 'background:#f1f5f9;color:#94a3b8;' : (styleMode === 'badge' ? 'background:rgba(255,255,255,0.2);color:#fff;' : `background:${color}18;color:${color};`)}">${escapeHtml(entry.time)}</span>`
       : '';
 
     const bulletColor = isPaidBill ? '#94a3b8' : (isDone ? '#cbd5e1' : (styleMode === 'badge' ? '#ffffff' : color));
 
     return `
-      <div class="cal-plan-entry-card group relative rounded-xl ${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'} ${borderClass} transition-all cursor-grab active:cursor-grabbing flex items-center justify-between gap-1.5 ${isPaidBill ? '' : (isDone ? 'opacity-80' : '')}"
+      <div class="cal-plan-entry-card group relative rounded-xl ${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'} ${borderClass} transition-all cursor-grab active:cursor-grabbing flex items-start justify-between gap-1.5 ${isPaidBill ? '' : (isDone ? 'opacity-80' : '')}"
            style="${boxStyle}"
            draggable="true"
            data-entry-id="${escapeHtml(entry.id)}"
@@ -45608,9 +45608,9 @@ ${sectionsText}
            data-step-idx="${entry.stepIdx !== undefined ? entry.stepIdx : ''}"
            data-lead-id="${escapeHtml(entry.leadId || '')}"
            data-note-id="${escapeHtml(entry.noteId || '')}">
-        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <div class="flex items-start gap-1.5 min-w-0 flex-1">
           ${(entry.kind === 'plan' && (entry.source === 'my_plan' || ((entry.source === 'projects' || entry.source === 'leads') && entry.stepIdx !== undefined))) ? `
-            <input type="checkbox" class="cal-plan-toggle-check cursor-pointer shrink-0"
+            <input type="checkbox" class="cal-plan-toggle-check cursor-pointer shrink-0 mt-0.5"
                    data-entry-id="${escapeHtml(entry.id)}"
                    data-entry-source="${escapeHtml(entry.source)}"
                    data-project-id="${escapeHtml(entry.projectId || '')}"
@@ -45619,11 +45619,11 @@ ${sectionsText}
                    data-lead-id="${escapeHtml(entry.leadId || '')}"
                    ${isDone ? 'checked' : ''}
                    ${isDone ? '' : 'title="Mark as done"'}>
-          ` : `<span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${bulletColor};"></span>`}
+          ` : `<span class="w-2 h-2 rounded-full shrink-0 mt-1" style="background-color: ${bulletColor};"></span>`}
           <div class="min-w-0 flex-1">
-            <div class="text-[11px] font-semibold leading-snug break-words ${isCompact ? 'truncate' : 'line-clamp-2'}" style="${isPaidBill ? 'color: #64748b;' : (isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : textStyle)}">${escapeHtml(entry.title)}</div>
+            <div class="text-[11px] font-semibold leading-snug break-words" style="${isPaidBill ? 'color: #64748b;' : (isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : textStyle)}">${escapeHtml(entry.title)}</div>
             ${(entry.projectName || (!isCompact && entry.location)) ? `
-              <div class="text-[9px] truncate ${isCompact ? 'mt-0' : 'mt-0.5'}" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : (styleMode === 'badge' ? 'color:rgba(255,255,255,0.85);' : 'color:#64748b;')}">
+              <div class="text-[9px] leading-snug break-words ${isCompact ? 'mt-0.5' : 'mt-0.5'}" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : (styleMode === 'badge' ? 'color:rgba(255,255,255,0.85);' : 'color:#64748b;')}">
                 ${escapeHtml(entry.projectName || entry.location)}
               </div>
             ` : ''}
@@ -45675,11 +45675,11 @@ ${sectionsText}
             <span class="text-[9px] font-bold uppercase tracking-wider truncate" style="color: ${labelColor};">${escapeHtml(entry.noteLabel || 'Note')}</span>
           </div>
         </div>
-        <div class="mt-1 text-[11px] font-bold leading-snug break-words ${isCompact ? 'truncate' : 'line-clamp-2'}" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : 'color: #0f172a;'}">
+        <div class="mt-1 text-[11px] font-bold leading-snug break-words" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : 'color: #0f172a;'}">
           ${escapeHtml(entry.title)}
         </div>
         ${(!isCompact && entry.content) ? `
-          <div class="mt-0.5 text-[10px] line-clamp-2 leading-relaxed break-words" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : 'color: #475569;'}">${escapeHtml(entry.content)}</div>
+          <div class="mt-0.5 text-[10px] leading-relaxed break-words" style="${isDone ? 'color: #94a3b8; text-decoration: line-through; text-decoration-color: #64748b;' : 'color: #475569;'}">${escapeHtml(entry.content)}</div>
         ` : ''}
       </div>
     `;
@@ -45844,7 +45844,7 @@ ${sectionsText}
 
     const todayStr = formatLocalYMD(new Date());
     listEl.innerHTML = unscheduled.map(item => `
-      <div class="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-center justify-between gap-2 hover:border-sky-300 transition-all"
+      <div class="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start justify-between gap-2 hover:border-sky-300 transition-all"
            draggable="true"
            data-queue-kind="${escapeHtml(item.kind)}"
            data-project-id="${escapeHtml(item.projectId || '')}"
@@ -45856,9 +45856,9 @@ ${sectionsText}
             <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${item.color};"></span>
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">${escapeHtml(item.subtitle)}</span>
           </div>
-          <div class="text-xs font-semibold text-slate-800 truncate mt-0.5">${escapeHtml(item.title)}</div>
+          <div class="text-xs font-semibold text-slate-800 leading-snug break-words mt-0.5">${escapeHtml(item.title)}</div>
         </div>
-        <input type="date" class="cal-queue-assign-date bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-mono text-slate-700 cursor-pointer shrink-0"
+        <input type="date" class="cal-queue-assign-date bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-mono text-slate-700 cursor-pointer shrink-0 mt-0.5"
                value=""
                min="2024-01-01"
                title="Pick a date to schedule on your Plan"
